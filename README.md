@@ -1,32 +1,45 @@
-# React + TypeScript + Vite
+# Inventory Billing Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Web client for the [Inventory Billing System API](https://github.com/IrvinSegura/Sistema-de-Inventario-y-Facturacion):
+checkout (point of sale) and cash drawer for a grocery store.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Sign in with JWT; the session survives reloads and the access token is renewed transparently. Refreshes
+  are serialized across tabs (Web Locks), since the API rotates refresh tokens and revokes every session if
+  an old one is reused.
+- Cash drawer: open the day's drawer with an opening float and close it with a blind count (the expected
+  cash is shown only after the count is recorded).
+- Checkout: scan or type barcodes, adjust quantities, VAT preview per line (same rounding as the API), cash
+  change, and an `Idempotency-Key` per checkout so a double click or a retried request never charges twice.
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+React 19, TypeScript, Vite, Tailwind CSS + shadcn/ui, TanStack Query, React Router, React Hook Form + Zod,
+openapi-fetch with types generated from the API's OpenAPI document, Vitest, oxlint.
 
-## Expanding the Oxlint configuration
+## Run locally
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Requires Node 22+ and the API running on `http://localhost:8080` (see the API's README; it allows
+`http://localhost:5173` by default). To use another API, set `VITE_API_URL` in `.env.development.local`.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Dev server on http://localhost:5173 |
+| `npm run build` | Typecheck and production build (`dist/`) |
+| `npm run lint` | oxlint |
+| `npm test` | Unit tests (Vitest) |
+| `npm run api:generate` | Regenerate `src/api/schema.d.ts` from the deployed API's OpenAPI document |
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | API base URL, no trailing slash (`.env.development` / `.env.production`) |
