@@ -1,7 +1,8 @@
-import { type LucideIcon, ShoppingCart, Store, Wallet } from 'lucide-react'
+import { type LucideIcon, ShoppingCart, Store, Users, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, NavLink } from 'react-router'
 
+import { type Role, useUser } from '@/auth/auth-context'
 import type { MessageKey } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { PreferencesMenu } from '@/preferences/PreferencesMenu'
@@ -12,11 +13,14 @@ interface NavItem {
   to: string
   label: MessageKey
   icon: LucideIcon
+  // Shown only to these roles; everyone when omitted.
+  roles?: Role[]
 }
 
 const navItems: NavItem[] = [
   { to: '/', label: 'app.nav.checkout', icon: ShoppingCart },
   { to: '/cash-drawer', label: 'app.nav.cashDrawer', icon: Wallet },
+  { to: '/sellers', label: 'app.nav.sellers', icon: Users, roles: ['ADMIN'] },
 ]
 
 export function AppHeader() {
@@ -46,10 +50,12 @@ export function AppHeader() {
 
 function MainNav({ className }: { className?: string }) {
   const { t } = useTranslation()
+  const { role } = useUser()
+  const visibleItems = navItems.filter((item) => !item.roles || item.roles.includes(role))
 
   return (
     <nav aria-label={t('app.mainNavigation')} className={cn('items-stretch gap-1', className)}>
-      {navItems.map(({ to, label, icon: Icon }) => (
+      {visibleItems.map(({ to, label, icon: Icon }) => (
         <NavLink key={to} to={to} end
           className={({ isActive }) => cn(
             'relative flex shrink-0 items-center gap-2 px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none',
