@@ -7,8 +7,8 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { errorMessage } from '@/api/errors'
+import { ErrorAlert } from '@/components/ErrorAlert'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -174,16 +174,6 @@ function ClosingSummaryCard({ drawer }: { drawer: CashDrawer }) {
         {closing.note && <p className="mt-4 text-sm text-muted-foreground">{t('drawer.note', { note: closing.note })}</p>}
       </CardContent>
     </Card>
-  )
-}
-
-function ErrorAlert({ message }: { message: string }) {
-  const { t } = useTranslation()
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>{t('errors.title')}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
   )
 }
 

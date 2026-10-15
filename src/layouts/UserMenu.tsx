@@ -13,11 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-// First letters of the first two words: "Ana María López" -> "AM".
-function initials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join('')
-}
+import { initials } from '@/lib/initials'
 
 export function UserMenu() {
   const { t } = useTranslation()
