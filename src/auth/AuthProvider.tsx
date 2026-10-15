@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { api, refreshSession, setSessionExpiredHandler, unwrap } from '@/api/client'
 import { session } from '@/api/session'
+import i18n from '@/i18n'
 
 import { type Auth, AuthContext, type AuthState, type User } from './auth-context'
 
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setSessionExpiredHandler(() => {
       signOutLocally()
-      toast.info('Your session expired. Please sign in again.')
+      toast.info(i18n.t('session.expired'))
     })
   }, [signOutLocally])
 

@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ThemeProvider } from 'next-themes'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
@@ -6,6 +7,8 @@ import { BrowserRouter } from 'react-router'
 import { ApiError } from '@/api/errors'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { Toaster } from '@/components/ui/sonner'
+import '@/i18n'
+import { themes, themeStorageKey } from '@/preferences/themes'
 
 import { App } from './App'
 import './index.css'
@@ -23,13 +26,17 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-          <Toaster richColors position="top-center" />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    {/* Sets the theme class on <html> before the first paint, so there is no light flash. */}
+    <ThemeProvider attribute="class" themes={themes.filter((theme) => theme !== 'system')}
+      defaultTheme="system" enableSystem storageKey={themeStorageKey} disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+            <Toaster richColors position="top-center" />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -13,6 +13,9 @@ checkout (point of sale) and cash drawer for a grocery store.
 - Checkout: scan or type barcodes, adjust quantities, VAT preview per line (same rounding as the API), cash
   change, and an `Idempotency-Key` per checkout so a double click or a retried request never charges twice.
 
+- English and Spanish (detected from the browser, switchable), including the API's common error messages;
+  light, dark and Oxford blue themes (or the system's). Both choices are remembered per browser.
+
 ## Stack
 
 React 19, TypeScript, Vite, Tailwind CSS + shadcn/ui, TanStack Query, React Router, React Hook Form + Zod,

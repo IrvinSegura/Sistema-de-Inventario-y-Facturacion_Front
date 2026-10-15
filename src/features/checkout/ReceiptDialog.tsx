@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -7,21 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { dateLocale } from '@/i18n'
 import { formatMoney } from '@/lib/money'
 
 import type { Sale } from './queries'
 
 // Shows the sale as the server recorded it (prices and VAT snapshots, server-side totals).
 export function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => void }) {
+  const { t, i18n } = useTranslation()
   return (
     <Dialog open={sale !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         {sale && (
           <>
             <DialogHeader>
-              <DialogTitle>Sale #{sale.saleNumber}</DialogTitle>
+              <DialogTitle>{t('receipt.title', { number: sale.saleNumber })}</DialogTitle>
               <DialogDescription>
-                {new Date(sale.saleDate!).toLocaleString('es-MX')} · {sale.customer?.name} · {sale.paymentMethod}
+                {new Date(sale.saleDate!).toLocaleString(dateLocale(i18n.language))} · {sale.customer?.name}
+                {' · '}{t(`checkout.paymentMethods.${sale.paymentMethod!}`)}
               </DialogDescription>
             </DialogHeader>
             <ul className="grid gap-1 text-sm">
@@ -33,15 +38,15 @@ export function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: (
               ))}
             </ul>
             <dl className="grid grid-cols-2 gap-y-1 border-t pt-3 text-sm">
-              <dt className="text-muted-foreground">Subtotal</dt>
+              <dt className="text-muted-foreground">{t('checkout.subtotal')}</dt>
               <dd className="text-right tabular-nums">{formatMoney(sale.subtotal!)}</dd>
-              <dt className="text-muted-foreground">VAT</dt>
+              <dt className="text-muted-foreground">{t('checkout.vat')}</dt>
               <dd className="text-right tabular-nums">{formatMoney(sale.tax!)}</dd>
-              <dt className="font-semibold">Total</dt>
+              <dt className="font-semibold">{t('checkout.total')}</dt>
               <dd className="text-right font-semibold tabular-nums">{formatMoney(sale.total!)}</dd>
             </dl>
             <DialogFooter>
-              <Button onClick={onClose} autoFocus>New sale</Button>
+              <Button onClick={onClose} autoFocus>{t('receipt.newSale')}</Button>
             </DialogFooter>
           </>
         )}
