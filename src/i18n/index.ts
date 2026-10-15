@@ -1,4 +1,4 @@
-import i18n from 'i18next'
+import i18n, { type ParseKeys } from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
@@ -40,6 +40,9 @@ function syncDocument() {
 }
 i18n.on('languageChanged', syncDocument)
 syncDocument()
+
+// Any translation key, for keys kept in data (menus, tables) instead of written inline.
+export type MessageKey = ParseKeys
 
 export function currentLanguage(): Language {
   return i18n.resolvedLanguage === 'es' ? 'es' : 'en'

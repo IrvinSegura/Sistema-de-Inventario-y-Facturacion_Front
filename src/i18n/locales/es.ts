@@ -5,6 +5,8 @@ export const es: Messages = {
     name: 'Inventario y Facturación',
     loading: 'Cargando',
     signOut: 'Cerrar sesión',
+    accountMenu: 'Menú de la cuenta',
+    mainNavigation: 'Navegación principal',
     roles: { ADMIN: 'Admin', SELLER: 'Vendedor' },
     nav: { checkout: 'Venta', cashDrawer: 'Caja' },
   },

@@ -4,6 +4,8 @@ export const en = {
     name: 'Inventory Billing',
     loading: 'Loading',
     signOut: 'Sign out',
+    accountMenu: 'Account menu',
+    mainNavigation: 'Main navigation',
     roles: { ADMIN: 'Admin', SELLER: 'Seller' },
     nav: { checkout: 'Checkout', cashDrawer: 'Cash drawer' },
   },
