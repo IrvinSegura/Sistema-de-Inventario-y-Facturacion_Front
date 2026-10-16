@@ -2,7 +2,7 @@ import { Store } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { PreferencesMenu } from '@/preferences/PreferencesMenu'
+import { PreferenceToggles } from '@/preferences/PreferenceToggles'
 
 // Read once: the footer doesn't need to change at midnight on New Year's Eve.
 const YEAR = new Date().getFullYear()
@@ -12,24 +12,26 @@ const YEAR = new Date().getFullYear()
 const PHOTO_URL = `${import.meta.env.BASE_URL}auth/grocery-store.jpg`
 const WAVE_ID = 'auth-photo-wave'
 
-// Sign-in screens: one white page whatever the theme (light-scope), the form on the left and the
-// store illustration along the right edge (wide screens only).
+// Sign-in screens: the form on the left and the store illustration along the right edge (wide
+// screens only). Light or dark from the toggles in the header.
 export function AuthLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
 
   return (
-    <div className="light-scope relative min-h-svh overflow-hidden bg-background text-foreground">
+    <div className="relative flex min-h-svh flex-col overflow-hidden bg-background text-foreground">
       <WavePhoto />
-      <div className="relative flex min-h-svh flex-col px-4 py-6 sm:px-8 lg:w-1/2 lg:px-12">
-        <header className="flex items-center justify-between">
-          <span className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Store className="size-5" />
-            </span>
-            <span className="text-base font-semibold tracking-tight">{t('app.name')}</span>
+      {/* Full width, so the toggles sit above the illustration instead of crowding the form's column. */}
+      <header className="relative flex items-center justify-between gap-4 px-4 py-6 sm:px-8 lg:px-12">
+        <span className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Store className="size-5" />
           </span>
-          <PreferencesMenu />
-        </header>
+          {/* Phones only have room for the logo next to the toggles. */}
+          <span className="hidden text-base font-semibold tracking-tight whitespace-nowrap sm:inline">{t('app.name')}</span>
+        </span>
+        <PreferenceToggles />
+      </header>
+      <div className="relative flex flex-1 flex-col px-4 pb-6 sm:px-8 lg:w-1/2 lg:px-12">
         <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           {children}
         </main>
@@ -41,7 +43,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
 
 export function AuthHeading({ icon, title, description }: { icon?: ReactNode; title: string; description: ReactNode }) {
   return (
-    <div className="mb-8 grid gap-2">
+    <div className="mb-8 grid gap-2 text-center">
       {icon && (
         // The icon's size is set here, so every sign-in screen matches.
         <span className="mb-6 flex size-16 items-center justify-self-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm [&>svg]:size-8">{icon}</span>
@@ -52,8 +54,8 @@ export function AuthHeading({ icon, title, description }: { icon?: ReactNode; ti
   )
 }
 
-// Along the page's right edge, past the form's column, with a margin above and below; its left
-// edge is a wave. Anchored to the top so the awning stays in view. Without the file, a faint tint shows.
+// Along the page's right edge, past the form's column, from below the header to a margin above the
+// bottom; its left edge is a wave. Anchored to the top so the awning stays in view. Without the file, a faint tint shows.
 function WavePhoto() {
   return (
     <>
@@ -64,7 +66,7 @@ function WavePhoto() {
             C0.14,0.07 0.17,0.04 0.16,0 Z" />
         </clipPath>
       </svg>
-      <div aria-hidden className="absolute inset-y-10 right-0 hidden w-[46%] bg-current/10 bg-cover bg-top lg:block"
+      <div aria-hidden className="absolute top-24 right-0 bottom-10 hidden w-[46%] bg-current/10 bg-cover bg-top lg:block"
         style={{ clipPath: `url(#${WAVE_ID})`, backgroundImage: `url(${PHOTO_URL})` }} />
     </>
   )

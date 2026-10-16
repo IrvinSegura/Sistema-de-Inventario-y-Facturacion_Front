@@ -16,6 +16,7 @@ export const es: Messages = {
     theme: 'Tema',
     languages: { en: 'English', es: 'Español' },
     themes: { system: 'Sistema', light: 'Claro', dark: 'Oscuro', oxford: 'Azul Oxford' },
+    modes: { light: 'Blanco', dark: 'Negro' },
   },
   login: {
     title: 'Bienvenido de nuevo',

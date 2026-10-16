@@ -3,8 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-/* Oxford is a dark theme too, so dark: utilities apply to it; never inside .light-scope. */
-@custom-variant dark (&:is(.dark *, .oxford *):not(.light-scope *));
+/* Oxford is a dark theme too, so dark: utilities apply to it. */
+@custom-variant dark (&:is(.dark *, .oxford *));
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -49,8 +49,7 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* .light-scope keeps a subtree light whatever the theme (the sign-in screens). */
-:root, .light-scope {
+:root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -169,8 +168,4 @@
   html {
     @apply font-sans;
     }
-}
-
-.light-scope {
-    color-scheme: light;
 }

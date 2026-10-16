@@ -15,6 +15,7 @@ export const en = {
     theme: 'Theme',
     languages: { en: 'English', es: 'Español' },
     themes: { system: 'System', light: 'Light', dark: 'Dark', oxford: 'Oxford blue' },
+    modes: { light: 'Light', dark: 'Dark' },
   },
   login: {
     title: 'Welcome back',
