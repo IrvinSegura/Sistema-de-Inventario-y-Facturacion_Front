@@ -69,7 +69,11 @@ export interface paths {
         /** Update a product (send the version you loaded); stock is not editable here */
         put: operations["update_2"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a product that was never purchased, sold or adjusted
+         * @description A product with stock movements answers 409: deactivate it instead, which keeps its history.
+         */
+        delete: operations["delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -110,7 +114,7 @@ export interface paths {
         get: operations["findById_3"];
         /**
          * Update a customer (send the version you loaded)
-         * @description Changing the tax ID or the active flag requires ADMIN (403 for sellers).
+         * @description Changing the tax ID or the active flag requires ADMIN or SUPERVISOR (403 for sellers).
          */
         put: operations["update_3"];
         post?: never;
@@ -660,7 +664,7 @@ export interface components {
         UpdateUserRequest: {
             name: string;
             /** @enum {string} */
-            role: "ADMIN" | "SELLER";
+            role: "ADMIN" | "SUPERVISOR" | "SELLER";
             active: boolean;
             /** @description Mobile number for password reset codes by SMS; omit or null to remove it */
             phone?: string;
@@ -672,7 +676,7 @@ export interface components {
             email?: string;
             phone?: string;
             /** @enum {string} */
-            role?: "ADMIN" | "SELLER";
+            role?: "ADMIN" | "SUPERVISOR" | "SELLER";
             active?: boolean;
             /** Format: date-time */
             createdAt?: string;
@@ -797,7 +801,7 @@ export interface components {
             email: string;
             password: string;
             /** @enum {string} */
-            role: "ADMIN" | "SELLER";
+            role: "ADMIN" | "SUPERVISOR" | "SELLER";
             /** @description Optional mobile number for password reset codes by SMS, e.g. +525512345678 */
             phone?: string;
         };
@@ -1340,6 +1344,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ProductResponse"];
                 };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

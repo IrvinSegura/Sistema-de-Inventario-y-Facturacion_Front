@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { TFunction } from 'i18next'
-import { Package, PackagePlus } from 'lucide-react'
-import { type ComponentProps, type ReactNode, useMemo, useState } from 'react'
-import { type Path, useForm, type UseFormSetError, useWatch } from 'react-hook-form'
+import { ClipboardList, Info, Package, PackageOpen, PackagePlus } from 'lucide-react'
+import { type ReactNode, useMemo, useState } from 'react'
+import { Controller, type Path, useForm, type UseFormSetError, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { ApiError, errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { FormField as Field } from '@/components/FormField'
-import { NativeSelect } from '@/components/NativeSelect'
+import { Textarea } from '@/components/Textarea'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,14 +22,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import type { LabeledCategory } from '@/features/categories/category-labels'
+import type { Category } from '@/features/categories/queries'
 import { amountField } from '@/lib/amount-field'
 import { formatMoney, withTax } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
+import { CODE, filtered, LABEL, NOT_CODE_CHAR, NOT_DIGIT, NOT_LABEL_CHAR } from '@/lib/text-rules'
 import { cn } from '@/lib/utils'
 
 import { type ImageChoice, ImagePicker } from './ImagePicker'
 import {
-  type Category,
   MAX_ADJUSTMENT,
   type Product,
   useAdjustStock,
@@ -38,7 +41,8 @@ import {
   useUpdateProduct,
   useUploadProductImage,
 } from './queries'
-import { fromPercent, toPercent } from './tax-rate'
+import { StockForm } from './StockForm'
+import { formatTaxRate, fromPercent, toPercent } from './tax-rate'
 
 // Same limits as the API (CreateProductRequest / UpdateProductRequest).
 const SKU_MAX_LENGTH = 50
@@ -56,8 +60,8 @@ function text(t: TFunction, max: number, required?: string) {
 
 function productSchema(t: TFunction) {
   return z.object({
-    name: text(t, NAME_MAX_LENGTH, t('products.form.enterName')),
-    sku: text(t, SKU_MAX_LENGTH, t('products.form.enterSku')),
+    name: text(t, NAME_MAX_LENGTH, t('products.form.enterName')).regex(LABEL, t('products.form.invalidName')),
+    sku: text(t, SKU_MAX_LENGTH, t('products.form.enterSku')).regex(CODE, t('products.form.invalidSku')),
     barcode: z.string().trim().refine((value) => value === '' || BARCODE.test(value), t('products.form.invalidBarcode')),
     categoryId: z.string().min(1, t('products.form.chooseCategory')).transform(Number),
     salePrice: z.string().trim().min(1, t('validation.enterAmount')).pipe(amountField<string>(t, PRICE_MAX)),
@@ -108,6 +112,10 @@ function applyServerErrors<T extends Record<string, unknown>>(error: unknown, se
     return false
   }
   const set = (field: string, message: string) => setError(field as Path<T>, { message })
+  if (error.message === 'Name already exists') {
+    set('name', t('products.form.nameTaken'))
+    return true
+  }
   if (error.message === 'SKU already exists') {
     set('sku', t('products.form.skuTaken'))
     return true
@@ -125,17 +133,20 @@ function applyServerErrors<T extends Record<string, unknown>>(error: unknown, se
   return known.length > 0
 }
 
-export function CreateProductDialog({ open, onOpenChange, categories }: {
+// barcode: a scanned code that isn't registered yet; the form starts with it.
+export function CreateProductDialog({ open, onOpenChange, categories, barcode }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  categories: Category[]
+  categories: LabeledCategory[]
+  barcode?: string
 }) {
   const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <ProductDialogContent icon={<PackagePlus />} title={t('products.createTitle')} description={t('products.createDescription')}>
+      <ProductDialogContent icon={<PackagePlus />} title={t('products.createTitle')}
+        description={barcode ? t('products.scan.newDescription', { code: barcode }) : t('products.createDescription')}>
         {/* Mounted only while open, so every opening starts with an empty form. */}
-        <ProductForm categories={categories} onDone={() => onOpenChange(false)} />
+        <ProductForm categories={categories} initialBarcode={barcode} onDone={() => onOpenChange(false)} />
       </ProductDialogContent>
     </Dialog>
   )
@@ -143,23 +154,57 @@ export function CreateProductDialog({ open, onOpenChange, categories }: {
 
 export function EditProductDialog({ product, categories, onOpenChange }: {
   product: Product | null
-  categories: Category[]
+  categories: LabeledCategory[]
   onOpenChange: (open: boolean) => void
 }) {
   const { t } = useTranslation()
-  // Keeps the last product on screen while the dialog animates out.
+  const [tab, setTab] = useState<EditTab>('details')
+  // Keeps the last product on screen while the dialog animates out; each product opens on its details.
   const [shown, setShown] = useState(product)
   if (product && product !== shown) {
     setShown(product)
+    setTab('details')
   }
   return (
     <Dialog open={!!product} onOpenChange={onOpenChange}>
       <ProductDialogContent icon={<Package />} title={t('products.editTitle')} description={shown?.name}>
-        {shown && <ProductForm product={shown} categories={categories} onDone={() => onOpenChange(false)} />}
+        {shown && (
+          <>
+            <div role="tablist" aria-label={t('products.editTitle')} className="flex gap-1 border-b px-6">
+              {editTabs.map(({ value, icon: Icon }) => (
+                <button key={value} type="button" role="tab" id={`edit-tab-${value}`} aria-controls={`edit-panel-${value}`}
+                  aria-selected={tab === value} onClick={() => setTab(value)}
+                  className={cn(
+                    '-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                    tab === value ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
+                  )}>
+                  <Icon className="size-4" />
+                  {t(`products.editTabs.${value}`)}
+                </button>
+              ))}
+            </div>
+            {/* Both stay mounted, so switching tabs keeps what was typed in the other one. */}
+            <div role="tabpanel" id="edit-panel-details" aria-labelledby="edit-tab-details" hidden={tab !== 'details'}
+              className="flex min-h-0 flex-1 flex-col">
+              <ProductForm product={shown} categories={categories} onDone={() => onOpenChange(false)} />
+            </div>
+            <div role="tabpanel" id="edit-panel-stock" aria-labelledby="edit-tab-stock" hidden={tab !== 'stock'}
+              className="flex min-h-0 flex-1 flex-col">
+              <StockForm key={shown.id} product={shown} onDone={() => onOpenChange(false)} />
+            </div>
+          </>
+        )}
       </ProductDialogContent>
     </Dialog>
   )
 }
+
+type EditTab = 'details' | 'stock'
+
+const editTabs: { value: EditTab; icon: typeof Package }[] = [
+  { value: 'details', icon: ClipboardList },
+  { value: 'stock', icon: PackageOpen },
+]
 
 // Wide on desktop; the header and the buttons stay put while the fields scroll.
 function ProductDialogContent({ icon, title, description, children }: {
@@ -186,8 +231,13 @@ function ProductDialogContent({ icon, title, description, children }: {
 
 // One form for both dialogs: without a product it creates one. Saves the fields first, then the
 // initial stock and the photo (their endpoints bump the version the fields' save needs).
-function ProductForm({ product, categories, onDone }: { product?: Product; categories: Category[]; onDone: () => void }) {
-  const { t } = useTranslation()
+function ProductForm({ product, categories, initialBarcode, onDone }: {
+  product?: Product
+  categories: LabeledCategory[]
+  initialBarcode?: string
+  onDone: () => void
+}) {
+  const { t, i18n } = useTranslation()
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const uploadImage = useUploadProductImage()
@@ -199,7 +249,7 @@ function ProductForm({ product, categories, onDone }: { product?: Product; categ
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const schema = useMemo(() => productSchema(t), [t])
-  const { register, handleSubmit, setError, setValue, getFieldState, control, formState: { errors, isDirty } } = useForm({
+  const { register, handleSubmit, setError, setValue, getValues, setFocus, control, formState: { errors, isDirty } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: product
       ? {
@@ -215,24 +265,37 @@ function ProductForm({ product, categories, onDone }: { product?: Product; categ
           initialStock: '0',
         }
       : {
-          name: '', sku: '', barcode: '', categoryId: '', salePrice: '', taxRate: '', minStock: '0', description: '',
+          name: '', sku: '', barcode: initialBarcode ?? '', categoryId: '', salePrice: '', taxRate: '', minStock: '0', description: '',
           active: true, initialStock: '0',
         },
   })
-  const [salePrice, taxRate] = useWatch({ control, name: ['salePrice', 'taxRate'] })
+  const [salePrice, taxRate, categoryId] = useWatch({ control, name: ['salePrice', 'taxRate', 'categoryId'] })
+  // The category whose VAT was just offered; the product's VAT changes only if the user accepts.
+  const [suggested, setSuggested] = useState<LabeledCategory | null>(null)
   const imageChanged = image.kind !== (product?.imageUrl ? 'current' : 'none')
   // Active categories, plus the product's own if it was deactivated (so the form still shows it).
   const options = categories.filter((category) => category.active || category.id === product?.category?.id)
 
-  // New products: until the VAT is typed by hand, it follows the chosen category's default.
-  const categoryField = register('categoryId', {
-    onChange: (event: { target: { value: string } }) => {
-      const category = categories.find((option) => String(option.id) === event.target.value)
-      if (!product && category && !getFieldState('taxRate').isDirty) {
-        setValue('taxRate', String(toPercent(category.defaultTaxRate!)))
-      }
-    },
-  })
+  // Picking a category offers its VAT (when it differs from the current one) instead of applying it.
+  const onCategoryChange = (value: string) => {
+    const category = categories.find((option) => String(option.id) === value)
+    setSuggested(category && !sameRate(getValues('taxRate'), category) ? category : null)
+  }
+  const applySuggestedRate = () => {
+    setValue('taxRate', String(toPercent(suggested!.defaultTaxRate!)), { shouldDirty: true, shouldValidate: true })
+    setSuggested(null)
+  }
+  const keepOwnRate = () => {
+    setSuggested(null)
+    setFocus('taxRate')
+  }
+  // Under the VAT: whether it matches the selected category's default.
+  const selected = categories.find((option) => String(option.id) === categoryId)
+  const taxRateHint = selected && taxRate.trim() !== '' && Number.isFinite(Number(taxRate))
+    ? sameRate(taxRate, selected)
+      ? t('products.form.taxRateMatches')
+      : t('products.form.taxRateDiffers', { rate: formatTaxRate(selected.defaultTaxRate!, i18n.language) })
+    : undefined
 
   const onSubmit = handleSubmit(async (values) => {
     setSaving(true)
@@ -314,35 +377,59 @@ function ProductForm({ product, categories, onDone }: { product?: Product; categ
           <Section title={t('products.form.general')}>
             <Field id="name" label={t('products.form.name')} error={errors.name}>
               <Input id="name" autoComplete="off" autoFocus maxLength={NAME_MAX_LENGTH}
-                aria-invalid={!!errors.name} {...register('name')} />
+                aria-invalid={!!errors.name} {...filtered(register('name'), NOT_LABEL_CHAR)} />
             </Field>
             {/* Next to the name: in a store the product is usually in hand, ready to scan. */}
             <Field id="barcode" label={t('products.form.barcode')} error={errors.barcode} hint={t('products.form.barcodeHint')}>
               <Input id="barcode" inputMode="numeric" autoComplete="off" maxLength={14}
-                aria-invalid={!!errors.barcode} {...register('barcode')} />
+                aria-invalid={!!errors.barcode} {...filtered(register('barcode'), NOT_DIGIT)} />
             </Field>
             <Field id="category" label={t('products.form.category')} error={errors.categoryId}>
-              <NativeSelect id="category" aria-invalid={!!errors.categoryId} {...categoryField}>
-                {!product && <option value="" disabled>{t('products.form.chooseCategory')}</option>}
-                {options.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.active ? category.name : t('products.form.inactiveCategory', { name: category.name })}
-                  </option>
-                ))}
-              </NativeSelect>
+              <Controller control={control} name="categoryId" render={({ field }) => (
+                <Select id="category" value={field.value} aria-invalid={!!errors.categoryId}
+                  placeholder={t('products.form.chooseCategory')}
+                  onValueChange={(value) => {
+                    field.onChange(value)
+                    onCategoryChange(value)
+                  }}
+                  options={options.map((category) => ({
+                    value: String(category.id),
+                    label: category.active ? category.label : t('products.form.inactiveCategory', { name: category.label }),
+                  }))} />
+              )} />
             </Field>
             <Field id="sku" label={t('products.form.sku')} error={errors.sku} hint={t('products.form.skuHint')}>
-              <Input id="sku" autoComplete="off" maxLength={SKU_MAX_LENGTH} aria-invalid={!!errors.sku} {...register('sku')} />
+              {/* Uppercased while typing, as the API stores it. */}
+              <Input id="sku" autoComplete="off" maxLength={SKU_MAX_LENGTH} aria-invalid={!!errors.sku}
+                {...filtered(register('sku'), NOT_CODE_CHAR, (value) => value.toUpperCase())} />
             </Field>
           </Section>
 
           <Section title={t('products.form.pricing')} columns={3}>
+            {suggested && !sameRate(taxRate, suggested) && (
+              <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2 lg:col-span-3">
+                <Info className="size-4 shrink-0 text-primary" />
+                <span className="min-w-0 flex-1">
+                  {t('products.form.suggestTaxRate', {
+                    category: suggested.label,
+                    rate: formatTaxRate(suggested.defaultTaxRate!, i18n.language),
+                  })}
+                </span>
+                <span className="flex gap-2">
+                  <Button type="button" size="sm" onClick={applySuggestedRate}>
+                    {t('products.form.applyTaxRate', { rate: formatTaxRate(suggested.defaultTaxRate!, i18n.language) })}
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={keepOwnRate}>
+                    {t('products.form.keepTaxRate')}
+                  </Button>
+                </span>
+              </div>
+            )}
             <Field id="salePrice" label={t('products.form.salePrice')} error={errors.salePrice}>
               <Input id="salePrice" type="number" inputMode="decimal" min={0} step="0.01" placeholder="0.00"
                 aria-invalid={!!errors.salePrice} {...register('salePrice')} />
             </Field>
-            <Field id="taxRate" label={t('products.form.taxRate')} error={errors.taxRate}
-              hint={product ? undefined : t('products.form.taxRateHint')}>
+            <Field id="taxRate" label={t('products.form.taxRate')} error={errors.taxRate} hint={taxRateHint}>
               <Input id="taxRate" type="number" inputMode="decimal" min={0} max={99.99} step="0.01"
                 aria-invalid={!!errors.taxRate} {...register('taxRate')} />
             </Field>
@@ -384,6 +471,11 @@ function ProductForm({ product, categories, onDone }: { product?: Product; categ
   )
 }
 
+// Whether a typed VAT (percent text) equals the category's default; empty never does.
+function sameRate(percent: string, category: Category) {
+  return percent.trim() !== '' && Number(percent) === toPercent(category.defaultTaxRate!)
+}
+
 function Section({ title, columns = 2, children }: { title: string; columns?: 2 | 3; children: ReactNode }) {
   return (
     <section className="grid gap-4">
@@ -409,13 +501,5 @@ function PriceWithVat({ salePrice, taxRate }: { salePrice: string; taxRate: stri
       </output>
       <span className="text-xs text-muted-foreground">{t('products.form.priceWithVatHint')}</span>
     </div>
-  )
-}
-
-// Multi-line text with the same look as <Input>.
-function Textarea(props: ComponentProps<'textarea'>) {
-  return (
-    <textarea rows={2} {...props}
-      className="w-full min-w-0 resize-y rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30" />
   )
 }

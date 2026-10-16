@@ -54,7 +54,7 @@ export function useRecentSales(range: DayRange) {
 const PURCHASE_PAGE_SIZE = 100
 const MAX_PURCHASE_PAGES = 5
 
-// Every purchase of the period, newest first, to chart money out (ADMIN only).
+// Every purchase of the period, newest first, to chart money out (admins and supervisors).
 export function usePurchases(range: DayRange, enabled: boolean) {
   return useQuery({
     queryKey: dashboardKeys.purchases(range),

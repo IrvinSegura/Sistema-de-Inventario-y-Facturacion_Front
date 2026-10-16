@@ -4,7 +4,6 @@ import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
 
 export type Product = Schemas['ProductResponse']
-export type Category = Schemas['CategoryResponse']
 export type CreateProduct = Schemas['CreateProductRequest']
 export type UpdateProduct = Schemas['UpdateProductRequest']
 
@@ -40,15 +39,6 @@ export function useProducts(filters: ProductFilters, page: number) {
     })),
     // Keeps the current page on screen while the next one loads.
     placeholderData: keepPreviousData,
-  })
-}
-
-// Inactive ones too: a product can still belong to one (it shows as inactive in the form).
-export function useCategories() {
-  return useQuery({
-    queryKey: ['categories', 'all'],
-    queryFn: () => unwrap(api.GET('/api/v1/categories', { params: { query: { includeInactive: true } } })),
-    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -119,4 +109,26 @@ export function useAdjustStock() {
       })),
     onSettled: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
   })
+}
+
+// Only products never purchased, sold or adjusted can be deleted; others answer 409 (deactivate them).
+export function useDeleteProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => unwrap(api.DELETE('/api/v1/products/{id}', { params: { path: { id } } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
+  })
+}
+
+// The product with exactly this barcode, active first and then inactive (the search also matches
+// names and SKUs, so only an exact barcode counts); null when none has it.
+export async function findProductByBarcode(barcode: string): Promise<Product | null> {
+  for (const active of [true, false]) {
+    const page = await unwrap(api.GET('/api/v1/products', { params: { query: { search: barcode, active, size: 5 } } }))
+    const match = page.content?.find((product) => product.barcode === barcode)
+    if (match) {
+      return match
+    }
+  }
+  return null
 }

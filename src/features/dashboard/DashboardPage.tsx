@@ -11,7 +11,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
-import { useUser } from '@/auth/auth-context'
+import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,12 +46,12 @@ function lastDays(days: Period): DayRange {
 export function DashboardPage() {
   const { t } = useTranslation()
   const { role } = useUser()
-  const isAdmin = role === 'ADMIN'
+  const isManager = managesStore(role)
   const [period, setPeriod] = useState<Period>(30)
   const range = useMemo(() => lastDays(period), [period])
 
   const report = useSaleReport(range)
-  const purchases = usePurchases(range, isAdmin)
+  const purchases = usePurchases(range, isManager)
   const recentSales = useRecentSales(range)
   const lowStock = useLowStock()
   const error = report.error ?? purchases.error ?? recentSales.error
@@ -79,17 +79,17 @@ export function DashboardPage() {
 
       {error && <ErrorAlert message={errorMessage(error)} />}
 
-      <KpiTiles report={report.data} purchases={isAdmin ? purchases.data : undefined} isAdmin={isAdmin} />
+      <KpiTiles report={report.data} purchases={isManager ? purchases.data : undefined} isManager={isManager} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{t(isAdmin ? 'dashboard.moneyChart' : 'dashboard.salesChart')}</CardTitle>
+            <CardTitle>{t(isManager ? 'dashboard.moneyChart' : 'dashboard.salesChart')}</CardTitle>
             <CardDescription>{t(period === 90 ? 'dashboard.perWeek' : 'dashboard.perDay')}</CardDescription>
           </CardHeader>
           <CardContent>
             {report.data ? (
-              <MoneyChart showPurchases={isAdmin}
+              <MoneyChart showPurchases={isManager}
                 data={moneySeries(range, report.data.byDay ?? [], purchases.data ?? [], period === 90 ? 7 : 1)} />
             ) : (
               <ChartPlaceholder />
@@ -135,20 +135,20 @@ export function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>{t('dashboard.recent')}</CardTitle>
-          <CardDescription>{t(isAdmin ? 'dashboard.recentHint' : 'dashboard.recentSalesHint')}</CardDescription>
+          <CardDescription>{t(isManager ? 'dashboard.recentHint' : 'dashboard.recentSalesHint')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <RecentMovements sales={recentSales.data} purchases={isAdmin ? purchases.data : []} />
+          <RecentMovements sales={recentSales.data} purchases={isManager ? purchases.data : []} />
         </CardContent>
       </Card>
     </div>
   )
 }
 
-function KpiTiles({ report, purchases, isAdmin }: {
+function KpiTiles({ report, purchases, isManager }: {
   report?: SaleReport
   purchases?: PurchaseSummary[]
-  isAdmin: boolean
+  isManager: boolean
 }) {
   const { t } = useTranslation()
   const sales = report?.completed?.total
@@ -161,7 +161,7 @@ function KpiTiles({ report, purchases, isAdmin }: {
       value: sales,
       hint: t('dashboard.salesCount', { count: saleCount }),
     },
-    ...(isAdmin
+    ...(isManager
       ? [
           {
             label: t('dashboard.purchases'),
@@ -190,7 +190,7 @@ function KpiTiles({ report, purchases, isAdmin }: {
   ]
 
   return (
-    <div className={cn('grid gap-4 sm:grid-cols-2', isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+    <div className={cn('grid gap-4 sm:grid-cols-2', isManager ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
       {tiles.map((tile) => (
         <Card key={tile.label} size="sm">
           <CardContent className="grid gap-1">

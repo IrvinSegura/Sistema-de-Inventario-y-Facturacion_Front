@@ -1,25 +1,29 @@
-import { Package, PackageOpen, PackagePlus, Pencil, Search } from 'lucide-react'
+import { Package, PackagePlus, Pencil, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
-import { useUser } from '@/auth/auth-context'
+import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
-import { NativeSelect } from '@/components/NativeSelect'
 import { Pagination } from '@/components/Pagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { categoryName } from '@/features/categories/category-labels'
+import { useCategories } from '@/features/categories/queries'
+import { useLabeledCategories } from '@/features/categories/use-labeled-categories'
 import { formatMoney, withTax } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { CreateProductDialog, EditProductDialog } from './ProductDialogs'
-import { StockDialog } from './StockDialog'
+import { DeleteProductDialog } from './DeleteProductDialog'
+import { ScanBar } from './ScanBar'
 import { formatTaxRate } from './tax-rate'
-import { PAGE_SIZE, type Product, type ProductFilters, useCategories, useProducts } from './queries'
+import { PAGE_SIZE, type Product, type ProductFilters, useProducts } from './queries'
 
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
@@ -27,15 +31,17 @@ const SEARCH_DELAY_MS = 300
 export function ProductsPage() {
   const { t } = useTranslation()
   const { role } = useUser()
-  const canEdit = role === 'ADMIN'
+  const canEdit = managesStore(role)
   const [searchText, setSearchText] = useState('')
   const [filters, setFilters] = useState<ProductFilters>({ search: '', categoryId: null, active: true, lowStock: false })
   const [page, setPage] = useState(0)
   const [creating, setCreating] = useState(false)
+  // Barcode a scan didn't find, to start the new product with it.
+  const [newBarcode, setNewBarcode] = useState<string | undefined>()
   const [editing, setEditing] = useState<Product | null>(null)
-  const [adjusting, setAdjusting] = useState<Product | null>(null)
+  const [deleting, setDeleting] = useState<Product | null>(null)
   const products = useProducts(filters, page)
-  const categories = useCategories()
+  const categories = useLabeledCategories(useCategories().data)
 
   // Any filter change goes back to the first page.
   const changeFilters = (change: Partial<ProductFilters>) => {
@@ -59,18 +65,17 @@ export function ProductsPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{t('products.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('products.description')}</p>
-        </div>
-        {canEdit && (
-          <Button size="lg" onClick={() => setCreating(true)}>
-            <PackagePlus />
-            {t('products.new')}
-          </Button>
-        )}
+      <div className="grid gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('products.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('products.description')}</p>
       </div>
+
+      {canEdit && (
+        <ScanBar onFound={setEditing} onMissing={(barcode) => {
+          setNewBarcode(barcode)
+          setCreating(true)
+        }} />
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-56 flex-1">
@@ -78,25 +83,34 @@ export function ProductsPage() {
           <Input type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)}
             placeholder={t('products.searchPlaceholder')} aria-label={t('products.searchLabel')} className="h-9 pl-8" />
         </div>
-        <NativeSelect aria-label={t('products.category')} className="h-9 w-auto min-w-44"
-          value={filters.categoryId ?? ''}
-          onChange={(event) => changeFilters({ categoryId: event.target.value ? Number(event.target.value) : null })}>
-          <option value="">{t('products.allCategories')}</option>
-          {(categories.data ?? []).map((category) => (
-            <option key={category.id} value={category.id}>{category.name}</option>
-          ))}
-        </NativeSelect>
-        <NativeSelect aria-label={t('products.status')} className="h-9 w-auto"
+        <Select aria-label={t('products.category')} className="h-9 w-52"
+          value={filters.categoryId === null ? 'all' : String(filters.categoryId)}
+          onValueChange={(value) => changeFilters({ categoryId: value === 'all' ? null : Number(value) })}
+          options={[
+            { value: 'all', label: t('products.allCategories') },
+            ...categories.map((category) => ({ value: String(category.id), label: category.label })),
+          ]} />
+        <Select aria-label={t('products.status')} className="h-9 w-36"
           value={filters.active ? 'active' : 'inactive'}
-          onChange={(event) => changeFilters({ active: event.target.value === 'active' })}>
-          <option value="active">{t('products.activeOnes')}</option>
-          <option value="inactive">{t('products.inactiveOnes')}</option>
-        </NativeSelect>
+          onValueChange={(value) => changeFilters({ active: value === 'active' })}
+          options={[
+            { value: 'active', label: t('products.activeOnes') },
+            { value: 'inactive', label: t('products.inactiveOnes') },
+          ]} />
         <label className="flex h-9 items-center gap-2 text-sm">
           <input type="checkbox" className="size-4 accent-primary" checked={filters.lowStock}
             onChange={(event) => changeFilters({ lowStock: event.target.checked })} />
           {t('products.lowStockOnly')}
         </label>
+        {canEdit && (
+          <Button className="ml-auto" onClick={() => {
+            setNewBarcode(undefined)
+            setCreating(true)
+          }}>
+            <PackagePlus />
+            {t('products.new')}
+          </Button>
+        )}
       </div>
 
       {products.isPending ? (
@@ -106,7 +120,10 @@ export function ProductsPage() {
       ) : (
         <Card className="gap-0 py-0">
           <ProductsTable products={products.data.content ?? []} filtered={filtered} canEdit={canEdit}
-            onEdit={setEditing} onAdjustStock={setAdjusting} onCreate={() => setCreating(true)} />
+            onEdit={setEditing} onDelete={setDeleting} onCreate={() => {
+              setNewBarcode(undefined)
+              setCreating(true)
+            }} />
           <Pagination page={page} pageSize={PAGE_SIZE} total={products.data.page?.totalElements ?? 0}
             loading={products.isPlaceholderData} onPageChange={setPage} />
         </Card>
@@ -114,22 +131,22 @@ export function ProductsPage() {
 
       {canEdit && (
         <>
-          <CreateProductDialog open={creating} onOpenChange={setCreating} categories={categories.data ?? []} />
-          <EditProductDialog product={editing} categories={categories.data ?? []}
+          <CreateProductDialog open={creating} onOpenChange={setCreating} categories={categories} barcode={newBarcode} />
+          <EditProductDialog product={editing} categories={categories}
             onOpenChange={(open) => !open && setEditing(null)} />
-          <StockDialog product={adjusting} onOpenChange={(open) => !open && setAdjusting(null)} />
+          <DeleteProductDialog product={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
         </>
       )}
     </div>
   )
 }
 
-function ProductsTable({ products, filtered, canEdit, onEdit, onAdjustStock, onCreate }: {
+function ProductsTable({ products, filtered, canEdit, onEdit, onDelete, onCreate }: {
   products: Product[]
   filtered: boolean
   canEdit: boolean
   onEdit: (product: Product) => void
-  onAdjustStock: (product: Product) => void
+  onDelete: (product: Product) => void
   onCreate: () => void
 }) {
   const { t, i18n } = useTranslation()
@@ -182,7 +199,7 @@ function ProductsTable({ products, filtered, canEdit, onEdit, onAdjustStock, onC
             <TableCell className="hidden font-mono text-xs xl:table-cell">
               {product.barcode ?? <span className="text-muted-foreground">—</span>}
             </TableCell>
-            <TableCell className="hidden xl:table-cell">{product.category?.name}</TableCell>
+            <TableCell className="hidden xl:table-cell">{categoryName(product.category?.name, t)}</TableCell>
             <TableCell className="hidden text-right tabular-nums md:table-cell">{formatMoney(product.salePrice!)}</TableCell>
             <TableCell className="hidden text-right tabular-nums md:table-cell">
               {formatTaxRate(product.taxRate!, i18n.language)}
@@ -203,13 +220,14 @@ function ProductsTable({ products, filtered, canEdit, onEdit, onAdjustStock, onC
             </TableCell>
             {canEdit && (
               <TableCell className="pr-4 text-right whitespace-nowrap">
-                <Button variant="ghost" size="icon" aria-label={t('products.stock.open', { name: product.name })}
-                  title={t('products.stock.title')} onClick={() => onAdjustStock(product)}>
-                  <PackageOpen />
-                </Button>
                 <Button variant="ghost" size="icon" aria-label={t('products.edit', { name: product.name })}
                   title={t('products.editTitle')} onClick={() => onEdit(product)}>
                   <Pencil />
+                </Button>
+                <Button variant="ghost" size="icon" aria-label={t('products.delete.open', { name: product.name })}
+                  title={t('products.delete.confirm')} onClick={() => onDelete(product)}
+                  className="text-muted-foreground hover:text-destructive">
+                  <Trash2 />
                 </Button>
               </TableCell>
             )}

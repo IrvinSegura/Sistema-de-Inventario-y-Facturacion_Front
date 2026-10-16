@@ -1,6 +1,11 @@
 import { createContext, use } from 'react'
 
-export type Role = 'ADMIN' | 'SELLER'
+export type Role = 'ADMIN' | 'SUPERVISOR' | 'SELLER'
+
+// Admins and supervisors run the store (catalog, stock, every seller's sales); only admins manage accounts.
+export function managesStore(role: Role): boolean {
+  return role === 'ADMIN' || role === 'SUPERVISOR'
+}
 
 export interface User {
   id: number

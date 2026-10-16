@@ -5,6 +5,7 @@ import { RequireRole } from '@/auth/RequireRole'
 import { CashDrawerPage } from '@/features/cash-drawer/CashDrawerPage'
 import { CheckoutPage } from '@/features/checkout/CheckoutPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { CategoriesPage } from '@/features/categories/CategoriesPage'
 import { ProductsPage } from '@/features/products/ProductsPage'
 import { SellersPage } from '@/features/sellers/SellersPage'
 import { AppLayout } from '@/layouts/AppLayout'
@@ -22,6 +23,7 @@ export function App() {
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="cash-drawer" element={<CashDrawerPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
           <Route element={<RequireRole roles={['ADMIN']} />}>
             <Route path="sellers" element={<SellersPage />} />
           </Route>

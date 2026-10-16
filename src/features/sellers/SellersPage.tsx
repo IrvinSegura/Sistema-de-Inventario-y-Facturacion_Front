@@ -109,7 +109,7 @@ function SellersTable({ sellers, currentUserId, onEdit, onCreate }: {
               </div>
             </TableCell>
             <TableCell>
-              <Badge variant={seller.role === 'ADMIN' ? 'default' : 'secondary'}>{t(`app.roles.${seller.role!}`)}</Badge>
+              <Badge variant={seller.role === 'ADMIN' ? 'default' : seller.role === 'SUPERVISOR' ? 'outline' : 'secondary'}>{t(`app.roles.${seller.role!}`)}</Badge>
             </TableCell>
             <TableCell>
               <span className="inline-flex items-center gap-1.5 text-sm">
