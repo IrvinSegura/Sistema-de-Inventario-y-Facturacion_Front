@@ -2,7 +2,10 @@ import { Navigate, Route, Routes } from 'react-router'
 
 import { RequireAuth } from '@/auth/RequireAuth'
 import { RequireRole } from '@/auth/RequireRole'
+import { CashDrawerLayout } from '@/features/cash-drawer/CashDrawerLayout'
 import { CashDrawerPage } from '@/features/cash-drawer/CashDrawerPage'
+import { DrawerHistoryPage } from '@/features/cash-drawer/DrawerHistoryPage'
+import { TodayDrawersPage } from '@/features/cash-drawer/TodayDrawersPage'
 import { CheckoutPage } from '@/features/checkout/CheckoutPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { CategoriesPage } from '@/features/categories/CategoriesPage'
@@ -21,7 +24,13 @@ export function App() {
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="cash-drawer" element={<CashDrawerPage />} />
+          <Route path="cash-drawer" element={<CashDrawerLayout />}>
+            <Route index element={<CashDrawerPage />} />
+            <Route path="history" element={<DrawerHistoryPage />} />
+            <Route element={<RequireRole roles={['ADMIN', 'SUPERVISOR']} />}>
+              <Route path="today" element={<TodayDrawersPage />} />
+            </Route>
+          </Route>
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route element={<RequireRole roles={['ADMIN']} />}>

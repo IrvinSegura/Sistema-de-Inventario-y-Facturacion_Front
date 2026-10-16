@@ -12,6 +12,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { isFromPastDay } from '@/features/cash-drawer/drawer-day'
+import { formatDate } from '@/features/cash-drawer/format'
 import { useCurrentDrawer } from '@/features/cash-drawer/queries'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -23,7 +25,7 @@ import { ReceiptDialog } from './ReceiptDialog'
 const paymentMethods: PaymentMethod[] = ['CASH', 'CARD', 'TRANSFER']
 
 export function CheckoutPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const drawer = useCurrentDrawer()
   const recordSale = useRecordSale()
   const [lines, dispatchCart] = useReducer(cartReducer, [])
@@ -39,7 +41,9 @@ export function CheckoutPage() {
   const totals = cartTotals(lines)
   const received = Number(cashReceived)
   const change = paymentMethod === 'CASH' && cashReceived !== '' ? received - totals.total : null
-  const drawerOpen = !!drawer.data
+  // The API rejects sales on a drawer left open from a previous day.
+  const staleDrawerDay = drawer.data && isFromPastDay(drawer.data.businessDate) ? drawer.data.businessDate! : null
+  const drawerOpen = !!drawer.data && !staleDrawerDay
   const canCharge = drawerOpen && lines.length > 0 && !recordSale.isPending
     && (paymentMethod !== 'CASH' || cashReceived === '' || received >= totals.total)
 
@@ -105,7 +109,18 @@ export function CheckoutPage() {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <div className="grid content-start gap-4">
-        {!drawerOpen && (
+        {staleDrawerDay && (
+          <Alert variant="destructive">
+            <AlertTitle>{t('checkout.drawerStaleTitle', { date: formatDate(staleDrawerDay, i18n.language) })}</AlertTitle>
+            <AlertDescription>
+              <span>
+                <Trans i18nKey="checkout.drawerStaleHint"
+                  components={{ link: <Link to="/cash-drawer" className="underline" /> }} />
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+        {!drawerOpen && !staleDrawerDay && (
           <Alert>
             <AlertTitle>{t('checkout.drawerClosedTitle')}</AlertTitle>
             <AlertDescription>

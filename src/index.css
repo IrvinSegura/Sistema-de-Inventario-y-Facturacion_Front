@@ -169,3 +169,19 @@
         display: none;
     }
 }
+
+/* <PrintDocument> renders into .print-area: hidden on screen, the only thing on paper. */
+.print-area {
+    display: none;
+}
+
+@media print {
+    body > *:not(.print-area) {
+        display: none !important;
+    }
+    .print-area {
+        display: block;
+        color: #000;
+        background: #fff;
+    }
+}
