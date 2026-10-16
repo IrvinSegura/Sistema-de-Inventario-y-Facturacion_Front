@@ -1,64 +1,67 @@
-import { Moon, Sun } from 'lucide-react'
+import { Languages, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { currentLanguage, languages } from '@/i18n'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { currentLanguage, type Language, languages } from '@/i18n'
 import { cn } from '@/lib/utils'
 
-// Compact language (EN/ES) and light/dark switches for the sign-in screens. Same storage as
-// PreferencesMenu, so the choice carries over to the app until changed again; Oxford counts as dark
-// here, and System shows whichever the OS resolved to.
-export function PreferenceToggles() {
+import { type Theme, themes } from './themes'
+
+// Menu rows that switch language and theme in place: the menu stays open so the change is visible.
+// Both choices are remembered in this browser.
+export function LanguageToggle() {
   const { t, i18n } = useTranslation()
-  const { resolvedTheme, setTheme } = useTheme()
   const language = currentLanguage()
-  const dark = resolvedTheme !== undefined && resolvedTheme !== 'light'
+  const next: Language = language === 'es' ? 'en' : 'es'
 
   return (
-    <div className="flex items-center gap-2">
-      <Segmented label={t('preferences.language')}>
-        {languages.map((option) => (
-          <SegmentButton key={option} active={language === option} label={t(`preferences.languages.${option}`)}
-            onClick={() => void i18n.changeLanguage(option)}>
-            {option.toUpperCase()}
-          </SegmentButton>
-        ))}
-      </Segmented>
-      <Segmented label={t('preferences.theme')}>
-        <SegmentButton active={!dark} label={t('preferences.modes.light')} onClick={() => setTheme('light')}>
-          <Sun />{t('preferences.modes.light')}
-        </SegmentButton>
-        <SegmentButton active={dark} label={t('preferences.modes.dark')} onClick={() => setTheme('dark')}>
-          <Moon />{t('preferences.modes.dark')}
-        </SegmentButton>
-      </Segmented>
-    </div>
+    <DropdownMenuItem closeOnClick={false} onClick={() => void i18n.changeLanguage(next)}
+      aria-label={t('preferences.switchLanguage', { language: t(`preferences.languages.${next}`) })}>
+      <Languages />
+      {t('preferences.language')}
+      <Segmented value={language} options={languages.map((option) => ({ value: option, label: option.toUpperCase() }))} />
+    </DropdownMenuItem>
   )
 }
 
-function Segmented({ label, children }: { label: string; children: ReactNode }) {
+export function ThemeToggle() {
+  const { t } = useTranslation()
+  const { resolvedTheme, setTheme } = useTheme()
+  const theme: Theme = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const next: Theme = theme === 'dark' ? 'light' : 'dark'
+  const icons = { light: Sun, dark: Moon }
+
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-lg border bg-muted p-0.5">
-      {children}
-    </div>
+    <DropdownMenuItem closeOnClick={false} onClick={() => setTheme(next)}
+      aria-label={t('preferences.switchTheme', { theme: t(`preferences.themes.${next}`) })}>
+      {theme === 'dark' ? <Moon /> : <Sun />}
+      {t('preferences.theme')}
+      <Segmented value={theme} options={themes.map((option) => {
+        const Icon = icons[option]
+        return { value: option, label: <Icon className="size-3.5" />, title: t(`preferences.themes.${option}`) }
+      })} />
+    </DropdownMenuItem>
   )
 }
 
-function SegmentButton({ active, label, onClick, children }: {
-  active: boolean
-  label: string
-  onClick: () => void
-  children: ReactNode
+// Two-state pill showing both options; the whole row is the control, so this is only visual.
+function Segmented<T extends string>({ value, options }: {
+  value: T
+  options: { value: T; label: ReactNode; title?: string }[]
 }) {
   return (
-    <button type="button" aria-pressed={active} aria-label={label} onClick={onClick}
-      className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors outline-none',
-        'focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-3.5',
-        active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-      )}>
-      {children}
-    </button>
+    <span className="ml-auto flex rounded-full bg-muted p-0.5" aria-hidden>
+      {options.map((option) => (
+        <span key={option.value} title={option.title}
+          className={cn(
+            'flex h-5 min-w-7 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-muted-foreground transition-colors',
+            option.value === value && 'bg-background text-foreground shadow-sm',
+          )}>
+          {option.label}
+        </span>
+      ))}
+    </span>
   )
 }

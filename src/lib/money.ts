@@ -4,6 +4,15 @@ export function formatMoney(amount: number): string {
   return currency.format(amount)
 }
 
+const compactCurrency = new Intl.NumberFormat('es-MX', {
+  style: 'currency', currency: 'MXN', notation: 'compact', maximumFractionDigits: 1,
+})
+
+// For chart axes: $1.5 K, $2 M.
+export function formatMoneyCompact(amount: number): string {
+  return compactCurrency.format(amount)
+}
+
 // Works in integer cents: adding floats such as 0.1 + 0.2 would drift.
 export function toCents(amount: number): number {
   return Math.round(amount * 100)

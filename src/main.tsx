@@ -8,7 +8,7 @@ import { ApiError } from '@/api/errors'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { Toaster } from '@/components/ui/sonner'
 import '@/i18n'
-import { themes, themeStorageKey } from '@/preferences/themes'
+import { dropUnknownTheme, themes, themeStorageKey } from '@/preferences/themes'
 
 import { App } from './App'
 import './index.css'
@@ -24,10 +24,12 @@ const queryClient = new QueryClient({
   },
 })
 
+dropUnknownTheme()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {/* Sets the theme class on <html> before the first paint, so there is no light flash. */}
-    <ThemeProvider attribute="class" themes={themes.filter((theme) => theme !== 'system')}
+    <ThemeProvider attribute="class" themes={[...themes]}
       defaultTheme="system" enableSystem storageKey={themeStorageKey} disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>

@@ -3,8 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-/* Oxford is a dark theme too, so dark: utilities apply to it. */
-@custom-variant dark (&:is(.dark *, .oxford *));
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -68,8 +67,9 @@
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
+    /* Chart series (blue, orange): validated for color-blind separation on this surface. */
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
@@ -103,8 +103,8 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
@@ -116,42 +116,6 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
-}
-
-/* Oxford blue (#002147): navy surfaces with a light sky-blue accent. */
-.oxford {
-    color-scheme: dark;
-    --background: oklch(0.21 0.06 258);
-    --foreground: oklch(0.97 0.01 250);
-    --card: oklch(0.255 0.065 258);
-    --card-foreground: oklch(0.97 0.01 250);
-    --popover: oklch(0.255 0.065 258);
-    --popover-foreground: oklch(0.97 0.01 250);
-    --primary: oklch(0.8 0.1 238);
-    --primary-foreground: oklch(0.21 0.06 258);
-    --secondary: oklch(0.31 0.065 258);
-    --secondary-foreground: oklch(0.97 0.01 250);
-    --muted: oklch(0.31 0.065 258);
-    --muted-foreground: oklch(0.76 0.04 250);
-    --accent: oklch(0.33 0.07 258);
-    --accent-foreground: oklch(0.97 0.01 250);
-    --destructive: oklch(0.7 0.19 22);
-    --border: oklch(0.85 0.05 250 / 16%);
-    --input: oklch(0.85 0.05 250 / 22%);
-    --ring: oklch(0.68 0.1 240);
-    --chart-1: oklch(0.8 0.1 238);
-    --chart-2: oklch(0.68 0.12 245);
-    --chart-3: oklch(0.56 0.12 252);
-    --chart-4: oklch(0.45 0.1 256);
-    --chart-5: oklch(0.36 0.08 258);
-    --sidebar: oklch(0.255 0.065 258);
-    --sidebar-foreground: oklch(0.97 0.01 250);
-    --sidebar-primary: oklch(0.8 0.1 238);
-    --sidebar-primary-foreground: oklch(0.21 0.06 258);
-    --sidebar-accent: oklch(0.33 0.07 258);
-    --sidebar-accent-foreground: oklch(0.97 0.01 250);
-    --sidebar-border: oklch(0.85 0.05 250 / 16%);
-    --sidebar-ring: oklch(0.68 0.1 240);
 }
 
 .dark {

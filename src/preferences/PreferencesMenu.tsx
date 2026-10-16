@@ -1,55 +1,23 @@
 import { Settings2 } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { currentLanguage, languages } from '@/i18n'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
-import { themes } from './themes'
+import { LanguageToggle, ThemeToggle } from './PreferenceToggles'
 
-// Language and theme; both are remembered in this browser.
+// Language and theme before signing in; once signed in they live in the account menu.
 export function PreferencesMenu() {
-  const { t, i18n } = useTranslation()
-  const { theme, setTheme } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={t('preferences.title')} />}>
         <Settings2 />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>{t('preferences.language')}</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={currentLanguage()}
-            onValueChange={(language: string) => void i18n.changeLanguage(language)}>
-            {languages.map((language) => (
-              <DropdownMenuRadioItem key={language} value={language}>
-                {t(`preferences.languages.${language}`)}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>{t('preferences.theme')}</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={theme ?? 'system'} onValueChange={(value: string) => setTheme(value)}>
-            {themes.map((option) => (
-              <DropdownMenuRadioItem key={option} value={option}>
-                {t(`preferences.themes.${option}`)}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
+      <DropdownMenuContent align="end" className="w-56">
+        <LanguageToggle />
+        <ThemeToggle />
       </DropdownMenuContent>
     </DropdownMenu>
   )
