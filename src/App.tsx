@@ -7,12 +7,14 @@ import { CheckoutPage } from '@/features/checkout/CheckoutPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { SellersPage } from '@/features/sellers/SellersPage'
 import { AppLayout } from '@/layouts/AppLayout'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LoginPage } from '@/pages/LoginPage'
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
