@@ -23,6 +23,8 @@ export class ApiError extends Error {
 // shown as it comes (still meaningful, just untranslated).
 const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Invalid credentials$/, () => i18n.t('apiErrors.invalidCredentials')],
+  [/^Invalid or expired code$/, () => i18n.t('apiErrors.invalidResetCode')],
+  [/^At least one active admin is required$/, () => i18n.t('apiErrors.lastActiveAdmin')],
   [/^Open your cash drawer before selling$/, () => i18n.t('apiErrors.openDrawerFirst')],
   [/^Your cash drawer for today is closed$/, () => i18n.t('apiErrors.drawerClosedToday')],
   [/^Your cash drawer is already open$/, () => i18n.t('apiErrors.drawerAlreadyOpen')],

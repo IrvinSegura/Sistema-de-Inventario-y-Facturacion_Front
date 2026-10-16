@@ -350,6 +350,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password with a reset code
+         * @description The code works once, for 10 minutes and up to 5 wrong attempts; any failure answers 400 'Invalid or expired code'. Signs the user out of every session.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a password reset code by email or SMS
+         * @description Always 202, so the response doesn't reveal whether the account exists. Nothing is sent for unknown or inactive accounts, SMS to an account without a phone, a new request within a minute of the last one or more than 5 codes an hour. A new code replaces the previous one.
+         */
+        post: operations["requestPasswordResetCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -595,12 +635,15 @@ export interface components {
             /** @enum {string} */
             role: "ADMIN" | "SELLER";
             active: boolean;
+            /** @description Mobile number for password reset codes by SMS; omit or null to remove it */
+            phone?: string;
         };
         UserResponse: {
             /** Format: int64 */
             id?: number;
             name?: string;
             email?: string;
+            phone?: string;
             /** @enum {string} */
             role?: "ADMIN" | "SELLER";
             active?: boolean;
@@ -728,6 +771,8 @@ export interface components {
             password: string;
             /** @enum {string} */
             role: "ADMIN" | "SELLER";
+            /** @description Optional mobile number for password reset codes by SMS, e.g. +525512345678 */
+            phone?: string;
         };
         CreateSupplierRequest: {
             name: string;
@@ -918,6 +963,19 @@ export interface components {
             /** Format: int64 */
             expiresIn?: number;
             refreshToken?: string;
+        };
+        ResetPasswordRequest: {
+            email: string;
+            code: string;
+            newPassword: string;
+        };
+        PasswordResetCodeRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            channel: "EMAIL" | "SMS";
+            /** @description Language of the message: es or en (default) */
+            language?: string;
         };
         LoginRequest: {
             email: string;
@@ -1893,6 +1951,50 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["TokenResponse"];
                 };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestPasswordResetCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
