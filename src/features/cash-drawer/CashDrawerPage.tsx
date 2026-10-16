@@ -1,72 +1,78 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { TFunction } from 'i18next'
-import { useMemo } from 'react'
+import { CalendarCheck, Users } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { errorMessage } from '@/api/errors'
+import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { dateLocale } from '@/i18n'
+import { toDay } from '@/features/dashboard/days'
+import { amountField } from '@/lib/amount-field'
 import { formatMoney } from '@/lib/money'
-import { cn } from '@/lib/utils'
+import { showSuccess } from '@/lib/success-popup'
 
-import {
-  type CashDrawer,
-  useCloseDrawer,
-  useCurrentDrawer,
-  useLatestDrawer,
-  useOpenDrawer,
-} from './queries'
+import { ClosingDetails, CloseDrawerForm, DrawerPeople } from './DrawerParts'
+import { isFromPastDay } from './drawer-day'
+import { DrawerSales } from './DrawerSales'
+import { formatDate, formatTime } from './format'
+import { isAssigned, isResponsible, isShared } from './members'
+import { type CashDrawer, useCurrentDrawer, useLatestDrawer, useOpenDrawer } from './queries'
 
-// Up to 2 decimals, within the API's limits; messages in the current language.
-function amount(t: TFunction, max: number) {
-  return z.coerce
-    .number({ error: t('validation.enterAmount') })
-    .min(0, t('validation.minZero'))
-    .max(max, t('validation.atMost', { amount: formatMoney(max) }))
-    // Tolerance: 0.1 * 100 is 10.000000000000002 in floating point.
-    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, t('validation.twoDecimals'))
-}
-
-const NOTE_MAX_LENGTH = 255
-
+// The drawer the signed-in user sells from: their own, or one a manager assigned them (maybe shared).
+// They open their own; only the drawer's responsible counts and closes it.
 export function CashDrawerPage() {
+  const user = useUser()
   const current = useCurrentDrawer()
   const latest = useLatestDrawer(current.data === null)
+  const [today] = useState(() => toDay(new Date()))
 
-  if (current.isPending) {
+  if (current.isPending || (current.data === null && latest.isPending)) {
     return <FullPageSpinner />
   }
-  if (current.isError) {
-    return <ErrorAlert message={errorMessage(current.error)} />
+  if (current.isError || latest.isError) {
+    return <ErrorAlert message={errorMessage(current.error ?? latest.error)} />
   }
+  if (current.data) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {isResponsible(current.data, user.id)
+          ? <CloseDrawerCard drawer={current.data} />
+          : <MemberDrawerCard drawer={current.data} />}
+        <TicketsCard drawer={current.data} canCancel={managesStore(user.role)} />
+      </div>
+    )
+  }
+  const last = latest.data
+  // One drawer per user and day: once today's is closed, the next one opens tomorrow.
+  const closedToday = !!last?.closing && last.businessDate === today
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {current.data ? <CloseDrawerCard drawer={current.data} /> : <OpenDrawerCard />}
-      {!current.data && latest.data?.closing && <ClosingSummaryCard drawer={latest.data} />}
+      {closedToday ? <ClosedTodayCard /> : <OpenDrawerCard suggestedFloat={last?.openingFloat ?? 0} />}
+      {last?.closing && <ClosingSummaryCard drawer={last} />}
     </div>
   )
 }
 
-function OpenDrawerCard() {
+function OpenDrawerCard({ suggestedFloat }: { suggestedFloat: number }) {
   const { t } = useTranslation()
   const openDrawer = useOpenDrawer()
-  const schema = useMemo(() => z.object({ openingFloat: amount(t, 999_999.99) }), [t])
+  const schema = useMemo(() => z.object({ openingFloat: amountField(t, 999_999.99) }), [t])
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { openingFloat: 0 },
+    defaultValues: { openingFloat: suggestedFloat },
   })
 
   const onSubmit = handleSubmit(({ openingFloat }) =>
     openDrawer.mutate(openingFloat, {
-      onSuccess: () => toast.success(t('drawer.opened')),
+      onSuccess: () => showSuccess(t('drawer.opened')),
     }))
 
   return (
@@ -82,7 +88,13 @@ function OpenDrawerCard() {
             <Label htmlFor="openingFloat">{t('drawer.openingFloatInput')}</Label>
             <Input id="openingFloat" type="number" inputMode="decimal" step="0.01" min="0" autoFocus
               aria-invalid={!!errors.openingFloat} {...register('openingFloat')} />
-            {errors.openingFloat && <p className="text-sm text-destructive">{errors.openingFloat.message}</p>}
+            {errors.openingFloat
+              ? <p className="text-sm text-destructive">{errors.openingFloat.message}</p>
+              : suggestedFloat > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {t('drawer.suggestedFloat', { amount: formatMoney(suggestedFloat) })}
+                </p>
+              )}
           </div>
           <Button type="submit" size="lg" disabled={openDrawer.isPending}>
             {openDrawer.isPending ? t('drawer.opening') : t('drawer.open')}
@@ -93,51 +105,84 @@ function OpenDrawerCard() {
   )
 }
 
-function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
-  const { t, i18n } = useTranslation()
-  const closeDrawer = useCloseDrawer()
-  const schema = useMemo(() => z.object({
-    countedCash: amount(t, 9_999_999.99),
-    note: z.string().trim().max(NOTE_MAX_LENGTH, t('validation.maxChars', { count: NOTE_MAX_LENGTH })).optional(),
-  }), [t])
-  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
-
-  const onSubmit = handleSubmit(({ countedCash, note }) =>
-    closeDrawer.mutate({ id: drawer.id!, countedCash, note: note || undefined }, {
-      onSuccess: () => toast.success(t('drawer.closed')),
-    }))
-
+function ClosedTodayCard() {
+  const { t } = useTranslation()
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('drawer.openNow', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
+        <span className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
+          <CalendarCheck className="size-5 text-muted-foreground" />
+        </span>
+        <CardTitle>{t('drawer.closedTodayTitle')}</CardTitle>
+        <CardDescription>{t('drawer.closedTodayDescription')}</CardDescription>
+      </CardHeader>
+    </Card>
+  )
+}
+
+function OpenDrawerHeader({ drawer }: { drawer: CashDrawer }) {
+  const { t, i18n } = useTranslation()
+  return (
+    <CardHeader>
+      <CardTitle>{t('drawer.openNow', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
+      <CardDescription>
+        {t('drawer.openedAt', {
+          time: formatTime(drawer.openedAt!, i18n.language),
+          amount: formatMoney(drawer.openingFloat!),
+        })}
+      </CardDescription>
+    </CardHeader>
+  )
+}
+
+function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
+  return (
+    <Card>
+      <OpenDrawerHeader drawer={drawer} />
+      <CardContent className="grid gap-4">
+        {(isShared(drawer) || isAssigned(drawer)) && <DrawerPeople drawer={drawer} />}
+        <CloseDrawerForm drawer={drawer} />
+      </CardContent>
+    </Card>
+  )
+}
+
+// A member who isn't the responsible sells from it, but the responsible counts and closes it.
+function MemberDrawerCard({ drawer }: { drawer: CashDrawer }) {
+  const { t, i18n } = useTranslation()
+  return (
+    <Card className="content-start">
+      <OpenDrawerHeader drawer={drawer} />
+      <CardContent className="grid gap-4">
+        {isFromPastDay(drawer.businessDate) && (
+          <Alert variant="destructive">
+            <AlertTitle>{t('drawer.staleTitle', { date: formatDate(drawer.businessDate!, i18n.language) })}</AlertTitle>
+            <AlertDescription>{t('drawer.staleMemberHint')}</AlertDescription>
+          </Alert>
+        )}
+        <DrawerPeople drawer={drawer} />
+        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+          <Users className="mt-0.5 size-4 shrink-0" />
+          {t('drawer.closedByResponsible', { name: drawer.responsible?.name })}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TicketsCard({ drawer, canCancel }: { drawer: CashDrawer; canCancel: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <Card className="content-start">
+      <CardHeader>
+        <CardTitle>{t('drawer.tickets')}</CardTitle>
+        {/* Sellers only get their own tickets of a shared drawer; managers get everyone's. */}
         <CardDescription>
-          {t('drawer.openedAt', {
-            time: formatTime(drawer.openedAt!, i18n.language),
-            amount: formatMoney(drawer.openingFloat!),
-          })}
+          {t(isShared(drawer) && !canCancel ? 'drawer.ticketsHintShared' : 'drawer.ticketsHint')}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-          {closeDrawer.isError && <ErrorAlert message={errorMessage(closeDrawer.error)} />}
-          {/* Blind count: the expected cash is only shown after the count is recorded. */}
-          <p className="text-sm text-muted-foreground">{t('drawer.countInstructions')}</p>
-          <div className="grid gap-2">
-            <Label htmlFor="countedCash">{t('drawer.countedCashInput')}</Label>
-            <Input id="countedCash" type="number" inputMode="decimal" step="0.01" min="0" autoFocus
-              aria-invalid={!!errors.countedCash} {...register('countedCash')} />
-            {errors.countedCash && <p className="text-sm text-destructive">{errors.countedCash.message}</p>}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="note">{t('drawer.noteInput')}</Label>
-            <Input id="note" maxLength={NOTE_MAX_LENGTH} {...register('note')} />
-            {errors.note && <p className="text-sm text-destructive">{errors.note.message}</p>}
-          </div>
-          <Button type="submit" size="lg" variant="destructive" disabled={closeDrawer.isPending}>
-            {closeDrawer.isPending ? t('drawer.closing') : t('drawer.close')}
-          </Button>
-        </form>
+        <DrawerSales drawerId={drawer.id!} canCancel={canCancel} showSeller={isShared(drawer) && canCancel} />
       </CardContent>
     </Card>
   )
@@ -146,7 +191,6 @@ function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
 function ClosingSummaryCard({ drawer }: { drawer: CashDrawer }) {
   const { t, i18n } = useTranslation()
   const closing = drawer.closing!
-  const difference = closing.difference!
   return (
     <Card>
       <CardHeader>
@@ -156,32 +200,8 @@ function ClosingSummaryCard({ drawer }: { drawer: CashDrawer }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <dl className="grid grid-cols-2 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">{t('drawer.openingFloat')}</dt>
-          <dd className="text-right tabular-nums">{formatMoney(drawer.openingFloat!)}</dd>
-          <dt className="text-muted-foreground">{t('drawer.expectedCash')}</dt>
-          <dd className="text-right tabular-nums">{formatMoney(closing.expectedCash!)}</dd>
-          <dt className="text-muted-foreground">{t('drawer.countedCash')}</dt>
-          <dd className="text-right tabular-nums">{formatMoney(closing.countedCash!)}</dd>
-          <dt className="font-medium">
-            {t(difference < 0 ? 'drawer.shortage' : difference > 0 ? 'drawer.surplus' : 'drawer.difference')}
-          </dt>
-          <dd className={cn('text-right font-medium tabular-nums',
-            difference < 0 && 'text-destructive', difference > 0 && 'text-amber-600 dark:text-amber-400')}>
-            {formatMoney(difference)}
-          </dd>
-        </dl>
-        {closing.note && <p className="mt-4 text-sm text-muted-foreground">{t('drawer.note', { note: closing.note })}</p>}
+        <ClosingDetails drawer={drawer} />
       </CardContent>
     </Card>
   )
-}
-
-function formatTime(instant: string, language: string): string {
-  return new Date(instant).toLocaleTimeString(dateLocale(language), { hour: '2-digit', minute: '2-digit' })
-}
-
-// Business dates are plain local days ("2026-10-15"); parsed at noon so no time zone shifts the day.
-function formatDate(day: string, language: string): string {
-  return new Date(`${day}T12:00:00`).toLocaleDateString(dateLocale(language), { dateStyle: 'medium' })
 }

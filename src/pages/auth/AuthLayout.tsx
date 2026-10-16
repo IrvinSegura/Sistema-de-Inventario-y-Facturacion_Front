@@ -2,7 +2,7 @@ import { Store } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { PreferenceToggles } from '@/preferences/PreferenceToggles'
+import { PreferencesMenu } from '@/preferences/PreferencesMenu'
 
 // Read once: the footer doesn't need to change at midnight on New Year's Eve.
 const YEAR = new Date().getFullYear()
@@ -29,7 +29,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           {/* Phones only have room for the logo next to the toggles. */}
           <span className="hidden text-base font-semibold tracking-tight whitespace-nowrap sm:inline">{t('app.name')}</span>
         </span>
-        <PreferenceToggles />
+        <PreferencesMenu />
       </header>
       <div className="relative flex flex-1 flex-col px-4 pb-6 sm:px-8 lg:w-1/2 lg:px-12">
         <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">

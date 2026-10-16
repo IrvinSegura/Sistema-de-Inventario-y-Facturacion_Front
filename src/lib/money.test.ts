@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { lineTaxCents, toCents } from './money'
+import { lineTaxCents, toCents, withTax } from './money'
 
 describe('lineTaxCents', () => {
   it('rounds half up to cents, like the API', () => {
@@ -23,5 +23,13 @@ describe('toCents', () => {
   it('avoids binary fractions', () => {
     expect(toCents(0.1) + toCents(0.2)).toBe(30)
     expect(toCents(32.5)).toBe(3250)
+  })
+})
+
+describe('withTax', () => {
+  it('adds the VAT rounded like a one-unit sale line', () => {
+    expect(withTax(10.05, 0.16)).toBe(11.66)
+    expect(withTax(18.5, 0)).toBe(18.5)
+    expect(withTax(0.5, 0.05)).toBe(0.53)
   })
 })

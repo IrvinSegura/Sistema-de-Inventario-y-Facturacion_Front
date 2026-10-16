@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router'
 
 import { ApiError } from '@/api/errors'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { SuccessPopup } from '@/components/SuccessPopup'
 import { Toaster } from '@/components/ui/sonner'
 import '@/i18n'
 import { dropUnknownTheme, themes, themeStorageKey } from '@/preferences/themes'
@@ -28,14 +29,16 @@ dropUnknownTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* Sets the theme class on <html> before the first paint, so there is no light flash. */}
-    <ThemeProvider attribute="class" themes={[...themes]}
+    {/* The class is already on <html> from index.html. next-themes' own pre-paint script only runs
+        with server rendering, so it is marked as data to stop React warning about it. */}
+    <ThemeProvider attribute="class" themes={[...themes]} scriptProps={{ type: 'application/json' }}
       defaultTheme="system" enableSystem storageKey={themeStorageKey} disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
             <App />
             <Toaster richColors position="top-center" />
+            <SuccessPopup />
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

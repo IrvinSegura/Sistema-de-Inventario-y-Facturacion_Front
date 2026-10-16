@@ -82,7 +82,8 @@ function SidebarNav({ compact = false }: { compact?: boolean }) {
   return (
     <nav aria-label={t('app.mainNavigation')} className="grid gap-1 overflow-y-auto p-3">
       {visibleItems.map(({ to, label, icon: Icon }) => (
-        <NavLink key={to} to={to} end title={compact ? t(label) : undefined}
+        // Exact match only for the dashboard ("/"); other sections stay highlighted on their tabs.
+        <NavLink key={to} to={to} end={to === '/'} title={compact ? t(label) : undefined}
           className={({ isActive }) => cn(
             'flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none',
             'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50',

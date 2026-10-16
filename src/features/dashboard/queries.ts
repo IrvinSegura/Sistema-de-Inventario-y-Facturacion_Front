@@ -2,21 +2,12 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
 
-import { addDays, type DayRange } from './days'
+import { dayAfter, type DayRange, startOfDay } from './days'
 
 export type SaleReport = Schemas['SaleReportResponse']
 export type SaleSummary = Schemas['SaleSummaryResponse']
 export type PurchaseSummary = Schemas['PurchaseSummaryResponse']
 export type LowStockProduct = Schemas['LowStockProductResponse']
-
-// Midnight of a calendar day in the browser's time zone, as an instant for the list endpoints.
-function startOfDay(day: string): string {
-  return new Date(`${day}T00:00:00`).toISOString()
-}
-
-function dayAfter(day: string): string {
-  return startOfDay(addDays(day, 1))
-}
 
 export const dashboardKeys = {
   report: (range: DayRange) => ['sale-reports', range] as const,
@@ -54,7 +45,7 @@ export function useRecentSales(range: DayRange) {
 const PURCHASE_PAGE_SIZE = 100
 const MAX_PURCHASE_PAGES = 5
 
-// Every purchase of the period, newest first, to chart money out (ADMIN only).
+// Every purchase of the period, newest first, to chart money out (admins and supervisors).
 export function usePurchases(range: DayRange, enabled: boolean) {
   return useQuery({
     queryKey: dashboardKeys.purchases(range),

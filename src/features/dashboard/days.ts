@@ -10,6 +10,15 @@ export function addDays(day: string, days: number): string {
   return toDay(date)
 }
 
+// Midnight of a calendar day in the browser's time zone, as an instant for the list endpoints.
+export function startOfDay(day: string): string {
+  return new Date(`${day}T00:00:00`).toISOString()
+}
+
+export function dayAfter(day: string): string {
+  return startOfDay(addDays(day, 1))
+}
+
 // Calendar days, both inclusive.
 export interface DayRange {
   from: string

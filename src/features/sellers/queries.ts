@@ -13,7 +13,7 @@ export const sellerKeys = {
   page: (page: number) => ['users', 'page', page] as const,
 }
 
-// Sellers and admins share the users API (ADMIN only), sorted by name on the server.
+// Every account (sellers, supervisors and admins) comes from the users API (ADMIN only), sorted by name on the server.
 export function useSellers(page: number) {
   return useQuery({
     queryKey: sellerKeys.page(page),

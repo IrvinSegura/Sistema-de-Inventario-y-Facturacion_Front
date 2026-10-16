@@ -69,7 +69,35 @@ export interface paths {
         /** Update a product (send the version you loaded); stock is not editable here */
         put: operations["update_2"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a product that was never purchased, sold or adjusted
+         * @description A product with stock movements answers 409: deactivate it instead, which keeps its history.
+         */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload or replace a product's image (PNG, JPEG, WebP or GIF, up to 5 MB)
+         * @description The format is checked from the file's content. Changes the product's version.
+         */
+        put: operations["replaceImage"];
+        post?: never;
+        /**
+         * Remove a product's image
+         * @description Changes the product's version.
+         */
+        delete: operations["removeImage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -86,7 +114,7 @@ export interface paths {
         get: operations["findById_3"];
         /**
          * Update a customer (send the version you loaded)
-         * @description Changing the tax ID or the active flag requires ADMIN (403 for sellers).
+         * @description Changing the tax ID or the active flag requires ADMIN or SUPERVISOR (403 for sellers).
          */
         put: operations["update_3"];
         post?: never;
@@ -298,13 +326,13 @@ export interface paths {
         };
         /**
          * List cash drawers, newest day first
-         * @description Sellers only get their own.
+         * @description Sellers only get the ones they're in.
          */
         get: operations["search_5"];
         put?: never;
         /**
          * Open today's cash drawer with its opening float
-         * @description One drawer per user and day in the store's time zone; sales need it open. 409 if a drawer is still open (close the previous day's first) or today's was already closed.
+         * @description A personal drawer: the user is its only member and its responsible. Each user is in one drawer per day in the store's time zone; sales need it open. 409 if they're still in an open drawer (the previous day's must be closed first) or today's was already closed.
          */
         post: operations["open"];
         delete?: never;
@@ -324,9 +352,29 @@ export interface paths {
         put?: never;
         /**
          * Close a cash drawer with the counted cash
-         * @description Records the expected cash (opening float + cash sales of the day - cash cancellations of the day) and the difference with the counted cash. Waits for sales in progress; afterwards the user can't sell until the next day's drawer is opened. Already closed: 409.
+         * @description Records the expected cash (opening float + cash sales recorded in the drawer - cash refunds that came out of it) and the difference with the counted cash. Only its responsible or a manager can close it (403 for the other members). Waits for sales in progress; afterwards its members can't sell until they're in the next day's drawer. Already closed: 409.
          */
         post: operations["close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cash-drawers/assigned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open today's cash drawer for one or several users
+         * @description The manager hands over the float; the members sell from it and the responsible (one of them) counts and closes it. 400 for unknown, inactive or repeated users; 409 if one of them is already in an open drawer or had one today.
+         */
+        post: operations["openAssigned"];
         delete?: never;
         options?: never;
         head?: never;
@@ -361,7 +409,7 @@ export interface paths {
         put?: never;
         /**
          * Set a new password with a reset code
-         * @description The code works once, for 10 minutes and up to 5 wrong attempts; any failure answers 400 'Invalid or expired code'. Signs the user out of every session.
+         * @description The code works once, for 10 minutes and up to 5 wrong attempts; any failure answers 400 'Invalid or expired code'. Signs the user out of every session. 429 with Retry-After when one client address sends too many attempts, whatever the account.
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -381,7 +429,7 @@ export interface paths {
         put?: never;
         /**
          * Send a password reset code by email or SMS
-         * @description Always 202, so the response doesn't reveal whether the account exists. Nothing is sent for unknown or inactive accounts, SMS to an account without a phone, a new request within a minute of the last one or more than 5 codes an hour. A new code replaces the previous one.
+         * @description Always 202, so the response doesn't reveal whether the account exists. Nothing is sent for unknown or inactive accounts, SMS to an account without a phone, a new request within a minute of the last one or more than 5 codes an hour. A new code replaces the previous one. 429 with Retry-After when one client address sends too many requests, whatever the account.
          */
         post: operations["requestPasswordResetCode"];
         delete?: never;
@@ -416,7 +464,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Log in with email and password */
+        /**
+         * Log in with email and password
+         * @description 429 with Retry-After when one client address sends too many attempts.
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -506,8 +557,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Cash closing for one day, by payment method
-         * @description Sales rung up that day (even if cancelled later) minus cancellations made that day (even of older sales), plus the day's cash drawers; expectedCash is their opening floats plus the net cash. Nets can be negative when cancellations exceed sales. 'closed' turns true 60 s after the day ends; until then, sales still being recorded can change the figures. Sellers get their own drawer: their sales and the cancellations of their sales, only once their drawer for that day is closed (blind count, 409 before).
+         * Cash closing for one day or one drawer, by payment method and seller
+         * @description A day: sales rung up that day (even if cancelled later) minus cancellations made that day (even of older sales), plus the day's cash drawers; expectedCash is their opening floats plus the net cash. 'closed' turns true 60 s after the day ends; until then, sales still being recorded can change the figures. A drawer: the sales recorded in it minus the refunds that came out of it, final once it is closed. Nets can be negative when cancellations exceed sales. Sellers get their own sales (and the cancellations of them) for a day, or a drawer they're in (404 otherwise), only once their drawer is closed (blind count, 409 before).
          */
         get: operations["cashClosing"];
         put?: never;
@@ -596,7 +647,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a cash drawer */
+        /**
+         * Get a cash drawer
+         * @description Sellers get 404 for drawers they aren't in.
+         */
         get: operations["findById_8"];
         put?: never;
         post?: never;
@@ -614,10 +668,30 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The current user's open cash drawer
+         * The open cash drawer the current user is in
          * @description 404 if none is open.
          */
         get: operations["findCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cash-drawers/assignable-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Users who can be assigned a drawer today
+         * @description Active users who aren't in an open drawer and had none today, by name.
+         */
+        get: operations["findAssignableUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -633,7 +707,7 @@ export interface components {
         UpdateUserRequest: {
             name: string;
             /** @enum {string} */
-            role: "ADMIN" | "SELLER";
+            role: "ADMIN" | "SUPERVISOR" | "SELLER";
             active: boolean;
             /** @description Mobile number for password reset codes by SMS; omit or null to remove it */
             phone?: string;
@@ -645,7 +719,7 @@ export interface components {
             email?: string;
             phone?: string;
             /** @enum {string} */
-            role?: "ADMIN" | "SELLER";
+            role?: "ADMIN" | "SUPERVISOR" | "SELLER";
             active?: boolean;
             /** Format: date-time */
             createdAt?: string;
@@ -770,7 +844,7 @@ export interface components {
             email: string;
             password: string;
             /** @enum {string} */
-            role: "ADMIN" | "SELLER";
+            role: "ADMIN" | "SUPERVISOR" | "SELLER";
             /** @description Optional mobile number for password reset codes by SMS, e.g. +525512345678 */
             phone?: string;
         };
@@ -933,7 +1007,9 @@ export interface components {
         CashDrawerResponse: {
             /** Format: int64 */
             id?: number;
-            user?: components["schemas"]["Ref"];
+            responsible?: components["schemas"]["Ref"];
+            openedBy?: components["schemas"]["Ref"];
+            members?: components["schemas"]["Ref"][];
             /** Format: date */
             businessDate?: string;
             openingFloat?: number;
@@ -953,6 +1029,12 @@ export interface components {
         CloseCashDrawerRequest: {
             countedCash: number;
             note?: string;
+        };
+        OpenAssignedCashDrawerRequest: {
+            openingFloat: number;
+            memberIds: number[];
+            /** Format: int64 */
+            responsibleId: number;
         };
         RefreshTokenRequest: {
             refreshToken: string;
@@ -1103,14 +1185,22 @@ export interface components {
             timeZone?: string;
             /** Format: int64 */
             sellerId?: number;
+            /** Format: int64 */
+            cashDrawerId?: number;
             closed?: boolean;
             byPaymentMethod?: {
                 [key: string]: components["schemas"]["Amounts"];
             };
             total?: components["schemas"]["Amounts"];
+            bySeller?: components["schemas"]["SellerAmounts"][];
             openingFloat?: number;
             expectedCash?: number;
             drawers?: components["schemas"]["CashDrawerResponse"][];
+        };
+        SellerAmounts: {
+            seller?: components["schemas"]["Ref"];
+            cash?: components["schemas"]["Amounts"];
+            total?: components["schemas"]["Amounts"];
         };
         PagedModelPurchaseSummaryResponse: {
             content?: components["schemas"]["PurchaseSummaryResponse"][];
@@ -1140,6 +1230,13 @@ export interface components {
         PagedModelCashDrawerResponse: {
             content?: components["schemas"]["CashDrawerResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        AssignableUserResponse: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            /** @enum {string} */
+            role?: "ADMIN" | "SUPERVISOR" | "SELLER";
         };
     };
     responses: never;
@@ -1304,6 +1401,77 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateProductRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replaceImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    removeImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1550,6 +1718,8 @@ export interface operations {
                 customerId?: number;
                 /** @description Ignored for sellers */
                 sellerId?: number;
+                /** @description Sales recorded in this cash drawer; sellers still get only their own */
+                cashDrawerId?: number;
                 status?: "COMPLETED" | "CANCELLED";
                 /** @description Inclusive, ISO-8601 instant */
                 from?: string;
@@ -1693,7 +1863,7 @@ export interface operations {
     search_3: {
         parameters: {
             query?: {
-                /** @description Matches name or SKU */
+                /** @description Matches name or SKU (contains), or barcode (exact) */
                 search?: string;
                 categoryId?: number;
                 active?: boolean;
@@ -1850,7 +2020,7 @@ export interface operations {
     search_5: {
         parameters: {
             query?: {
-                /** @description Ignored for sellers */
+                /** @description Drawers this user is in; ignored for sellers */
                 userId?: number;
                 /** @description First business day (inclusive), e.g. 2026-10-01 */
                 from?: string;
@@ -1916,6 +2086,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CloseCashDrawerRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CashDrawerResponse"];
+                };
+            };
+        };
+    };
+    openAssigned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenAssignedCashDrawerRequest"];
             };
         };
         responses: {
@@ -2148,6 +2342,8 @@ export interface operations {
                 date?: string;
                 /** @description Ignored for sellers */
                 sellerId?: number;
+                /** @description One drawer instead of a day; date and sellerId are then ignored */
+                drawerId?: number;
             };
             header?: never;
             path?: never;
@@ -2303,6 +2499,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CashDrawerResponse"];
+                };
+            };
+        };
+    };
+    findAssignableUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssignableUserResponse"][];
                 };
             };
         };
