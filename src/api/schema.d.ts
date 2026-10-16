@@ -75,6 +75,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload or replace a product's image (PNG, JPEG, WebP or GIF, up to 5 MB)
+         * @description The format is checked from the file's content. Changes the product's version.
+         */
+        put: operations["replaceImage"];
+        post?: never;
+        /**
+         * Remove a product's image
+         * @description Changes the product's version.
+         */
+        delete: operations["removeImage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers/{id}": {
         parameters: {
             query?: never;
@@ -361,7 +385,7 @@ export interface paths {
         put?: never;
         /**
          * Set a new password with a reset code
-         * @description The code works once, for 10 minutes and up to 5 wrong attempts; any failure answers 400 'Invalid or expired code'. Signs the user out of every session.
+         * @description The code works once, for 10 minutes and up to 5 wrong attempts; any failure answers 400 'Invalid or expired code'. Signs the user out of every session. 429 with Retry-After when one client address sends too many attempts, whatever the account.
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -381,7 +405,7 @@ export interface paths {
         put?: never;
         /**
          * Send a password reset code by email or SMS
-         * @description Always 202, so the response doesn't reveal whether the account exists. Nothing is sent for unknown or inactive accounts, SMS to an account without a phone, a new request within a minute of the last one or more than 5 codes an hour. A new code replaces the previous one.
+         * @description Always 202, so the response doesn't reveal whether the account exists. Nothing is sent for unknown or inactive accounts, SMS to an account without a phone, a new request within a minute of the last one or more than 5 codes an hour. A new code replaces the previous one. 429 with Retry-After when one client address sends too many requests, whatever the account.
          */
         post: operations["requestPasswordResetCode"];
         delete?: never;
@@ -416,7 +440,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Log in with email and password */
+        /**
+         * Log in with email and password
+         * @description 429 with Retry-After when one client address sends too many attempts.
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -1304,6 +1331,57 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateProductRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    replaceImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    removeImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

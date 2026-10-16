@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pencil, UserPlus, Users } from 'lucide-react'
+import { Pencil, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,6 +6,7 @@ import { errorMessage } from '@/api/errors'
 import { useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { Pagination } from '@/components/Pagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -46,7 +47,7 @@ export function SellersPage() {
         <Card className="gap-0 py-0">
           <SellersTable sellers={sellers.data.content ?? []} currentUserId={currentUser.id}
             onEdit={setEditing} onCreate={() => setCreating(true)} />
-          <Pagination page={page} total={sellers.data.page?.totalElements ?? 0}
+          <Pagination page={page} pageSize={PAGE_SIZE} total={sellers.data.page?.totalElements ?? 0}
             loading={sellers.isPlaceholderData} onPageChange={setPage} />
         </Card>
       )}
@@ -129,32 +130,5 @@ function SellersTable({ sellers, currentUserId, onEdit, onCreate }: {
         ))}
       </TableBody>
     </Table>
-  )
-}
-
-function Pagination({ page, total, loading, onPageChange }: {
-  page: number
-  total: number
-  loading: boolean
-  onPageChange: (page: number) => void
-}) {
-  const { t } = useTranslation()
-  const from = total === 0 ? 0 : page * PAGE_SIZE + 1
-  const to = Math.min(total, (page + 1) * PAGE_SIZE)
-
-  return (
-    <div className="flex items-center justify-between gap-4 border-t px-4 py-3 text-sm text-muted-foreground">
-      <span className="tabular-nums">{t('sellers.range', { from, to, total })}</span>
-      <div className="flex gap-1">
-        <Button variant="outline" size="icon" aria-label={t('sellers.previousPage')}
-          disabled={page === 0 || loading} onClick={() => onPageChange(page - 1)}>
-          <ChevronLeft />
-        </Button>
-        <Button variant="outline" size="icon" aria-label={t('sellers.nextPage')}
-          disabled={to >= total || loading} onClick={() => onPageChange(page + 1)}>
-          <ChevronRight />
-        </Button>
-      </div>
-    </div>
   )
 }

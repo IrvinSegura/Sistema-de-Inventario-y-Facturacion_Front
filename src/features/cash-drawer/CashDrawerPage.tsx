@@ -1,9 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { TFunction } from 'i18next'
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { errorMessage } from '@/api/errors'
@@ -14,7 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { dateLocale } from '@/i18n'
+import { amountField } from '@/lib/amount-field'
 import { formatMoney } from '@/lib/money'
+import { showSuccess } from '@/lib/success-popup'
 import { cn } from '@/lib/utils'
 
 import {
@@ -24,16 +24,6 @@ import {
   useLatestDrawer,
   useOpenDrawer,
 } from './queries'
-
-// Up to 2 decimals, within the API's limits; messages in the current language.
-function amount(t: TFunction, max: number) {
-  return z.coerce
-    .number({ error: t('validation.enterAmount') })
-    .min(0, t('validation.minZero'))
-    .max(max, t('validation.atMost', { amount: formatMoney(max) }))
-    // Tolerance: 0.1 * 100 is 10.000000000000002 in floating point.
-    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, t('validation.twoDecimals'))
-}
 
 const NOTE_MAX_LENGTH = 255
 
@@ -58,7 +48,7 @@ export function CashDrawerPage() {
 function OpenDrawerCard() {
   const { t } = useTranslation()
   const openDrawer = useOpenDrawer()
-  const schema = useMemo(() => z.object({ openingFloat: amount(t, 999_999.99) }), [t])
+  const schema = useMemo(() => z.object({ openingFloat: amountField(t, 999_999.99) }), [t])
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { openingFloat: 0 },
@@ -66,7 +56,7 @@ function OpenDrawerCard() {
 
   const onSubmit = handleSubmit(({ openingFloat }) =>
     openDrawer.mutate(openingFloat, {
-      onSuccess: () => toast.success(t('drawer.opened')),
+      onSuccess: () => showSuccess(t('drawer.opened')),
     }))
 
   return (
@@ -97,14 +87,14 @@ function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
   const { t, i18n } = useTranslation()
   const closeDrawer = useCloseDrawer()
   const schema = useMemo(() => z.object({
-    countedCash: amount(t, 9_999_999.99),
+    countedCash: amountField(t, 9_999_999.99),
     note: z.string().trim().max(NOTE_MAX_LENGTH, t('validation.maxChars', { count: NOTE_MAX_LENGTH })).optional(),
   }), [t])
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) })
 
   const onSubmit = handleSubmit(({ countedCash, note }) =>
     closeDrawer.mutate({ id: drawer.id!, countedCash, note: note || undefined }, {
-      onSuccess: () => toast.success(t('drawer.closed')),
+      onSuccess: () => showSuccess(t('drawer.closed')),
     }))
 
   return (

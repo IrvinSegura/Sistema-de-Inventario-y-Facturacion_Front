@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router'
 
 import { ApiError } from '@/api/errors'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { SuccessPopup } from '@/components/SuccessPopup'
 import { Toaster } from '@/components/ui/sonner'
 import '@/i18n'
 import { dropUnknownTheme, themes, themeStorageKey } from '@/preferences/themes'
@@ -37,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <App />
             <Toaster richColors position="top-center" />
+            <SuccessPopup />
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

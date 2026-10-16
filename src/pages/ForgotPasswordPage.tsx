@@ -186,7 +186,7 @@ function VerifyStep({ email, channel, sentAt, onResent, onChangeMethod, onDone }
           setError('code', { message: t('apiErrors.invalidResetCode') })
           resetPassword.reset()
         } else if (error instanceof ApiError && error.fieldErrors.newPassword) {
-          setError('newPassword', { message: error.fieldErrors.newPassword })
+          setError('newPassword', { message: t('validation.invalidValue') })
           resetPassword.reset()
         }
       },

@@ -1,4 +1,4 @@
-import i18n from '@/i18n'
+import i18n, { type MessageKey } from '@/i18n'
 
 // The API answers every error with an RFC 9457 ProblemDetail; validation errors add field messages.
 export interface Problem {
@@ -19,8 +19,8 @@ export class ApiError extends Error {
   }
 }
 
-// The API's messages are in English; the ones a cashier sees often are translated, anything else is
-// shown as it comes (still meaningful, just untranslated).
+// The API's messages are in English: known ones get their own translation, anything else a
+// translated message for its status, so the screen never mixes languages.
 const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Invalid credentials$/, () => i18n.t('apiErrors.invalidCredentials')],
   [/^Invalid or expired code$/, () => i18n.t('apiErrors.invalidResetCode')],
@@ -33,22 +33,49 @@ const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Close your cash drawer of (\S+) first$/, ([, date]) => i18n.t('apiErrors.closePreviousDrawer', { date })],
   [/^Insufficient stock for product: (\d+)$/, ([, id]) => i18n.t('apiErrors.insufficientStock', { id })],
   [/^Product is inactive: (\d+)$/, ([, id]) => i18n.t('apiErrors.productInactive', { id })],
+  [/^The resource was modified by another user/, () => i18n.t('apiErrors.staleVersion')],
+  [/^Image must be PNG, JPEG, WebP or GIF$/, () => i18n.t('apiErrors.imageType')],
+  [/^Maximum upload size exceeded/, () => i18n.t('apiErrors.imageTooLarge')],
+  [/^Image uploads are not configured$/, () => i18n.t('apiErrors.imageUploadsOff')],
+  [/^Image file is required$/, () => i18n.t('apiErrors.imageRequired')],
+  [/^Product not found/, () => i18n.t('apiErrors.productNotFound')],
+  [/^Category (not found|is inactive)$/, () => i18n.t('products.form.categoryUnavailable')],
+  [/^SKU already exists$/, () => i18n.t('products.form.skuTaken')],
+  [/^Barcode already exists$/, () => i18n.t('products.form.barcodeTaken')],
+  [/^Email is already registered$/, () => i18n.t('sellers.form.emailTaken')],
+  [/^User not found$/, () => i18n.t('apiErrors.userNotFound')],
+  [/^Current password is incorrect$/, () => i18n.t('apiErrors.wrongCurrentPassword')],
+  [/^(No open cash drawer|Cash drawer not found)$/, () => i18n.t('apiErrors.noOpenDrawer')],
+  [/^Sale total exceeds the maximum allowed$/, () => i18n.t('apiErrors.saleTooLarge')],
+  [/^Each product can appear only once per sale$/, () => i18n.t('apiErrors.duplicateSaleLine')],
+  [/^Idempotency-Key was already used with a different request$/, () => i18n.t('apiErrors.keyReused')],
 ]
 
-function translateApiMessage(message: string): string {
+const statusMessages: Partial<Record<number, MessageKey>> = {
+  400: 'errors.badRequest',
+  401: 'errors.unauthorized',
+  403: 'errors.forbidden',
+  404: 'errors.notFound',
+  409: 'errors.conflict',
+  413: 'apiErrors.imageTooLarge',
+  429: 'errors.tooManyRequests',
+}
+
+function translateApiMessage(message: string, status: number): string {
   for (const [pattern, translate] of knownApiMessages) {
     const match = message.match(pattern)
     if (match) {
       return translate(match)
     }
   }
-  return message
+  const key = statusMessages[status]
+  return key ? i18n.t(key) : i18n.t('errors.requestFailed', { status })
 }
 
 // Message for a toast or form; network failures (API asleep or offline) get a friendly hint.
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.status === 503 ? i18n.t('errors.busy') : translateApiMessage(error.message)
+    return error.status === 503 ? i18n.t('errors.busy') : translateApiMessage(error.message, error.status)
   }
   if (error instanceof TypeError) {
     return i18n.t('errors.network')

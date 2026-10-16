@@ -1,14 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { TFunction } from 'i18next'
-import { type ComponentProps, type ReactNode, useMemo, useState } from 'react'
-import { type FieldError, type Path, useForm, type UseFormSetError } from 'react-hook-form'
+import { type ComponentProps, useMemo, useState } from 'react'
+import { type Path, useForm, type UseFormSetError } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { ApiError, errorMessage } from '@/api/errors'
 import type { Role } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
+import { FormField as Field } from '@/components/FormField'
+import { NativeSelect } from '@/components/NativeSelect'
 import { PasswordInput } from '@/components/PasswordInput'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,8 +22,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { passwordField, PASSWORD_MIN_LENGTH } from '@/lib/password'
+import { showSuccess } from '@/lib/success-popup'
 
 import { type Seller, useCreateSeller, useUpdateSeller } from './queries'
 
@@ -73,7 +74,7 @@ function applyServerErrors<T extends Record<string, unknown>>(
     return true
   }
   const known = Object.entries(error.fieldErrors).filter(([field]) => fields.includes(field as Path<T>))
-  known.forEach(([field, message]) => setError(field as Path<T>, { message }))
+  known.forEach(([field]) => setError(field as Path<T>, { message: t('validation.invalidValue') }))
   return known.length > 0
 }
 
@@ -110,7 +111,7 @@ function CreateSellerForm({ onDone }: { onDone: () => void }) {
   const onSubmit = handleSubmit((values) =>
     createSeller.mutate(values, {
       onSuccess: (seller) => {
-        toast.success(t('sellers.created', { name: seller.name }))
+        showSuccess(t('sellers.createdTitle'), t('sellers.created', { name: seller.name }))
         onDone()
       },
       onError: (error) => {
@@ -189,7 +190,7 @@ function EditSellerForm({ seller, isSelf, onDone }: { seller: Seller; isSelf: bo
   const onSubmit = handleSubmit((values) =>
     updateSeller.mutate({ id: seller.id!, ...values }, {
       onSuccess: (updated) => {
-        toast.success(t('sellers.updated', { name: updated.name }))
+        showSuccess(t('sellers.updatedTitle'), t('sellers.updated', { name: updated.name }))
         onDone()
       },
       onError: (error) => {
@@ -232,30 +233,11 @@ function EditSellerForm({ seller, isSelf, onDone }: { seller: Seller; isSelf: bo
   )
 }
 
-function Field({ id, label, hint, error, children }: {
-  id: string
-  label: string
-  hint?: string
-  error?: FieldError
-  children: ReactNode
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {error
-        ? <p className="text-sm text-destructive">{error.message}</p>
-        : hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  )
-}
-
 function RoleSelect(props: ComponentProps<'select'>) {
   const { t } = useTranslation()
   return (
-    <select {...props}
-      className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 [&>option]:bg-popover [&>option]:text-popover-foreground">
+    <NativeSelect {...props}>
       {roles.map((role) => <option key={role} value={role}>{t(`app.roles.${role}`)}</option>)}
-    </select>
+    </NativeSelect>
   )
 }

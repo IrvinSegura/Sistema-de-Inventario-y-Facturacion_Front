@@ -28,3 +28,9 @@ export function lineTaxCents(subtotalCents: number, taxRate: number): number {
   // toFixed(6) drops float noise (e.g. 1005 * 0.16 = 160.79999...) before rounding half up.
   return Math.floor(Number((subtotalCents * taxRate).toFixed(6)) + 0.5)
 }
+
+// Unit price plus its VAT, as a one-unit sale line would charge it.
+export function withTax(amount: number, taxRate: number): number {
+  const cents = toCents(amount)
+  return fromCents(cents + lineTaxCents(cents, taxRate))
+}
