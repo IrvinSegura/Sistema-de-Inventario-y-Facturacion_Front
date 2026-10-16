@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { initials } from '@/lib/initials'
+import { LanguageToggle, ThemeToggle } from '@/preferences/PreferenceToggles'
 
 export function UserMenu() {
   const { t } = useTranslation()
@@ -42,6 +43,11 @@ export function UserMenu() {
             </span>
             <Badge variant="secondary">{t(`app.roles.${user.role}`)}</Badge>
           </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <LanguageToggle />
+          <ThemeToggle />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => void logout()}>
