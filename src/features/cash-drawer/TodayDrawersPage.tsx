@@ -19,7 +19,7 @@ import { DrawerStatus, PaymentMethodSection, SharedBadge } from './DrawerParts'
 import { differenceClass, formatDate } from './format'
 import { memberNames } from './members'
 import { OpenAssignedDrawerDialog } from './OpenAssignedDrawerDialog'
-import { type CashDrawer, useAssignableUsers, useCashClosing, useDrawers } from './queries'
+import { type CashDrawer, useAssignableSellers, useDayClosing, useDrawers } from './queries'
 
 // How far back to look for drawers someone forgot to close.
 const STALE_LOOKBACK_DAYS = 7
@@ -30,10 +30,10 @@ const MAX_STALE = 100
 export function TodayDrawersPage() {
   const { t, i18n } = useTranslation()
   const [today] = useState(() => toDay(new Date()))
-  const day = useCashClosing(today)
+  const day = useDayClosing(today)
   const recent = useDrawers({ from: addDays(today, -STALE_LOOKBACK_DAYS), to: addDays(today, -1) }, 0, MAX_STALE)
-  // Whoever has no drawer today (nor one left open): the ones a manager can still assign.
-  const assignable = useAssignableUsers()
+  // Sellers with no drawer today (nor one left open): the ones a manager can still assign.
+  const assignable = useAssignableSellers()
   const [selected, setSelected] = useState<CashDrawer | null>(null)
   const [assigning, setAssigning] = useState(false)
 
@@ -46,7 +46,7 @@ export function TodayDrawersPage() {
 
   const drawers = day.data.drawers ?? []
   const stale = recent.data?.content?.filter((drawer) => !drawer.closing) ?? []
-  const notOpened = assignable.data?.filter((account) => account.role === 'SELLER') ?? []
+  const notOpened = assignable.data ?? []
   const openCount = drawers.filter((drawer) => !drawer.closing).length
 
   return (
@@ -78,7 +78,7 @@ export function TodayDrawersPage() {
             </div>
             <Button size="sm" onClick={() => setAssigning(true)} disabled={!assignable.data}>
               <Plus />
-              {t('drawer.assign.button')}
+              {t('drawer.open')}
             </Button>
           </CardHeader>
           {drawers.length === 0 && notOpened.length === 0 ? (
@@ -149,7 +149,7 @@ export function TodayDrawersPage() {
       </div>
 
       <DrawerDetailDialog drawer={selected} onOpenChange={(open) => !open && setSelected(null)} />
-      <OpenAssignedDrawerDialog open={assigning} onOpenChange={setAssigning} users={assignable.data ?? []} />
+      <OpenAssignedDrawerDialog open={assigning} onOpenChange={setAssigning} sellers={assignable.data ?? []} />
     </div>
   )
 }

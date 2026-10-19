@@ -30,7 +30,7 @@ import {
 import { isFromPastDay } from './drawer-day'
 import { differenceClass, differenceLabel, formatDate, formatDenomination, formatTime } from './format'
 import { isShared, memberNames } from './members'
-import { type CashClosing, type CashDrawer, useCashClosing, useCloseDrawer, useDrawerClosing } from './queries'
+import { type CashClosing, type CashDrawer, useDayClosing, useCloseDrawer, useDrawerClosing } from './queries'
 
 const NOTE_MAX_LENGTH = 255
 const PAYMENT_METHODS = ['CASH', 'CARD', 'TRANSFER'] as const
@@ -163,7 +163,7 @@ export function DrawerStatus({ drawer }: { drawer: CashDrawer }) {
 }
 
 // Opening float, expected and counted cash and the difference, as recorded when it was closed.
-export function ClosingFigures({ drawer }: { drawer: CashDrawer }) {
+function ClosingFigures({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   const closing = drawer.closing!
   return (
@@ -182,12 +182,12 @@ export function ClosingFigures({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-// Who sells from the drawer and who closes it, when it isn't simply the user's own.
-export function DrawerPeople({ drawer }: { drawer: CashDrawer }) {
+// Who sells from the drawer, who closes it and who opened it, for shared or assigned drawers.
+export function DrawerMembers({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-      <dt className="text-muted-foreground">{t('drawer.membersLabel')}</dt>
+      <dt className="text-muted-foreground">{t('drawer.members')}</dt>
       <dd>{memberNames(drawer)}</dd>
       <dt className="text-muted-foreground">{t('drawer.responsible')}</dt>
       <dd>{drawer.responsible?.name}</dd>
@@ -216,7 +216,7 @@ export function ClosingDetails({ drawer }: { drawer: CashDrawer }) {
       )}
       <Separator />
       <PaymentMethodSection closing={closing} />
-      {isShared(drawer) && <SellerSection closing={closing} />}
+      {isShared(drawer) && <BySellerSection closing={closing} />}
       {closing.data && (
         <PrintButton label={t('drawer.print')} className="justify-self-start"
           document={<ClosingSlip drawer={drawer} closing={closing.data} />} />
@@ -225,7 +225,7 @@ export function ClosingDetails({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-type ClosingQuery = ReturnType<typeof useCashClosing> | ReturnType<typeof useDrawerClosing>
+type ClosingQuery = ReturnType<typeof useDayClosing> | ReturnType<typeof useDrawerClosing>
 
 export function PaymentMethodSection({ closing, title }: {
   closing: ClosingQuery
@@ -243,7 +243,7 @@ export function PaymentMethodSection({ closing, title }: {
 }
 
 // A shared drawer's movements by seller: the cash each one put in (net of refunds) and all their sales.
-export function SellerSection({ closing }: { closing: ClosingQuery }) {
+export function BySellerSection({ closing }: { closing: ClosingQuery }) {
   const { t } = useTranslation()
   const sellers = closing.data?.bySeller ?? []
   return (
@@ -322,8 +322,8 @@ function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClo
         <p>{t('drawer.slipTitle', { date: formatDate(drawer.businessDate!, i18n.language) })}</p>
       </div>
       <div className="grid gap-1">
-        {row(t(isShared(drawer) ? 'drawer.responsible' : 'drawer.cashier'), drawer.responsible?.name ?? '')}
-        {isShared(drawer) && row(t('drawer.membersLabel'), memberNames(drawer))}
+        {row(t('drawer.responsible'), drawer.responsible?.name ?? '')}
+        {isShared(drawer) && row(t('drawer.members'), memberNames(drawer))}
         {row(t('drawer.openedAtLabel'), formatTime(drawer.openedAt!, i18n.language))}
         {row(t('drawer.closedAtLabel'), `${formatTime(figures.closedAt!, i18n.language)} · ${figures.closedBy?.name ?? ''}`)}
       </div>
@@ -352,7 +352,7 @@ function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClo
       </div>
       {figures.note && <p>{t('drawer.note', { note: figures.note })}</p>}
       <div className="mt-10 grid grid-cols-2 gap-6 text-center">
-        <p className="border-t border-black pt-1">{t('drawer.cashierSignature')}</p>
+        <p className="border-t border-black pt-1">{t('drawer.responsibleSignature')}</p>
         <p className="border-t border-black pt-1">{t('drawer.managerSignature')}</p>
       </div>
     </div>

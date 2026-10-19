@@ -6,7 +6,7 @@ import { ApiError } from '@/api/errors'
 export type CashDrawer = Schemas['CashDrawerResponse']
 export type CashClosing = Schemas['CashClosingResponse']
 export type SaleSummary = Schemas['SaleSummaryResponse']
-export type AssignableUser = Schemas['AssignableUserResponse']
+export type AssignableSeller = Schemas['AssignableSellerResponse']
 
 export interface AssignedDrawer {
   openingFloat: number
@@ -15,13 +15,14 @@ export interface AssignedDrawer {
 }
 
 export const HISTORY_PAGE_SIZE = 20
-// The API pages at most 100 items: enough for one drawer's tickets or a store's accounts.
+// The API pages at most 100 items: enough for one drawer's tickets.
 const MAX_PAGE_SIZE = 100
 
 export interface DrawerSearch {
   from?: string
   to?: string
-  userId?: number
+  // Drawers this seller was in.
+  sellerId?: number
 }
 
 export const drawerKeys = {
@@ -29,13 +30,12 @@ export const drawerKeys = {
   current: ['cash-drawers', 'current'] as const,
   latest: ['cash-drawers', 'latest'] as const,
   search: (search: DrawerSearch, page: number) => ['cash-drawers', 'search', search, page] as const,
-  assignable: ['cash-drawers', 'assignable-users'] as const,
+  assignable: ['cash-drawers', 'assignable-sellers'] as const,
   // Under 'sale-reports' so a sale or cancellation anywhere refreshes the closings too.
-  closing: (date: string, sellerId?: number) => ['sale-reports', 'cash-closing', date, sellerId ?? 'all'] as const,
+  dayClosing: (date: string, sellerId?: number) => ['sale-reports', 'cash-closing', date, sellerId ?? 'all'] as const,
   drawerClosing: (drawerId: number) => ['sale-reports', 'cash-closing', 'drawer', drawerId] as const,
   drawerSales: (drawerId: number) => ['sales', 'drawer', drawerId] as const,
   sale: (id: number) => ['sales', 'detail', id] as const,
-  users: ['users', 'all'] as const,
 }
 
 // The open drawer the user is in (their own or one a manager assigned), or null when none is open
@@ -79,9 +79,9 @@ export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PA
 
 // One day by payment method, plus that day's drawers. Without sellerId (managers only) it covers
 // the whole store; a seller gets their own only once their drawer is closed (409 before).
-export function useCashClosing(date: string, sellerId?: number) {
+export function useDayClosing(date: string, sellerId?: number) {
   return useQuery({
-    queryKey: drawerKeys.closing(date, sellerId),
+    queryKey: drawerKeys.dayClosing(date, sellerId),
     queryFn: () => unwrap(api.GET('/api/v1/sale-reports/cash-closing', { params: { query: { date, sellerId } } })),
   })
 }
@@ -91,7 +91,7 @@ export function useCashClosing(date: string, sellerId?: number) {
 export function useDrawerClosing(drawerId: number) {
   return useQuery({
     queryKey: drawerKeys.drawerClosing(drawerId),
-    queryFn: () => unwrap(api.GET('/api/v1/sale-reports/cash-closing', { params: { query: { drawerId } } })),
+    queryFn: () => unwrap(api.GET('/api/v1/sale-reports/cash-closing', { params: { query: { cashDrawerId: drawerId } } })),
   })
 }
 
@@ -108,11 +108,11 @@ export function useDrawerSales(drawerId: number) {
   })
 }
 
-// Active users without a drawer today (nor one left open), for managers to assign one.
-export function useAssignableUsers() {
+// Active sellers without a drawer today (nor one left open), for managers to assign one.
+export function useAssignableSellers() {
   return useQuery({
     queryKey: drawerKeys.assignable,
-    queryFn: () => unwrap(api.GET('/api/v1/cash-drawers/assignable-users')),
+    queryFn: () => unwrap(api.GET('/api/v1/cash-drawers/assignable-sellers')),
   })
 }
 
@@ -121,18 +121,6 @@ export function useSale(id: number | null) {
     queryKey: drawerKeys.sale(id ?? 0),
     enabled: id !== null,
     queryFn: () => unwrap(api.GET('/api/v1/sales/{id}', { params: { path: { id: id! } } })),
-  })
-}
-
-// Every account, to list who hasn't opened a drawer (the users API is for admins only).
-export function useStoreUsers(enabled: boolean) {
-  return useQuery({
-    queryKey: drawerKeys.users,
-    enabled,
-    queryFn: async () => {
-      const page = await unwrap(api.GET('/api/v1/users', { params: { query: { size: MAX_PAGE_SIZE } } }))
-      return page.content ?? []
-    },
   })
 }
 
@@ -149,7 +137,7 @@ export function useOpenDrawer() {
   })
 }
 
-// Managers open a drawer for one user or a shared one for several, and hand over the float.
+// Managers open a drawer for one seller or a shared one for several, and hand over the float.
 export function useOpenAssignedDrawer() {
   const queryClient = useQueryClient()
   return useMutation({

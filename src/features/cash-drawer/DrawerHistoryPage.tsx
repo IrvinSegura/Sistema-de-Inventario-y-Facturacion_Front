@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { addDays, toDay } from '@/features/dashboard/days'
+import { useAllUserAccounts } from '@/features/users/queries'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
@@ -21,7 +22,7 @@ import { DrawerDetailDialog } from './DrawerDetailDialog'
 import { DrawerStatus, SharedBadge } from './DrawerParts'
 import { differenceClass, formatDate } from './format'
 import { memberNames } from './members'
-import { type CashDrawer, type DrawerSearch, HISTORY_PAGE_SIZE, useDrawers, useStoreUsers } from './queries'
+import { type CashDrawer, type DrawerSearch, HISTORY_PAGE_SIZE, useDrawers } from './queries'
 
 const DEFAULT_RANGE_DAYS = 30
 const ALL_SELLERS = 'all'
@@ -37,10 +38,11 @@ export function DrawerHistoryPage() {
   const [seller, setSeller] = useState(ALL_SELLERS)
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<CashDrawer | null>(null)
-  // Only admins can list accounts to filter by seller.
-  const users = useStoreUsers(user.role === 'ADMIN')
+  // Only admins can list accounts to filter by seller; only sellers have drawers.
+  const accounts = useAllUserAccounts(user.role === 'ADMIN')
+  const sellers = accounts.data?.filter((account) => account.role === 'SELLER')
 
-  const search: DrawerSearch = { from, to, userId: seller === ALL_SELLERS ? undefined : Number(seller) }
+  const search: DrawerSearch = { from, to, sellerId: seller === ALL_SELLERS ? undefined : Number(seller) }
   const drawers = useDrawers(search, page)
 
   // A range always runs forward: moving one end past the other drags it along.
@@ -79,7 +81,7 @@ export function DrawerHistoryPage() {
           <Input id="history-to" type="date" value={to} max={today} className="w-40"
             onChange={(event) => changeTo(event.target.value)} />
         </div>
-        {users.data && (
+        {sellers && (
           <div className="grid gap-2">
             <Label htmlFor="history-seller">{t('drawer.columns.seller')}</Label>
             <Select id="history-seller" className="h-9 w-52" value={seller}
@@ -89,7 +91,7 @@ export function DrawerHistoryPage() {
               }}
               options={[
                 { value: ALL_SELLERS, label: t('drawer.history.allSellers') },
-                ...users.data.map((account) => ({ value: String(account.id), label: account.name })),
+                ...sellers.map((account) => ({ value: String(account.id), label: account.name })),
               ]} />
           </div>
         )}

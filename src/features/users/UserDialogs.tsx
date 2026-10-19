@@ -26,7 +26,7 @@ import { passwordField, PASSWORD_MIN_LENGTH } from '@/lib/password'
 import { showSuccess } from '@/lib/success-popup'
 import { filtered, NOT_PERSON_NAME_CHAR, NOT_PHONE_CHAR, PERSON_NAME } from '@/lib/text-rules'
 
-import { type Seller, useCreateSeller, useUpdateSeller } from './queries'
+import { type UserAccount, useCreateUserAccount, useUpdateUserAccount } from './queries'
 
 const roles: Role[] = ['SELLER', 'SUPERVISOR', 'ADMIN']
 
@@ -37,7 +37,7 @@ const E164 = /^\+[1-9]\d{7,14}$/
 
 function nameField(t: TFunction) {
   return z.string().trim()
-    .min(1, t('sellers.form.enterName'))
+    .min(1, t('users.form.enterName'))
     .max(NAME_MAX_LENGTH, t('validation.maxChars', { count: NAME_MAX_LENGTH }))
     .regex(PERSON_NAME, t('validation.personName'))
 }
@@ -46,7 +46,7 @@ function nameField(t: TFunction) {
 function phoneField(t: TFunction) {
   return z.string()
     .transform((value) => value.replace(/[\s().-]/g, ''))
-    .refine((value) => value === '' || E164.test(value), t('sellers.form.invalidPhone'))
+    .refine((value) => value === '' || E164.test(value), t('users.form.invalidPhone'))
 }
 
 function createSchema(t: TFunction) {
@@ -72,7 +72,7 @@ function applyServerErrors<T extends Record<string, unknown>>(
     return false
   }
   if (error.status === 409 && error.message === 'Email is already registered' && fields.includes('email' as Path<T>)) {
-    setError('email' as Path<T>, { message: t('sellers.form.emailTaken') })
+    setError('email' as Path<T>, { message: t('users.form.emailTaken') })
     return true
   }
   const known = Object.entries(error.fieldErrors).filter(([field]) => fields.includes(field as Path<T>))
@@ -85,25 +85,25 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CreateSellerDialog({ open, onOpenChange }: DialogProps) {
+export function CreateUserDialog({ open, onOpenChange }: DialogProps) {
   const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('sellers.createTitle')}</DialogTitle>
-          <DialogDescription>{t('sellers.createDescription')}</DialogDescription>
+          <DialogTitle>{t('users.createTitle')}</DialogTitle>
+          <DialogDescription>{t('users.createDescription')}</DialogDescription>
         </DialogHeader>
         {/* Mounted only while open, so every opening starts with an empty form. */}
-        <CreateSellerForm onDone={() => onOpenChange(false)} />
+        <CreateUserForm onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function CreateSellerForm({ onDone }: { onDone: () => void }) {
+function CreateUserForm({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation()
-  const createSeller = useCreateSeller()
+  const createUserAccount = useCreateUserAccount()
   const schema = useMemo(() => createSchema(t), [t])
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -112,129 +112,129 @@ function CreateSellerForm({ onDone }: { onDone: () => void }) {
   const role = useWatch({ control, name: 'role' })
 
   const onSubmit = handleSubmit((values) =>
-    createSeller.mutate(values, {
-      onSuccess: (seller) => {
-        showSuccess(t('sellers.createdTitle'), t('sellers.created', { name: seller.name }))
+    createUserAccount.mutate(values, {
+      onSuccess: (account) => {
+        showSuccess(t('users.createdTitle'), t('users.created', { name: account.name }))
         onDone()
       },
       onError: (error) => {
         if (applyServerErrors(error, ['name', 'email', 'password', 'role', 'phone'], setError, t)) {
-          createSeller.reset()
+          createUserAccount.reset()
         }
       },
     }))
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-      {createSeller.isError && <ErrorAlert message={errorMessage(createSeller.error)} />}
-      <Field id="name" label={t('sellers.form.name')} error={errors.name}>
+      {createUserAccount.isError && <ErrorAlert message={errorMessage(createUserAccount.error)} />}
+      <Field id="name" label={t('users.form.name')} error={errors.name}>
         <Input id="name" autoComplete="off" autoFocus maxLength={NAME_MAX_LENGTH}
           aria-invalid={!!errors.name} {...filtered(register('name'), NOT_PERSON_NAME_CHAR)} />
       </Field>
-      <Field id="email" label={t('sellers.form.email')} error={errors.email}>
+      <Field id="email" label={t('users.form.email')} error={errors.email}>
         <Input id="email" type="email" autoComplete="off" maxLength={EMAIL_MAX_LENGTH}
           aria-invalid={!!errors.email} {...register('email')} />
       </Field>
-      <Field id="password" label={t('sellers.form.password')} error={errors.password}
-        hint={t('sellers.form.passwordHint', { count: PASSWORD_MIN_LENGTH })}>
+      <Field id="password" label={t('users.form.password')} error={errors.password}
+        hint={t('users.form.passwordHint', { count: PASSWORD_MIN_LENGTH })}>
         <PasswordInput id="password" autoComplete="new-password"
           aria-invalid={!!errors.password} {...register('password')} />
       </Field>
-      <Field id="role" label={t('sellers.form.role')} error={errors.role} hint={t(`sellers.roleDescriptions.${role}`)}>
+      <Field id="role" label={t('users.form.role')} error={errors.role} hint={t(`users.roleDescriptions.${role}`)}>
         <Controller control={control} name="role" render={({ field }) => (
           <Select id="role" value={field.value} onValueChange={field.onChange} options={roleOptions(t)} />
         )} />
       </Field>
-      <Field id="phone" label={t('sellers.form.phone')} error={errors.phone} hint={t('sellers.form.phoneHint')}>
+      <Field id="phone" label={t('users.form.phone')} error={errors.phone} hint={t('users.form.phoneHint')}>
         <Input id="phone" type="tel" autoComplete="off" placeholder="+52 55 1234 5678"
           aria-invalid={!!errors.phone} {...filtered(register('phone'), NOT_PHONE_CHAR)} />
       </Field>
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{t('sellers.form.cancel')}</DialogClose>
-        <Button type="submit" disabled={createSeller.isPending}>
-          {createSeller.isPending ? t('sellers.form.saving') : t('sellers.form.create')}
+        <DialogClose render={<Button type="button" variant="outline" />}>{t('users.form.cancel')}</DialogClose>
+        <Button type="submit" disabled={createUserAccount.isPending}>
+          {createUserAccount.isPending ? t('users.form.saving') : t('users.form.create')}
         </Button>
       </DialogFooter>
     </form>
   )
 }
 
-export function EditSellerDialog({ seller, currentUserId, onOpenChange }: {
-  seller: Seller | null
+export function EditUserDialog({ account, currentUserId, onOpenChange }: {
+  account: UserAccount | null
   currentUserId: number
   onOpenChange: (open: boolean) => void
 }) {
   const { t } = useTranslation()
-  // Keeps the last seller on screen while the dialog animates out.
-  const [shown, setShown] = useState(seller)
-  if (seller && seller !== shown) {
-    setShown(seller)
+  // Keeps the last account on screen while the dialog animates out.
+  const [shown, setShown] = useState(account)
+  if (account && account !== shown) {
+    setShown(account)
   }
   return (
-    <Dialog open={!!seller} onOpenChange={onOpenChange}>
+    <Dialog open={!!account} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('sellers.editTitle')}</DialogTitle>
+          <DialogTitle>{t('users.editTitle')}</DialogTitle>
           <DialogDescription>{shown?.email}</DialogDescription>
         </DialogHeader>
-        {shown && <EditSellerForm seller={shown} isSelf={shown.id === currentUserId} onDone={() => onOpenChange(false)} />}
+        {shown && <EditUserForm account={shown} isSelf={shown.id === currentUserId} onDone={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )
 }
 
-function EditSellerForm({ seller, isSelf, onDone }: { seller: Seller; isSelf: boolean; onDone: () => void }) {
+function EditUserForm({ account, isSelf, onDone }: { account: UserAccount; isSelf: boolean; onDone: () => void }) {
   const { t } = useTranslation()
-  const updateSeller = useUpdateSeller()
+  const updateUserAccount = useUpdateUserAccount()
   const schema = useMemo(() => editSchema(t), [t])
   const { register, handleSubmit, setError, control, formState: { errors, isDirty } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { name: seller.name!, role: seller.role!, active: seller.active!, phone: seller.phone ?? '' },
+    defaultValues: { name: account.name!, role: account.role!, active: account.active!, phone: account.phone ?? '' },
   })
   const role = useWatch({ control, name: 'role' })
 
   const onSubmit = handleSubmit((values) =>
-    updateSeller.mutate({ id: seller.id!, ...values }, {
+    updateUserAccount.mutate({ id: account.id!, ...values }, {
       onSuccess: (updated) => {
-        showSuccess(t('sellers.updatedTitle'), t('sellers.updated', { name: updated.name }))
+        showSuccess(t('users.updatedTitle'), t('users.updated', { name: updated.name }))
         onDone()
       },
       onError: (error) => {
         if (applyServerErrors(error, ['name', 'phone'], setError, t)) {
-          updateSeller.reset()
+          updateUserAccount.reset()
         }
       },
     }))
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-      {updateSeller.isError && <ErrorAlert message={errorMessage(updateSeller.error)} />}
-      <Field id="edit-name" label={t('sellers.form.name')} error={errors.name}>
+      {updateUserAccount.isError && <ErrorAlert message={errorMessage(updateUserAccount.error)} />}
+      <Field id="edit-name" label={t('users.form.name')} error={errors.name}>
         <Input id="edit-name" autoComplete="off" autoFocus maxLength={NAME_MAX_LENGTH}
           aria-invalid={!!errors.name} {...filtered(register('name'), NOT_PERSON_NAME_CHAR)} />
       </Field>
       {/* Changing your own role or status would end your session; another admin has to do it. */}
-      <Field id="edit-role" label={t('sellers.form.role')} error={errors.role}
-        hint={isSelf ? t('sellers.form.selfHint') : `${t(`sellers.roleDescriptions.${role}`)} ${t('sellers.form.sessionsHint')}`}>
+      <Field id="edit-role" label={t('users.form.role')} error={errors.role}
+        hint={isSelf ? t('users.form.selfHint') : `${t(`users.roleDescriptions.${role}`)} ${t('users.form.sessionsHint')}`}>
         <Controller control={control} name="role" render={({ field }) => (
           <Select id="edit-role" value={field.value} onValueChange={field.onChange} disabled={isSelf} options={roleOptions(t)} />
         )} />
       </Field>
-      <Field id="edit-phone" label={t('sellers.form.phone')} error={errors.phone} hint={t('sellers.form.phoneHint')}>
+      <Field id="edit-phone" label={t('users.form.phone')} error={errors.phone} hint={t('users.form.phoneHint')}>
         <Input id="edit-phone" type="tel" autoComplete="off" placeholder="+52 55 1234 5678"
           aria-invalid={!!errors.phone} {...filtered(register('phone'), NOT_PHONE_CHAR)} />
       </Field>
       <label className="flex items-start gap-3 rounded-lg border p-3 has-disabled:opacity-60">
         <input type="checkbox" className="mt-0.5 size-4 accent-primary" disabled={isSelf} {...register('active')} />
         <span className="grid gap-0.5">
-          <span className="text-sm font-medium">{t('sellers.form.active')}</span>
-          <span className="text-xs text-muted-foreground">{t('sellers.form.activeHint')}</span>
+          <span className="text-sm font-medium">{t('users.form.active')}</span>
+          <span className="text-xs text-muted-foreground">{t('users.form.activeHint')}</span>
         </span>
       </label>
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{t('sellers.form.cancel')}</DialogClose>
-        <Button type="submit" disabled={!isDirty || updateSeller.isPending}>
-          {updateSeller.isPending ? t('sellers.form.saving') : t('sellers.form.save')}
+        <DialogClose render={<Button type="button" variant="outline" />}>{t('users.form.cancel')}</DialogClose>
+        <Button type="submit" disabled={!isDirty || updateUserAccount.isPending}>
+          {updateUserAccount.isPending ? t('users.form.saving') : t('users.form.save')}
         </Button>
       </DialogFooter>
     </form>

@@ -213,7 +213,7 @@ export interface paths {
         put?: never;
         /**
          * Record a sale and decrease stock
-         * @description Prices and VAT come from the products and totals are computed by the server. Without customerId the sale goes to the walk-in customer. A repeated Idempotency-Key returns the original sale (200) instead of charging twice. Not enough stock: 409.
+         * @description Prices and VAT come from the products and totals are computed by the server. Without customerId the sale goes to the walk-in customer. A repeated Idempotency-Key returns the original sale (200) instead of charging twice. Not enough stock: 409. Only sellers sell, from their open drawer: 403 for managers.
          */
         post: operations["create_2"];
         delete?: never;
@@ -332,7 +332,7 @@ export interface paths {
         put?: never;
         /**
          * Open today's cash drawer with its opening float
-         * @description A personal drawer: the user is its only member and its responsible. Each user is in one drawer per day in the store's time zone; sales need it open. 409 if they're still in an open drawer (the previous day's must be closed first) or today's was already closed.
+         * @description A seller's personal drawer: they are its only member and its responsible. Each seller is in one drawer per day in the store's time zone; sales need it open. 403 for managers; 409 if they're still in an open drawer (the previous day's must be closed first) or today's was already closed.
          */
         post: operations["open"];
         delete?: never;
@@ -371,8 +371,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Open today's cash drawer for one or several users
-         * @description The manager hands over the float; the members sell from it and the responsible (one of them) counts and closes it. 400 for unknown, inactive or repeated users; 409 if one of them is already in an open drawer or had one today.
+         * Open today's cash drawer for one or several sellers
+         * @description The manager hands over the float; the members sell from it and the responsible (one of them) counts and closes it. 400 for unknown, inactive, repeated or non-seller users; 409 if one of them is already in an open drawer or had one today.
          */
         post: operations["openAssigned"];
         delete?: never;
@@ -680,7 +680,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cash-drawers/assignable-users": {
+    "/api/v1/cash-drawers/assignable-sellers": {
         parameters: {
             query?: never;
             header?: never;
@@ -688,10 +688,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Users who can be assigned a drawer today
-         * @description Active users who aren't in an open drawer and had none today, by name.
+         * Sellers who can be assigned a drawer today
+         * @description Active sellers who aren't in an open drawer and had none today, by name.
          */
-        get: operations["findAssignableUsers"];
+        get: operations["findAssignableSellers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1231,12 +1231,10 @@ export interface components {
             content?: components["schemas"]["CashDrawerResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
-        AssignableUserResponse: {
+        AssignableSellerResponse: {
             /** Format: int64 */
             id?: number;
             name?: string;
-            /** @enum {string} */
-            role?: "ADMIN" | "SUPERVISOR" | "SELLER";
         };
     };
     responses: never;
@@ -2020,8 +2018,8 @@ export interface operations {
     search_5: {
         parameters: {
             query?: {
-                /** @description Drawers this user is in; ignored for sellers */
-                userId?: number;
+                /** @description Drawers this seller is in; ignored for sellers */
+                sellerId?: number;
                 /** @description First business day (inclusive), e.g. 2026-10-01 */
                 from?: string;
                 /** @description Last business day (inclusive), e.g. 2026-10-31 */
@@ -2343,7 +2341,7 @@ export interface operations {
                 /** @description Ignored for sellers */
                 sellerId?: number;
                 /** @description One drawer instead of a day; date and sellerId are then ignored */
-                drawerId?: number;
+                cashDrawerId?: number;
             };
             header?: never;
             path?: never;
@@ -2503,7 +2501,7 @@ export interface operations {
             };
         };
     };
-    findAssignableUsers: {
+    findAssignableSellers: {
         parameters: {
             query?: never;
             header?: never;
@@ -2518,7 +2516,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AssignableUserResponse"][];
+                    "*/*": components["schemas"]["AssignableSellerResponse"][];
                 };
             };
         };
