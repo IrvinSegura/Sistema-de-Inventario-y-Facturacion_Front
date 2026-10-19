@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
+import { type SortState, sortParam } from '@/lib/sort'
 
 export type Customer = Schemas['CustomerResponse']
 export type CreateCustomer = Schemas['CreateCustomerRequest']
@@ -16,15 +17,16 @@ export interface CustomerFilters {
 
 export const customerKeys = {
   all: ['customers'] as const,
-  page: (filters: CustomerFilters, page: number) => ['customers', 'page', filters, page] as const,
+  page: (filters: CustomerFilters, page: number, size: number, sort: SortState | null) =>
+    ['customers', 'page', filters, page, size, sort] as const,
 }
 
 // Sorted by name on the server; the search matches the name or the tax ID, blank means "all".
-export function useCustomers(filters: CustomerFilters, page: number) {
+export function useCustomers(filters: CustomerFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
-    queryKey: customerKeys.page(filters, page),
+    queryKey: customerKeys.page(filters, page, size, sort),
     queryFn: () => unwrap(api.GET('/api/v1/customers', {
-      params: { query: { search: filters.search || undefined, active: filters.active, page, size: PAGE_SIZE } },
+      params: { query: { search: filters.search || undefined, active: filters.active, page, size, sort: sortParam(sort) } },
     })),
     // Keeps the current page on screen while the next one loads.
     placeholderData: keepPreviousData,

@@ -5,26 +5,36 @@ import { useTranslation } from 'react-i18next'
 import { errorMessage } from '@/api/errors'
 import { useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
 import { Pagination } from '@/components/Pagination'
+import { SortableHead } from '@/components/SortableHead'
+import { TableSkeleton } from '@/components/TableSkeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { dateLocale } from '@/i18n'
 import { initials } from '@/lib/initials'
+import { type SortState } from '@/lib/sort'
+import { usePageSize } from '@/lib/use-page-size'
 import { cn } from '@/lib/utils'
 
-import { PAGE_SIZE, type UserAccount, useUserAccounts } from './queries'
+import { type UserAccount, useUserAccounts } from './queries'
 import { CreateUserDialog, EditUserDialog } from './UserDialogs'
 
 export function UsersPage() {
   const { t } = useTranslation()
   const currentUser = useUser()
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = usePageSize('users')
+  // Column order; null keeps the list's default.
+  const [sort, setSort] = useState<SortState | null>(null)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<UserAccount | null>(null)
-  const accounts = useUserAccounts(page)
+  const accounts = useUserAccounts(page, pageSize, sort)
+  const changeSort = (next: SortState | null) => {
+    setSort(next)
+    setPage(0)
+  }
 
   return (
     <div className="grid gap-6">
@@ -40,15 +50,19 @@ export function UsersPage() {
       </div>
 
       {accounts.isPending ? (
-        <FullPageSpinner />
+        <TableSkeleton />
       ) : accounts.isError ? (
         <ErrorAlert message={errorMessage(accounts.error)} />
       ) : (
         <Card className="gap-0 py-0">
-          <UsersTable accounts={accounts.data.content ?? []} currentUserId={currentUser.id}
+          <UsersTable accounts={accounts.data.content ?? []} sort={sort} onSort={changeSort} currentUserId={currentUser.id}
             onEdit={setEditing} onCreate={() => setCreating(true)} />
-          <Pagination page={page} pageSize={PAGE_SIZE} total={accounts.data.page?.totalElements ?? 0}
-            loading={accounts.isPlaceholderData} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={accounts.data.page?.totalElements ?? 0}
+            loading={accounts.isPlaceholderData} onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setPage(0)
+            }} />
         </Card>
       )}
 
@@ -59,7 +73,9 @@ export function UsersPage() {
   )
 }
 
-function UsersTable({ accounts, currentUserId, onEdit, onCreate }: {
+function UsersTable({ accounts, currentUserId, onEdit, onCreate, sort, onSort }: {
+  sort: SortState | null
+  onSort: (sort: SortState | null) => void
   accounts: UserAccount[]
   currentUserId: number
   onEdit: (account: UserAccount) => void
@@ -79,13 +95,13 @@ function UsersTable({ accounts, currentUserId, onEdit, onCreate }: {
     )
   }
   return (
-    <Table>
+    <Table stickyHeader>
       <TableHeader className="bg-muted/50">
         <TableRow>
-          <TableHead className="pl-4">{t('users.columns.name')}</TableHead>
-          <TableHead>{t('users.columns.role')}</TableHead>
+          <SortableHead field="name" sort={sort} onSort={onSort} className="pl-4">{t('users.columns.name')}</SortableHead>
+          <SortableHead field="role" sort={sort} onSort={onSort}>{t('users.columns.role')}</SortableHead>
           <TableHead>{t('users.columns.status')}</TableHead>
-          <TableHead className="hidden md:table-cell">{t('users.columns.createdAt')}</TableHead>
+          <SortableHead field="createdAt" first="desc" sort={sort} onSort={onSort} className="hidden md:table-cell">{t('users.columns.createdAt')}</SortableHead>
           <TableHead className="w-12 pr-4"><span className="sr-only">{t('users.columns.actions')}</span></TableHead>
         </TableRow>
       </TableHeader>

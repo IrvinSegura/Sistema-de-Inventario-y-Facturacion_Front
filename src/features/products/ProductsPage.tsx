@@ -1,29 +1,34 @@
-import { Package, PackagePlus, Pencil, Search, Trash2 } from 'lucide-react'
+import { Package, PackagePlus, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
 import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { Highlight } from '@/components/Highlight'
 import { Pagination } from '@/components/Pagination'
+import { SearchInput } from '@/components/SearchInput'
+import { SortableHead } from '@/components/SortableHead'
+import { TableSkeleton } from '@/components/TableSkeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { categoryName } from '@/features/categories/category-labels'
 import { useCategories } from '@/features/categories/queries'
 import { useLabeledCategories } from '@/features/categories/use-labeled-categories'
 import { formatMoney, withTax } from '@/lib/money'
+import { type SortState } from '@/lib/sort'
+import { usePageSize } from '@/lib/use-page-size'
 import { cn } from '@/lib/utils'
 
 import { CreateProductDialog, EditProductDialog } from './ProductDialogs'
 import { DeleteProductDialog } from './DeleteProductDialog'
+import { ProductThumbnail } from './ProductThumbnail'
 import { ScanBar } from './ScanBar'
 import { formatTaxRate } from './tax-rate'
-import { PAGE_SIZE, type Product, type ProductFilters, useProducts } from './queries'
+import { type Product, type ProductFilters, useProducts } from './queries'
 
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
@@ -35,12 +40,19 @@ export function ProductsPage() {
   const [searchText, setSearchText] = useState('')
   const [filters, setFilters] = useState<ProductFilters>({ search: '', categoryId: null, active: true, lowStock: false })
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = usePageSize('products')
+  // Column order; null keeps the list's default.
+  const [sort, setSort] = useState<SortState | null>(null)
   const [creating, setCreating] = useState(false)
   // Barcode a scan didn't find, to start the new product with it.
   const [newBarcode, setNewBarcode] = useState<string | undefined>()
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
-  const products = useProducts(filters, page)
+  const products = useProducts(filters, page, pageSize, sort)
+  const changeSort = (next: SortState | null) => {
+    setSort(next)
+    setPage(0)
+  }
   const categories = useLabeledCategories(useCategories().data)
 
   // Any filter change goes back to the first page.
@@ -78,11 +90,9 @@ export function ProductsPage() {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)}
-            placeholder={t('products.searchPlaceholder')} aria-label={t('products.searchLabel')} className="h-9 pl-8" />
-        </div>
+        <SearchInput wrapperClassName="min-w-56 flex-1" value={searchText} onValueChange={setSearchText}
+          loading={searchText.trim() !== filters.search || (products.isFetching && products.isPlaceholderData)}
+          placeholder={t('products.searchPlaceholder')} aria-label={t('products.searchLabel')} />
         <Select aria-label={t('products.category')} className="h-9 w-52"
           value={filters.categoryId === null ? 'all' : String(filters.categoryId)}
           onValueChange={(value) => changeFilters({ categoryId: value === 'all' ? null : Number(value) })}
@@ -114,18 +124,22 @@ export function ProductsPage() {
       </div>
 
       {products.isPending ? (
-        <FullPageSpinner />
+        <TableSkeleton />
       ) : products.isError ? (
         <ErrorAlert message={errorMessage(products.error)} />
       ) : (
         <Card className="gap-0 py-0">
-          <ProductsTable products={products.data.content ?? []} filtered={filtered} canEdit={canEdit}
+          <ProductsTable products={products.data.content ?? []} sort={sort} onSort={changeSort} filtered={filtered} search={filters.search} canEdit={canEdit}
             onEdit={setEditing} onDelete={setDeleting} onCreate={() => {
               setNewBarcode(undefined)
               setCreating(true)
             }} />
-          <Pagination page={page} pageSize={PAGE_SIZE} total={products.data.page?.totalElements ?? 0}
-            loading={products.isPlaceholderData} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={products.data.page?.totalElements ?? 0}
+            loading={products.isPlaceholderData} onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setPage(0)
+            }} />
         </Card>
       )}
 
@@ -141,9 +155,13 @@ export function ProductsPage() {
   )
 }
 
-function ProductsTable({ products, filtered, canEdit, onEdit, onDelete, onCreate }: {
+function ProductsTable({ products, filtered, search, canEdit, onEdit, onDelete, onCreate, sort, onSort }: {
+  sort: SortState | null
+  onSort: (sort: SortState | null) => void
   products: Product[]
   filtered: boolean
+  // Highlighted in names and codes.
+  search: string
   canEdit: boolean
   onEdit: (product: Product) => void
   onDelete: (product: Product) => void
@@ -163,17 +181,17 @@ function ProductsTable({ products, filtered, canEdit, onEdit, onDelete, onCreate
     )
   }
   return (
-    <Table>
+    <Table stickyHeader>
       <TableHeader className="bg-muted/50">
         <TableRow>
-          <TableHead className="pl-4">{t('products.columns.product')}</TableHead>
-          <TableHead className="hidden lg:table-cell">{t('products.columns.sku')}</TableHead>
+          <SortableHead field="name" sort={sort} onSort={onSort} className="pl-4">{t('products.columns.product')}</SortableHead>
+          <SortableHead field="sku" sort={sort} onSort={onSort} className="hidden lg:table-cell">{t('products.columns.sku')}</SortableHead>
           <TableHead className="hidden xl:table-cell">{t('products.columns.barcode')}</TableHead>
-          <TableHead className="hidden xl:table-cell">{t('products.columns.category')}</TableHead>
+          <SortableHead field="category" sort={sort} onSort={onSort} className="hidden xl:table-cell">{t('products.columns.category')}</SortableHead>
           <TableHead className="hidden text-right md:table-cell">{t('products.columns.priceWithoutVat')}</TableHead>
           <TableHead className="hidden text-right md:table-cell">{t('products.columns.vat')}</TableHead>
-          <TableHead className="text-right">{t('products.columns.priceWithVat')}</TableHead>
-          <TableHead className={cn('text-right', !canEdit && 'pr-4')}>{t('products.columns.stock')}</TableHead>
+          <SortableHead field="salePrice" first="desc" align="right" sort={sort} onSort={onSort}>{t('products.columns.priceWithVat')}</SortableHead>
+          <SortableHead field="stock" first="desc" align="right" sort={sort} onSort={onSort} className={cn(!canEdit && 'pr-4')}>{t('products.columns.stock')}</SortableHead>
           {canEdit && (
             <TableHead className="w-24 pr-4"><span className="sr-only">{t('products.columns.actions')}</span></TableHead>
           )}
@@ -187,10 +205,10 @@ function ProductsTable({ products, filtered, canEdit, onEdit, onDelete, onCreate
                 {/* Keyed by URL so a fixed link gets a fresh try. */}
                 <ProductThumbnail key={product.imageUrl} url={product.imageUrl} />
                 <span className="grid min-w-0">
-                  <span className="truncate font-medium text-foreground">{product.name}</span>
+                  <span className="truncate font-medium text-foreground"><Highlight text={product.name} query={search} /></span>
                   {/* Narrow screens hide the code columns: the codes go under the name instead. */}
                   <span className="truncate text-xs text-muted-foreground xl:hidden">
-                    {[product.sku, product.barcode].filter(Boolean).join(' · ')}
+                    <Highlight text={[product.sku, product.barcode].filter(Boolean).join(' · ')} query={search} />
                   </span>
                 </span>
               </div>
@@ -235,18 +253,5 @@ function ProductsTable({ products, filtered, canEdit, onEdit, onDelete, onCreate
         ))}
       </TableBody>
     </Table>
-  )
-}
-
-// The product's photo, or a box icon when it has none or the link is broken.
-function ProductThumbnail({ url }: { url?: string }) {
-  const [broken, setBroken] = useState(false)
-
-  return (
-    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
-      {url && !broken
-        ? <img src={url} alt="" loading="lazy" className="size-full object-cover" onError={() => setBroken(true)} />
-        : <Package className="size-5 text-muted-foreground" />}
-    </span>
   )
 }

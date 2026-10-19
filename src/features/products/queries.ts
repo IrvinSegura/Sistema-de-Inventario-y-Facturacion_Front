@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
+import { type SortState, sortParam } from '@/lib/sort'
 
 export type Product = Schemas['ProductResponse']
 export type CreateProduct = Schemas['CreateProductRequest']
@@ -18,13 +19,14 @@ export interface ProductFilters {
 
 export const productKeys = {
   all: ['products'] as const,
-  page: (filters: ProductFilters, page: number) => ['products', 'page', filters, page] as const,
+  page: (filters: ProductFilters, page: number, size: number, sort: SortState | null) =>
+    ['products', 'page', filters, page, size, sort] as const,
 }
 
 // Sorted by name on the server; blank search and no category mean "all".
-export function useProducts(filters: ProductFilters, page: number) {
+export function useProducts(filters: ProductFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
-    queryKey: productKeys.page(filters, page),
+    queryKey: productKeys.page(filters, page, size, sort),
     queryFn: () => unwrap(api.GET('/api/v1/products', {
       params: {
         query: {
@@ -33,7 +35,8 @@ export function useProducts(filters: ProductFilters, page: number) {
           active: filters.active,
           lowStock: filters.lowStock,
           page,
-          size: PAGE_SIZE,
+          size,
+          sort: sortParam(sort),
         },
       },
     })),
@@ -107,7 +110,11 @@ export function useAdjustStock() {
         params: { header: { 'Idempotency-Key': idempotencyKey } },
         body,
       })),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+    },
   })
 }
 
@@ -131,4 +138,28 @@ export async function findProductByBarcode(barcode: string): Promise<Product | n
     }
   }
   return null
+}
+
+// How many matches a product picker shows; a longer list means the search needs more letters.
+export const PRODUCT_MATCHES = 8
+
+// Products by name, SKU (contains) or barcode (exact) for pickers; nothing is requested until
+// something is typed.
+export function useProductSearch(search: string, active = true) {
+  return useQuery({
+    queryKey: [...productKeys.all, 'picker', search, active] as const,
+    queryFn: () => unwrap(api.GET('/api/v1/products', {
+      params: { query: { search, active, page: 0, size: PRODUCT_MATCHES } },
+    })),
+    enabled: search !== '',
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useProduct(id: number | null) {
+  return useQuery({
+    queryKey: [...productKeys.all, 'detail', id] as const,
+    enabled: id !== null,
+    queryFn: () => unwrap(api.GET('/api/v1/products/{id}', { params: { path: { id: id! } } })),
+  })
 }

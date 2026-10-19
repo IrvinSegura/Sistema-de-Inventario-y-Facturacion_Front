@@ -1,23 +1,27 @@
-import { Contact, Pencil, ReceiptText, Search, Trash2, TriangleAlert, UserPlus } from 'lucide-react'
+import { Contact, Pencil, ReceiptText, Trash2, TriangleAlert, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { Highlight } from '@/components/Highlight'
 import { Pagination } from '@/components/Pagination'
+import { SearchInput } from '@/components/SearchInput'
+import { SortableHead } from '@/components/SortableHead'
+import { TableSkeleton } from '@/components/TableSkeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { initials } from '@/lib/initials'
+import { type SortState } from '@/lib/sort'
+import { usePageSize } from '@/lib/use-page-size'
 import { cn } from '@/lib/utils'
 
 import { CustomerDialog } from './CustomerDialog'
 import { DeleteCustomerDialog } from './DeleteCustomerDialog'
-import { type Customer, type CustomerFilters, PAGE_SIZE, useCustomers } from './queries'
+import { type Customer, type CustomerFilters, useCustomers } from './queries'
 import { isInvoiceable } from './tax-regimes'
 
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
@@ -29,10 +33,17 @@ export function CustomersPage() {
   const [searchText, setSearchText] = useState('')
   const [filters, setFilters] = useState<CustomerFilters>({ search: '', active: true })
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = usePageSize('customers')
+  // Column order; null keeps the list's default.
+  const [sort, setSort] = useState<SortState | null>(null)
   // null: closed; 'new': creating; a customer: editing it.
   const [open, setOpen] = useState<Customer | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Customer | null>(null)
-  const customers = useCustomers(filters, page)
+  const customers = useCustomers(filters, page, pageSize, sort)
+  const changeSort = (next: SortState | null) => {
+    setSort(next)
+    setPage(0)
+  }
 
   useEffect(() => {
     const search = searchText.trim()
@@ -62,11 +73,9 @@ export function CustomersPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)}
-            placeholder={t('customers.searchPlaceholder')} aria-label={t('customers.searchLabel')} className="h-9 pl-8" />
-        </div>
+        <SearchInput wrapperClassName="min-w-56 flex-1" value={searchText} onValueChange={setSearchText}
+          loading={searchText.trim() !== filters.search || (customers.isFetching && customers.isPlaceholderData)}
+          placeholder={t('customers.searchPlaceholder')} aria-label={t('customers.searchLabel')} />
         <Select aria-label={t('customers.status')} className="h-9 w-36"
           value={filters.active ? 'active' : 'inactive'}
           onValueChange={(value) => {
@@ -80,15 +89,19 @@ export function CustomersPage() {
       </div>
 
       {customers.isPending ? (
-        <FullPageSpinner />
+        <TableSkeleton />
       ) : customers.isError ? (
         <ErrorAlert message={errorMessage(customers.error)} />
       ) : (
         <Card className="gap-0 py-0">
-          <CustomersTable customers={customers.data.content ?? []} filtered={filtered}
+          <CustomersTable customers={customers.data.content ?? []} sort={sort} onSort={changeSort} filtered={filtered} search={filters.search}
             onEdit={setOpen} onDelete={setDeleting} onCreate={() => setOpen('new')} />
-          <Pagination page={page} pageSize={PAGE_SIZE} total={customers.data.page?.totalElements ?? 0}
-            loading={customers.isPlaceholderData} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={customers.data.page?.totalElements ?? 0}
+            loading={customers.isPlaceholderData} onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setPage(0)
+            }} />
         </Card>
       )}
 
@@ -98,9 +111,13 @@ export function CustomersPage() {
   )
 }
 
-function CustomersTable({ customers, filtered, onEdit, onDelete, onCreate }: {
+function CustomersTable({ customers, filtered, search, onEdit, onDelete, onCreate, sort, onSort }: {
+  sort: SortState | null
+  onSort: (sort: SortState | null) => void
   customers: Customer[]
   filtered: boolean
+  // Highlighted in names and tax IDs.
+  search: string
   onEdit: (customer: Customer) => void
   onDelete: (customer: Customer) => void
   onCreate: () => void
@@ -119,12 +136,12 @@ function CustomersTable({ customers, filtered, onEdit, onDelete, onCreate }: {
     )
   }
   return (
-    <Table>
+    <Table stickyHeader>
       <TableHeader className="bg-muted/50">
         <TableRow>
-          <TableHead className="pl-4">{t('customers.columns.name')}</TableHead>
-          <TableHead className="hidden sm:table-cell">{t('customers.columns.taxId')}</TableHead>
-          <TableHead className="hidden md:table-cell">{t('customers.columns.phone')}</TableHead>
+          <SortableHead field="name" sort={sort} onSort={onSort} className="pl-4">{t('customers.columns.name')}</SortableHead>
+          <SortableHead field="taxId" sort={sort} onSort={onSort} className="hidden sm:table-cell">{t('customers.columns.taxId')}</SortableHead>
+          <SortableHead field="phone" sort={sort} onSort={onSort} className="hidden md:table-cell">{t('customers.columns.phone')}</SortableHead>
           <TableHead className="hidden xl:table-cell">{t('customers.columns.address')}</TableHead>
           <TableHead>{t('customers.columns.status')}</TableHead>
           <TableHead className="w-24 pr-4"><span className="sr-only">{t('customers.columns.actions')}</span></TableHead>
@@ -140,12 +157,12 @@ function CustomersTable({ customers, filtered, onEdit, onDelete, onCreate }: {
                 </span>
                 <span className="grid min-w-0">
                   <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
-                    <span className="truncate">{customer.name}</span>
+                    <span className="truncate"><Highlight text={customer.name} query={search} /></span>
                     {customer.walkIn && <Badge variant="secondary">{t('customers.walkIn')}</Badge>}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
                     {/* Narrow screens hide the tax ID column: it goes under the name instead. */}
-                    {customer.taxId && <span className="font-mono sm:hidden">{customer.taxId}{customer.email && ' · '}</span>}
+                    {customer.taxId && <span className="font-mono sm:hidden"><Highlight text={customer.taxId} query={search} />{customer.email && ' · '}</span>}
                     {customer.email}
                   </span>
                   {customer.taxId && !customer.walkIn && <InvoiceStatus customer={customer} className="sm:hidden" />}
@@ -155,7 +172,7 @@ function CustomersTable({ customers, filtered, onEdit, onDelete, onCreate }: {
             <TableCell className="hidden sm:table-cell">
               {customer.taxId ? (
                 <span className="grid gap-0.5">
-                  <span className="font-mono text-xs">{customer.taxId}</span>
+                  <span className="font-mono text-xs"><Highlight text={customer.taxId} query={search} /></span>
                   {!customer.walkIn && <InvoiceStatus customer={customer} />}
                 </span>
               ) : <span className="text-muted-foreground">—</span>}
