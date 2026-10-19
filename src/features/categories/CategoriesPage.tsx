@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { errorMessage } from '@/api/errors'
 import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { TableSkeleton } from '@/components/TableSkeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -43,7 +43,7 @@ export function CategoriesPage() {
       </div>
 
       {categories.isPending ? (
-        <FullPageSpinner />
+        <TableSkeleton />
       ) : categories.isError ? (
         <ErrorAlert message={errorMessage(categories.error)} />
       ) : categories.data.length === 0 ? (
@@ -55,7 +55,7 @@ export function CategoriesPage() {
         </Card>
       ) : (
         <Card className="gap-0 py-0">
-          <Table>
+          <Table stickyHeader>
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="pl-4">{t('categories.columns.name')}</TableHead>

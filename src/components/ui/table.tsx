@@ -3,15 +3,23 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+// stickyHeader: from tablets up, the header row stays under the app bar (h-16) while the page
+// scrolls. The container then can't scroll sideways (it would become the sticky's scroller); its
+// columns already hide on narrow screens, and phones keep the sideways scroll without the sticky.
+function Table({ className, stickyHeader = false, ...props }: React.ComponentProps<"table"> & { stickyHeader?: boolean }) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn("relative w-full overflow-x-auto", stickyHeader && "md:overflow-visible")}
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          stickyHeader &&
+            "md:[&_thead_th]:sticky md:[&_thead_th]:top-16 md:[&_thead_th]:z-10 md:[&_thead_th]:bg-[color-mix(in_oklch,var(--muted)_50%,var(--card))] md:[&_thead_th]:shadow-[inset_0_-1px_0_var(--border)]",
+          className
+        )}
         {...props}
       />
     </div>

@@ -1,0 +1,205 @@
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { api, type Schemas, unwrap } from '@/api/client'
+import { ApiError } from '@/api/errors'
+import { dayAfter, type DayRange, startOfDay } from '@/features/dashboard/days'
+import { type SortState, sortParam } from '@/lib/sort'
+
+export type Supplier = Schemas['SupplierResponse']
+export type CreateSupplier = Schemas['CreateSupplierRequest']
+export type UpdateSupplier = Schemas['UpdateSupplierRequest']
+export type Purchase = Schemas['PurchaseResponse']
+export type PurchaseSummary = Schemas['PurchaseSummaryResponse']
+
+export const PAGE_SIZE = 20
+// The API pages at most 100 items.
+const MAX_PAGE_SIZE = 100
+// Exports stop here; a longer period should be split.
+export const MAX_EXPORT_ROWS = 2_000
+// How many matches the supplier picker shows.
+export const SUPPLIER_MATCHES = 6
+
+export interface SupplierFilters {
+  search: string
+  active: boolean
+}
+
+export interface PurchaseFilters {
+  range: DayRange
+  supplierId: number | null
+}
+
+export const supplierKeys = {
+  all: ['suppliers'] as const,
+  page: (filters: SupplierFilters, page: number, size: number, sort: SortState | null) =>
+    ['suppliers', 'page', filters, page, size, sort] as const,
+  picker: (search: string) => ['suppliers', 'picker', search] as const,
+  list: ['suppliers', 'list'] as const,
+}
+
+// Under 'purchases' (like the dashboard's), so recording one refreshes every list.
+export const purchaseKeys = {
+  all: ['purchases'] as const,
+  page: (filters: PurchaseFilters, page: number, size: number, sort: SortState | null) =>
+    ['purchases', 'page', filters, page, size, sort] as const,
+  detail: (id: number) => ['purchases', 'detail', id] as const,
+}
+
+// Sorted by name on the server; the search matches the name or the tax ID, blank means "all".
+export function useSuppliers(filters: SupplierFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
+  return useQuery({
+    queryKey: supplierKeys.page(filters, page, size, sort),
+    queryFn: () => unwrap(api.GET('/api/v1/suppliers', {
+      params: { query: { search: filters.search || undefined, active: filters.active, page, size, sort: sortParam(sort) } },
+    })),
+    placeholderData: keepPreviousData,
+  })
+}
+
+// Active suppliers by name or tax ID for the picker; nothing is requested until something is typed.
+export function useSupplierSearch(search: string) {
+  return useQuery({
+    queryKey: supplierKeys.picker(search),
+    queryFn: () => unwrap(api.GET('/api/v1/suppliers', {
+      params: { query: { search, active: true, page: 0, size: SUPPLIER_MATCHES } },
+    })),
+    enabled: search !== '',
+    placeholderData: keepPreviousData,
+  })
+}
+
+// Every supplier, active ones first, for the purchases filter; a store has a few dozen.
+export function useAllSuppliers() {
+  return useQuery({
+    queryKey: supplierKeys.list,
+    queryFn: async () => {
+      const [active, inactive] = await Promise.all([true, false].map((isActive) =>
+        unwrap(api.GET('/api/v1/suppliers', { params: { query: { active: isActive, size: MAX_PAGE_SIZE } } }))))
+      return [...(active.content ?? []), ...(inactive.content ?? [])]
+    },
+  })
+}
+
+export function useCreateSupplier() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateSupplier) => unwrap(api.POST('/api/v1/suppliers', { body })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: supplierKeys.all }),
+  })
+}
+
+export function useUpdateSupplier() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: UpdateSupplier & { id: number }) =>
+      unwrap(api.PUT('/api/v1/suppliers/{id}', { params: { path: { id } }, body })),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: supplierKeys.all })
+      // Purchases show the supplier's name.
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+    },
+    // Someone else saved first: reload the list so reopening the supplier shows their version.
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: supplierKeys.all })
+      }
+    },
+  })
+}
+
+function purchaseQuery(filters: PurchaseFilters) {
+  return {
+    supplierId: filters.supplierId ?? undefined,
+    from: startOfDay(filters.range.from),
+    to: dayAfter(filters.range.to),
+  }
+}
+
+// Newest first, without items (the detail has them).
+export function usePurchases(filters: PurchaseFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
+  return useQuery({
+    queryKey: purchaseKeys.page(filters, page, size, sort),
+    queryFn: () => unwrap(api.GET('/api/v1/purchases', {
+      params: { query: { ...purchaseQuery(filters), page, size, sort: sortParam(sort) } },
+    })),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function usePurchase(id: number | null) {
+  return useQuery({
+    queryKey: purchaseKeys.detail(id ?? 0),
+    enabled: id !== null,
+    queryFn: () => unwrap(api.GET('/api/v1/purchases/{id}', { params: { path: { id: id! } } })),
+  })
+}
+
+// Every purchase of the filters, up to MAX_EXPORT_ROWS; truncated tells whether more were left out.
+export async function fetchAllPurchases(filters: PurchaseFilters, sort: SortState | null = null) {
+  const purchases: PurchaseSummary[] = []
+  let total = 0
+  for (let page = 0; purchases.length < MAX_EXPORT_ROWS; page++) {
+    const result = await unwrap(api.GET('/api/v1/purchases', {
+      params: { query: { ...purchaseQuery(filters), page, size: MAX_PAGE_SIZE, sort: sortParam(sort) } },
+    }))
+    purchases.push(...(result.content ?? []))
+    total = result.page?.totalElements ?? 0
+    if (page + 1 >= (result.page?.totalPages ?? 0)) {
+      break
+    }
+  }
+  return { purchases, truncated: total > purchases.length }
+}
+
+export interface PurchaseInput {
+  idempotencyKey: string
+  supplierId: number
+  items: { productId: number; quantity: number; unitCost: number }[]
+}
+
+// The key is created once per purchase and reused on retries, so a double click or a lost response
+// never adds the stock twice: the API returns the purchase it already recorded.
+export function useRecordPurchase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ idempotencyKey, ...body }: PurchaseInput) =>
+      unwrap(api.POST('/api/v1/purchases', {
+        params: { header: { 'Idempotency-Key': idempotencyKey } },
+        body,
+      })),
+    onSuccess: (purchase) => {
+      queryClient.setQueryData(purchaseKeys.detail(purchase.id!), purchase)
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['products'] })
+      void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+    },
+  })
+}
+
+// Every purchase of the filters at once (up to MAX_EXPORT_ROWS), for the period's totals and the export.
+export function usePurchaseTotals(filters: PurchaseFilters) {
+  return useQuery({
+    queryKey: [...purchaseKeys.all, 'totals', filters] as const,
+    queryFn: () => fetchAllPurchases(filters),
+    placeholderData: keepPreviousData,
+  })
+}
+
+// Purchases whose lines go into the Excel report; more would mean hundreds of requests.
+export const MAX_DETAILED_PURCHASES = 300
+const DETAIL_CONCURRENCY = 6
+
+// The full purchases (with lines), a few requests at a time.
+export async function fetchPurchaseDetails(ids: number[]): Promise<Purchase[]> {
+  const details: Purchase[] = new Array(ids.length)
+  let next = 0
+  const worker = async () => {
+    while (next < ids.length) {
+      const index = next++
+      details[index] = await unwrap(api.GET('/api/v1/purchases/{id}', { params: { path: { id: ids[index] } } }))
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(DETAIL_CONCURRENCY, ids.length) }, worker))
+  return details
+}

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
+import { type SortState, sortParam } from '@/lib/sort'
 
 export type UserAccount = Schemas['UserResponse']
 export type CreateUserAccount = Schemas['CreateUserRequest']
@@ -13,15 +14,15 @@ const MAX_PAGE_SIZE = 100
 
 export const userKeys = {
   all: ['users'] as const,
-  page: (page: number) => ['users', 'page', page] as const,
+  page: (page: number, size: number, sort: SortState | null) => ['users', 'page', page, size, sort] as const,
   list: ['users', 'list'] as const,
 }
 
 // Every account (sellers, supervisors and admins) comes from the users API (ADMIN only), sorted by name on the server.
-export function useUserAccounts(page: number) {
+export function useUserAccounts(page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
-    queryKey: userKeys.page(page),
-    queryFn: () => unwrap(api.GET('/api/v1/users', { params: { query: { page, size: PAGE_SIZE } } })),
+    queryKey: userKeys.page(page, size, sort),
+    queryFn: () => unwrap(api.GET('/api/v1/users', { params: { query: { page, size, sort: sortParam(sort) } } })),
     // Keeps the current page on screen while the next one loads.
     placeholderData: keepPreviousData,
   })

@@ -114,11 +114,15 @@ export interface paths {
         get: operations["findById_3"];
         /**
          * Update a customer (send the version you loaded)
-         * @description Changing the tax ID or the active flag requires ADMIN or SUPERVISOR (403 for sellers).
+         * @description Changing the tax ID or the active flag requires ADMIN or SUPERVISOR (403 for sellers). Tax ID, fiscalPostalCode (5 digits) and taxRegime (SAT c_RegimenFiscal code that applies to the tax ID: 12 characters company, 13 individual) are sent together or not at all (400).
          */
         put: operations["update_3"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a customer that has no sales
+         * @description A customer with sales answers 409: deactivate it instead, which keeps its history.
+         */
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -149,7 +153,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List users, sorted by name */
+        /**
+         * List users, by name unless sorted
+         * @description Sort by name, email, role or createdAt.
+         */
         get: operations["findAll"];
         put?: never;
         /** Create a user */
@@ -167,7 +174,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search suppliers sorted by name */
+        /**
+         * Search suppliers, by name unless sorted
+         * @description Sort by name, taxId, email, phone or createdAt.
+         */
         get: operations["search"];
         put?: never;
         /** Create a supplier */
@@ -206,8 +216,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List sales, newest first
-         * @description Sellers only get their own sales.
+         * List sales, newest first unless sorted
+         * @description Sellers only get their own sales. Sort by saleNumber, saleDate, total, paymentMethod, status, customer or seller.
          */
         get: operations["search_1"];
         put?: never;
@@ -249,7 +259,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List purchases, newest first */
+        /**
+         * List purchases, newest first unless sorted
+         * @description Sort by id, purchaseDate, total, supplier or recordedBy.
+         */
         get: operations["search_2"];
         put?: never;
         /**
@@ -270,7 +283,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search products sorted by name */
+        /**
+         * Search products, by name unless sorted
+         * @description Sort by name, sku, category, salePrice, stock, minStock or createdAt.
+         */
         get: operations["search_3"];
         put?: never;
         /** Create a product; tax rate defaults to the category's; stock starts at 0 */
@@ -288,10 +304,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search customers sorted by name */
+        /**
+         * Search customers, by name unless sorted
+         * @description Sort by name, taxId, email, phone or createdAt.
+         */
         get: operations["search_4"];
         put?: never;
-        /** Create a customer */
+        /**
+         * Create a customer
+         * @description Tax ID, fiscalPostalCode (5 digits) and taxRegime (SAT c_RegimenFiscal code that applies to the tax ID: 12 characters company, 13 individual) are sent together or not at all (400).
+         */
         post: operations["create_5"];
         delete?: never;
         options?: never;
@@ -325,8 +347,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List cash drawers, newest day first
-         * @description Sellers only get the ones they're in.
+         * List cash drawers, newest day first unless sorted
+         * @description Sellers only get the ones they're in. Sort by businessDate, openingFloat, expectedCash, countedCash, openedAt or closedAt.
          */
         get: operations["search_5"];
         put?: never;
@@ -803,6 +825,9 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            /** @description SAT c_RegimenFiscal code, e.g. 601, 605, 612, 616, 626 */
+            taxRegime?: string;
             active: boolean;
             /** Format: int64 */
             version: number;
@@ -815,6 +840,8 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            taxRegime?: string;
             active?: boolean;
             walkIn?: boolean;
             /** Format: int64 */
@@ -995,6 +1022,9 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            /** @description SAT c_RegimenFiscal code, e.g. 601, 605, 612, 616, 626 */
+            taxRegime?: string;
         };
         CreateCategoryRequest: {
             name: string;
@@ -1527,6 +1557,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
                 };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

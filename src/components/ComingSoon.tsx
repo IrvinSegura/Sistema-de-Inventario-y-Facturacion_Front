@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
 // Sections already in the menu whose screens aren't built yet; the API behind them exists.
-export type UpcomingSection = 'sales' | 'purchases' | 'inventory' | 'customers' | 'reports'
+export type UpcomingSection = 'reports'
 
 export function ComingSoon({ section }: { section: UpcomingSection }) {
   const { t } = useTranslation()

@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 
 import { ApiError, errorMessage } from '@/api/errors'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { LoadingBlock } from '@/components/LoadingBlock'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,10 +15,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { isFromPastDay } from '@/features/cash-drawer/drawer-day'
 import { formatDate } from '@/features/cash-drawer/format'
 import { useCurrentDrawer } from '@/features/cash-drawer/queries'
+import type { Customer } from '@/features/customers/queries'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { type CartAction, cartReducer, cartTotals } from './cart'
+import { CustomerPicker } from './CustomerPicker'
 import { findProductByBarcode, type PaymentMethod, type Sale, useRecordSale } from './queries'
 import { ReceiptDialog } from './ReceiptDialog'
 
@@ -29,13 +31,15 @@ export function CheckoutPage() {
   const drawer = useCurrentDrawer()
   const recordSale = useRecordSale()
   const [lines, dispatchCart] = useReducer(cartReducer, [])
+  const [customer, setCustomer] = useState<Customer | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH')
   const [cashReceived, setCashReceived] = useState('')
   const [barcode, setBarcode] = useState('')
   const [scanning, setScanning] = useState(false)
   const [receipt, setReceipt] = useState<Sale | null>(null)
   const barcodeInput = useRef<HTMLInputElement>(null)
-  // One key per checkout: kept across retries of the same cart, renewed when the cart changes.
+  // One key per checkout: kept across retries of the same sale, renewed when the cart or the
+  // customer changes (the API rejects a key reused with a different request).
   const idempotencyKey = useRef<string | null>(null)
 
   const totals = cartTotals(lines)
@@ -50,6 +54,11 @@ export function CheckoutPage() {
   function updateCart(action: CartAction) {
     idempotencyKey.current = null
     dispatchCart(action)
+  }
+
+  function changeCustomer(next: Customer | null) {
+    idempotencyKey.current = null
+    setCustomer(next)
   }
 
   async function scan(event: FormEvent) {
@@ -87,6 +96,7 @@ export function CheckoutPage() {
     idempotencyKey.current ??= crypto.randomUUID()
     recordSale.mutate({
       idempotencyKey: idempotencyKey.current,
+      customerId: customer?.id,
       paymentMethod,
       items: lines.map(({ productId, quantity }) => ({ productId, quantity })),
     }, {
@@ -94,6 +104,7 @@ export function CheckoutPage() {
         setReceipt(sale)
         idempotencyKey.current = null
         dispatchCart({ type: 'clear' })
+        setCustomer(null)
         setCashReceived('')
         setPaymentMethod('CASH')
       },
@@ -103,7 +114,7 @@ export function CheckoutPage() {
   }
 
   if (drawer.isPending) {
-    return <FullPageSpinner />
+    return <LoadingBlock />
   }
 
   return (
@@ -211,6 +222,7 @@ export function CheckoutPage() {
             <dt className="text-lg font-semibold">{t('checkout.total')}</dt>
             <dd className="text-right text-lg font-semibold tabular-nums">{formatMoney(totals.total)}</dd>
           </dl>
+          <CustomerPicker value={customer} onChange={changeCustomer} disabled={!drawerOpen || recordSale.isPending} />
           <div className="grid gap-2">
             <Label>{t('checkout.paymentMethod')}</Label>
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t('checkout.paymentMethod')}>

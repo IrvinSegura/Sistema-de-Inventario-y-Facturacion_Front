@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
+import { type SortState, sortParam } from '@/lib/sort'
 
 export type CashDrawer = Schemas['CashDrawerResponse']
 export type CashClosing = Schemas['CashClosingResponse']
@@ -29,7 +30,8 @@ export const drawerKeys = {
   all: ['cash-drawers'] as const,
   current: ['cash-drawers', 'current'] as const,
   latest: ['cash-drawers', 'latest'] as const,
-  search: (search: DrawerSearch, page: number) => ['cash-drawers', 'search', search, page] as const,
+  search: (search: DrawerSearch, page: number, size: number, sort: SortState | null) =>
+    ['cash-drawers', 'search', search, page, size, sort] as const,
   assignable: ['cash-drawers', 'assignable-sellers'] as const,
   // Under 'sale-reports' so a sale or cancellation anywhere refreshes the closings too.
   dayClosing: (date: string, sellerId?: number) => ['sale-reports', 'cash-closing', date, sellerId ?? 'all'] as const,
@@ -69,10 +71,10 @@ export function useLatestDrawer(enabled: boolean) {
 }
 
 // Drawers by business day, newest first; sellers only get the ones they were in.
-export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PAGE_SIZE) {
+export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
-    queryKey: drawerKeys.search(search, page),
-    queryFn: () => unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { ...search, page, size } } })),
+    queryKey: drawerKeys.search(search, page, size, sort),
+    queryFn: () => unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { ...search, page, size, sort: sortParam(sort) } } })),
     placeholderData: keepPreviousData,
   })
 }
@@ -180,6 +182,7 @@ export function useCancelSale() {
       void queryClient.invalidateQueries({ queryKey: ['sale-reports'] })
       void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       void queryClient.invalidateQueries({ queryKey: ['products'] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
     },
   })
 }

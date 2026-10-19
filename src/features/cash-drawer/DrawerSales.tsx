@@ -94,9 +94,11 @@ export function DrawerSales({ drawerId, canCancel, showSeller = false }: {
   )
 }
 
-function CancelSaleDialog({ sale, onOpenChange }: {
-  sale: SaleSummary | null
+// Asks for the reason and cancels: the sale's stock goes back and its total is refunded.
+export function CancelSaleDialog({ sale, onOpenChange, onCancelled }: {
+  sale: Pick<SaleSummary, 'id' | 'saleNumber' | 'total'> | null
   onOpenChange: (open: boolean) => void
+  onCancelled?: () => void
 }) {
   const { t } = useTranslation()
   const cancelSale = useCancelSale()
@@ -121,6 +123,7 @@ function CancelSaleDialog({ sale, onOpenChange }: {
       onSuccess: () => {
         showSuccess(t('drawer.ticketCancelled', { number: sale!.saleNumber }))
         close()
+        onCancelled?.()
       },
     }))
 
