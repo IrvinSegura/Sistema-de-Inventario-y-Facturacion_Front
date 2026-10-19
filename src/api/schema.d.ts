@@ -118,7 +118,11 @@ export interface paths {
          */
         put: operations["update_3"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a customer that has no sales
+         * @description A customer with sales answers 409: deactivate it instead, which keeps its history.
+         */
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -803,6 +807,9 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            /** @description SAT c_RegimenFiscal code, e.g. 601, 605, 612, 616, 626 */
+            taxRegime?: string;
             active: boolean;
             /** Format: int64 */
             version: number;
@@ -815,6 +822,8 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            taxRegime?: string;
             active?: boolean;
             walkIn?: boolean;
             /** Format: int64 */
@@ -995,6 +1004,9 @@ export interface components {
             email?: string;
             phone?: string;
             address?: string;
+            fiscalPostalCode?: string;
+            /** @description SAT c_RegimenFiscal code, e.g. 601, 605, 612, 616, 626 */
+            taxRegime?: string;
         };
         CreateCategoryRequest: {
             name: string;
@@ -1527,6 +1539,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
                 };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
