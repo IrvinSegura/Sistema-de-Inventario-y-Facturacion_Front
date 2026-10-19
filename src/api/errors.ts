@@ -62,6 +62,17 @@ const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Sale total exceeds the maximum allowed$/, () => i18n.t('apiErrors.saleTooLarge')],
   [/^Each product can appear only once per sale$/, () => i18n.t('apiErrors.duplicateSaleLine')],
   [/^Idempotency-Key was already used with a different request$/, () => i18n.t('apiErrors.keyReused')],
+  [/^Supplier not found$/, () => i18n.t('apiErrors.supplierNotFound')],
+  [/^Supplier is inactive$/, () => i18n.t('apiErrors.supplierInactive')],
+  [/^Purchase not found$/, () => i18n.t('apiErrors.purchaseNotFound')],
+  [/^Purchase total exceeds the maximum allowed$/, () => i18n.t('apiErrors.purchaseTooLarge')],
+  [/^Each product can appear only once per purchase$/, () => i18n.t('apiErrors.duplicatePurchaseLine')],
+  [/^Sale not found$/, () => i18n.t('apiErrors.saleNotFound')],
+  [/^Sale is already cancelled$/, () => i18n.t('apiErrors.saleAlreadyCancelled')],
+  [/^Inventory movement not found$/, () => i18n.t('apiErrors.movementNotFound')],
+  [/^Quantity must not be zero$/, () => i18n.t('apiErrors.zeroQuantity')],
+  [/^'from' must be before 'to'$/, () => i18n.t('apiErrors.dateOrder')],
+  [/^Dates must be between/, () => i18n.t('apiErrors.dateBounds')],
 ]
 
 const statusMessages: Partial<Record<number, MessageKey>> = {

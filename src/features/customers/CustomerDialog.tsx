@@ -23,7 +23,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { showSuccess } from '@/lib/success-popup'
-import { filtered, NOT_DIGIT, NOT_PHONE_CHAR } from '@/lib/text-rules'
+import {
+  filtered,
+  NOT_DIGIT,
+  NOT_PHONE_CHAR,
+  NOT_TAX_ID_CHAR,
+  PHONE,
+  PHONE_MAX_LENGTH,
+  TAX_ID,
+  TAX_ID_MAX_LENGTH,
+} from '@/lib/text-rules'
 
 import { type Customer, useCreateCustomer, useUpdateCustomer } from './queries'
 import { isCompanyTaxId, isTaxRegimeCode, regimeAppliesTo, TAX_REGIMES } from './tax-regimes'
@@ -32,14 +41,7 @@ import { isCompanyTaxId, isTaxRegimeCode, regimeAppliesTo, TAX_REGIMES } from '.
 // and CustomerService's fiscal data rule).
 const NAME_MAX_LENGTH = 150
 const EMAIL_MAX_LENGTH = 150
-const PHONE_MAX_LENGTH = 20
 const ADDRESS_MAX_LENGTH = 255
-const TAX_ID_MAX_LENGTH = 13
-// Mexican RFC: 3 letters (company) or 4 (person), a date and a 3-character check code.
-const TAX_ID = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/
-const NOT_TAX_ID_CHAR = /[^A-Za-zÑñ&0-9]/g
-// At least 7 digits; digits, spaces, +, - and parentheses only.
-const PHONE = /^(?=(?:\D*\d){7})[0-9+()\- ]{7,20}$/
 const POSTAL_CODE = /^\d{5}$/
 
 const fields = ['name', 'taxId', 'email', 'phone', 'address', 'fiscalPostalCode', 'taxRegime'] as const

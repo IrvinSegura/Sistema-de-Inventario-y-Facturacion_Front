@@ -24,3 +24,20 @@ export interface DayRange {
   from: string
   to: string
 }
+
+export function todayDay(): string {
+  return toDay(new Date())
+}
+
+// The last `days` calendar days, today included.
+export function lastDaysRange(days: number): DayRange {
+  const today = todayDay()
+  return { from: addDays(today, -(days - 1)), to: today }
+}
+
+// Calendar days in a range, both ends included.
+export function daysInRange(range: DayRange): number {
+  const from = new Date(`${range.from}T12:00:00`).getTime()
+  const to = new Date(`${range.to}T12:00:00`).getTime()
+  return Math.round((to - from) / 86_400_000) + 1
+}

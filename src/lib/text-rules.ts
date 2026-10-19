@@ -17,6 +17,14 @@ export const NOT_LABEL_CHAR = /[^\p{L}\p{M}\p{N} .,'&()/%+#-]/gu
 export const NOT_PERSON_NAME_CHAR = /[^\p{L}\p{M} .'-]/gu
 export const NOT_PHONE_CHAR = /[^\d\s()+-]/g
 
+// Mexican RFC (@TaxId): 3 letters (company) or 4 (person), a date and a 3-character check code.
+export const TAX_ID = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/
+export const TAX_ID_MAX_LENGTH = 13
+export const NOT_TAX_ID_CHAR = /[^A-Za-zÑñ&0-9]/g
+// Phones (@Phone): at least 7 digits; digits, spaces, +, - and parentheses only.
+export const PHONE = /^(?=(?:\D*\d){7})[0-9+()\- ]{7,20}$/
+export const PHONE_MAX_LENGTH = 20
+
 // Wraps a react-hook-form field so typed or pasted characters outside the rule are removed
 // (and the value optionally transformed, e.g. uppercased) before the form sees them.
 export function filtered(
