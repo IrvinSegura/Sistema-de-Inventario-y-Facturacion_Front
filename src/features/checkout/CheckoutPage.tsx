@@ -5,7 +5,7 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 
 import { ApiError, errorMessage } from '@/api/errors'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { LoadingBlock } from '@/components/LoadingBlock'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -114,7 +114,7 @@ export function CheckoutPage() {
   }
 
   if (drawer.isPending) {
-    return <FullPageSpinner />
+    return <LoadingBlock />
   }
 
   return (

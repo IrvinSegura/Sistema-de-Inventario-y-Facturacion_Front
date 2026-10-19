@@ -1,9 +1,9 @@
-import { Search, UserPlus, X } from 'lucide-react'
+import { UserPlus, X } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { SearchInput } from '@/components/SearchInput'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CustomerDialog } from '@/features/customers/CustomerDialog'
 import type { Customer } from '@/features/customers/queries'
@@ -83,12 +83,9 @@ export function CustomerPicker({ value, onChange, disabled }: {
         </div>
       ) : (
         <>
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id={inputId} type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)}
-              onKeyDown={onKeyDown} placeholder={t('checkout.customer.searchPlaceholder')} autoComplete="off"
-              className="pl-8" disabled={disabled} />
-          </div>
+          <SearchInput id={inputId} value={searchText} onValueChange={setSearchText} onKeyDown={onKeyDown}
+            placeholder={t('checkout.customer.searchPlaceholder')} disabled={disabled}
+            loading={searchText.trim() !== '' && (searchText.trim() !== search || matches.isFetching)} />
           {showResults ? (
             <div className="grid gap-1" aria-live="polite">
               {matches.isError ? (

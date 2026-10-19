@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { LoadingBlock } from '@/components/LoadingBlock'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,7 +38,7 @@ export function TodayDrawersPage() {
   const [assigning, setAssigning] = useState(false)
 
   if (day.isPending) {
-    return <FullPageSpinner />
+    return <LoadingBlock />
   }
   if (day.isError) {
     return <ErrorAlert message={errorMessage(day.error)} />

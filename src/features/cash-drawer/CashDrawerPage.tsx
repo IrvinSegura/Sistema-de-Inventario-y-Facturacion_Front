@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { errorMessage } from '@/api/errors'
 import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
+import { LoadingBlock } from '@/components/LoadingBlock'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +42,7 @@ function MyDrawerPage() {
   const [today] = useState(() => toDay(new Date()))
 
   if (current.isPending || (current.data === null && latest.isPending)) {
-    return <FullPageSpinner />
+    return <LoadingBlock />
   }
   if (current.isError || latest.isError) {
     return <ErrorAlert message={errorMessage(current.error ?? latest.error)} />

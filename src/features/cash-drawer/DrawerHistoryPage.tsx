@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next'
 import { errorMessage } from '@/api/errors'
 import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
-import { FullPageSpinner } from '@/components/FullPageSpinner'
 import { Pagination } from '@/components/Pagination'
+import { SortableHead } from '@/components/SortableHead'
+import { TableSkeleton } from '@/components/TableSkeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,13 +17,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { addDays, toDay } from '@/features/dashboard/days'
 import { useAllUserAccounts } from '@/features/users/queries'
 import { formatMoney } from '@/lib/money'
+import { type SortState } from '@/lib/sort'
+import { usePageSize } from '@/lib/use-page-size'
 import { cn } from '@/lib/utils'
 
 import { DrawerDetailDialog } from './DrawerDetailDialog'
 import { DrawerStatus, SharedBadge } from './DrawerParts'
 import { differenceClass, formatDate } from './format'
 import { memberNames } from './members'
-import { type CashDrawer, type DrawerSearch, HISTORY_PAGE_SIZE, useDrawers } from './queries'
+import { type CashDrawer, type DrawerSearch, useDrawers } from './queries'
 
 const DEFAULT_RANGE_DAYS = 30
 const ALL_SELLERS = 'all'
@@ -37,13 +40,20 @@ export function DrawerHistoryPage() {
   const [to, setTo] = useState(today)
   const [seller, setSeller] = useState(ALL_SELLERS)
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = usePageSize('drawer-history')
+  // Column order; null keeps the list's default.
+  const [sort, setSort] = useState<SortState | null>(null)
   const [selected, setSelected] = useState<CashDrawer | null>(null)
   // Only admins can list accounts to filter by seller; only sellers have drawers.
   const accounts = useAllUserAccounts(user.role === 'ADMIN')
   const sellers = accounts.data?.filter((account) => account.role === 'SELLER')
 
   const search: DrawerSearch = { from, to, sellerId: seller === ALL_SELLERS ? undefined : Number(seller) }
-  const drawers = useDrawers(search, page)
+  const drawers = useDrawers(search, page, pageSize, sort)
+  const changeSort = (next: SortState | null) => {
+    setSort(next)
+    setPage(0)
+  }
 
   // A range always runs forward: moving one end past the other drags it along.
   function changeFrom(value: string) {
@@ -98,7 +108,7 @@ export function DrawerHistoryPage() {
       </div>
 
       {drawers.isPending ? (
-        <FullPageSpinner />
+        <TableSkeleton />
       ) : drawers.isError ? (
         <ErrorAlert message={errorMessage(drawers.error)} />
       ) : (drawers.data.content ?? []).length === 0 ? (
@@ -110,15 +120,15 @@ export function DrawerHistoryPage() {
         </Card>
       ) : (
         <Card className="gap-0 py-0">
-          <Table>
+          <Table stickyHeader>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="pl-4">{t('drawer.columns.date')}</TableHead>
+                <SortableHead field="businessDate" first="desc" sort={sort} onSort={changeSort} className="pl-4">{t('drawer.columns.date')}</SortableHead>
                 {manager && <TableHead>{t('drawer.columns.seller')}</TableHead>}
                 <TableHead className="hidden md:table-cell">{t('drawer.columns.status')}</TableHead>
-                <TableHead className="hidden text-right lg:table-cell">{t('drawer.columns.float')}</TableHead>
-                <TableHead className="hidden text-right sm:table-cell">{t('drawer.columns.expected')}</TableHead>
-                <TableHead className="hidden text-right sm:table-cell">{t('drawer.columns.counted')}</TableHead>
+                <SortableHead field="openingFloat" first="desc" align="right" sort={sort} onSort={changeSort} className="hidden lg:table-cell">{t('drawer.columns.float')}</SortableHead>
+                <SortableHead field="expectedCash" first="desc" align="right" sort={sort} onSort={changeSort} className="hidden sm:table-cell">{t('drawer.columns.expected')}</SortableHead>
+                <SortableHead field="countedCash" first="desc" align="right" sort={sort} onSort={changeSort} className="hidden sm:table-cell">{t('drawer.columns.counted')}</SortableHead>
                 <TableHead className="text-right">{t('drawer.columns.difference')}</TableHead>
                 <TableHead className="w-12 pr-4"><span className="sr-only">{t('drawer.columns.actions')}</span></TableHead>
               </TableRow>
@@ -153,8 +163,12 @@ export function DrawerHistoryPage() {
               ))}
             </TableBody>
           </Table>
-          <Pagination page={page} pageSize={HISTORY_PAGE_SIZE} total={drawers.data.page?.totalElements ?? 0}
-            loading={drawers.isPlaceholderData} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={drawers.data.page?.totalElements ?? 0}
+            loading={drawers.isPlaceholderData} onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setPage(0)
+            }} />
         </Card>
       )}
 
