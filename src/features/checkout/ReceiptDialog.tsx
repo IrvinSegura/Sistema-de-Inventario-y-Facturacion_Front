@@ -85,7 +85,7 @@ function ReceiptBody({ sale }: { sale: Sale }) {
 }
 
 // Paper ticket: store name, sale number and the same lines and totals as on screen.
-function ReceiptSlip({ sale }: { sale: Sale }) {
+export function ReceiptSlip({ sale }: { sale: Sale }) {
   const { t } = useTranslation()
   return (
     <div className="mx-auto grid max-w-xs gap-3">
