@@ -11,7 +11,16 @@ import { CheckoutPage } from '@/features/checkout/CheckoutPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { CategoriesPage } from '@/features/categories/CategoriesPage'
 import { CustomersPage } from '@/features/customers/CustomersPage'
+import { InventoryLayout } from '@/features/inventory/InventoryLayout'
+import { LowStockPage } from '@/features/inventory/LowStockPage'
+import { MovementsPage } from '@/features/inventory/MovementsPage'
+import { StockPage } from '@/features/inventory/StockPage'
 import { ProductsPage } from '@/features/products/ProductsPage'
+import { NewPurchasePage } from '@/features/purchases/NewPurchasePage'
+import { PurchasesLayout } from '@/features/purchases/PurchasesLayout'
+import { PurchasesPage } from '@/features/purchases/PurchasesPage'
+import { SuppliersPage } from '@/features/purchases/SuppliersPage'
+import { SalesPage } from '@/features/sales/SalesPage'
 import { UsersPage } from '@/features/users/UsersPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
@@ -39,10 +48,18 @@ export function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route element={<RequireRole roles={['ADMIN', 'SUPERVISOR']} />}>
             <Route path="customers" element={<CustomersPage />} />
-            {/* In the menu already; their screens come next. */}
-            <Route path="sales" element={<ComingSoon section="sales" />} />
-            <Route path="inventory" element={<ComingSoon section="inventory" />} />
-            <Route path="purchases" element={<ComingSoon section="purchases" />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="inventory" element={<InventoryLayout />}>
+              <Route index element={<StockPage />} />
+              <Route path="low-stock" element={<LowStockPage />} />
+              <Route path="movements" element={<MovementsPage />} />
+            </Route>
+            <Route path="purchases" element={<PurchasesLayout />}>
+              <Route index element={<PurchasesPage />} />
+              <Route path="new" element={<NewPurchasePage />} />
+              <Route path="suppliers" element={<SuppliersPage />} />
+            </Route>
+            {/* In the menu already; its screen comes next. */}
             <Route path="reports" element={<ComingSoon section="reports" />} />
           </Route>
           <Route element={<RequireRole roles={['ADMIN']} />}>
