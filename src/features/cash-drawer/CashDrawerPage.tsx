@@ -3,6 +3,7 @@ import { CalendarCheck, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { Navigate } from 'react-router'
 import { z } from 'zod'
 
 import { errorMessage } from '@/api/errors'
@@ -19,16 +20,22 @@ import { amountField } from '@/lib/amount-field'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 
-import { ClosingDetails, CloseDrawerForm, DrawerPeople } from './DrawerParts'
+import { ClosingDetails, CloseDrawerForm, DrawerMembers } from './DrawerParts'
 import { isFromPastDay } from './drawer-day'
 import { DrawerSales } from './DrawerSales'
 import { formatDate, formatTime } from './format'
 import { isAssigned, isResponsible, isShared } from './members'
 import { type CashDrawer, useCurrentDrawer, useLatestDrawer, useOpenDrawer } from './queries'
 
-// The drawer the signed-in user sells from: their own, or one a manager assigned them (maybe shared).
-// They open their own; only the drawer's responsible counts and closes it.
+// Managers have no drawer of their own: their cash drawer section starts at "Today's drawers".
 export function CashDrawerPage() {
+  const user = useUser()
+  return managesStore(user.role) ? <Navigate to="/cash-drawer/today" replace /> : <MyDrawerPage />
+}
+
+// The drawer the seller sells from: their own, or one a manager assigned them (maybe shared).
+// They open their own; only the drawer's responsible counts and closes it.
+function MyDrawerPage() {
   const user = useUser()
   const current = useCurrentDrawer()
   const latest = useLatestDrawer(current.data === null)
@@ -46,12 +53,12 @@ export function CashDrawerPage() {
         {isResponsible(current.data, user.id)
           ? <CloseDrawerCard drawer={current.data} />
           : <MemberDrawerCard drawer={current.data} />}
-        <TicketsCard drawer={current.data} canCancel={managesStore(user.role)} />
+        <TicketsCard drawer={current.data} />
       </div>
     )
   }
   const last = latest.data
-  // One drawer per user and day: once today's is closed, the next one opens tomorrow.
+  // One drawer per seller and day: once today's is closed, the next one opens tomorrow.
   const closedToday = !!last?.closing && last.businessDate === today
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -140,7 +147,7 @@ function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
     <Card>
       <OpenDrawerHeader drawer={drawer} />
       <CardContent className="grid gap-4">
-        {(isShared(drawer) || isAssigned(drawer)) && <DrawerPeople drawer={drawer} />}
+        {(isShared(drawer) || isAssigned(drawer)) && <DrawerMembers drawer={drawer} />}
         <CloseDrawerForm drawer={drawer} />
       </CardContent>
     </Card>
@@ -160,7 +167,7 @@ function MemberDrawerCard({ drawer }: { drawer: CashDrawer }) {
             <AlertDescription>{t('drawer.staleMemberHint')}</AlertDescription>
           </Alert>
         )}
-        <DrawerPeople drawer={drawer} />
+        <DrawerMembers drawer={drawer} />
         <p className="flex items-start gap-2 text-sm text-muted-foreground">
           <Users className="mt-0.5 size-4 shrink-0" />
           {t('drawer.closedByResponsible', { name: drawer.responsible?.name })}
@@ -170,19 +177,18 @@ function MemberDrawerCard({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-function TicketsCard({ drawer, canCancel }: { drawer: CashDrawer; canCancel: boolean }) {
+// Only managers cancel tickets, from "Today's drawers".
+function TicketsCard({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   return (
     <Card className="content-start">
       <CardHeader>
         <CardTitle>{t('drawer.tickets')}</CardTitle>
-        {/* Sellers only get their own tickets of a shared drawer; managers get everyone's. */}
-        <CardDescription>
-          {t(isShared(drawer) && !canCancel ? 'drawer.ticketsHintShared' : 'drawer.ticketsHint')}
-        </CardDescription>
+        {/* Sellers only get their own tickets of a shared drawer. */}
+        <CardDescription>{t(isShared(drawer) ? 'drawer.ticketsHintShared' : 'drawer.ticketsHint')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <DrawerSales drawerId={drawer.id!} canCancel={canCancel} showSeller={isShared(drawer) && canCancel} />
+        <DrawerSales drawerId={drawer.id!} canCancel={false} />
       </CardContent>
     </Card>
   )

@@ -46,7 +46,7 @@ const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Category name already exists$/, () => i18n.t('categories.form.nameTaken')],
   [/^Category has active products/, () => i18n.t('apiErrors.categoryHasProducts')],
   [/^Barcode already exists$/, () => i18n.t('products.form.barcodeTaken')],
-  [/^Email is already registered$/, () => i18n.t('sellers.form.emailTaken')],
+  [/^Email is already registered$/, () => i18n.t('users.form.emailTaken')],
   [/^User not found$/, () => i18n.t('apiErrors.userNotFound')],
   [/^Current password is incorrect$/, () => i18n.t('apiErrors.wrongCurrentPassword')],
   [/^(No open cash drawer|Cash drawer not found)$/, () => i18n.t('apiErrors.noOpenDrawer')],

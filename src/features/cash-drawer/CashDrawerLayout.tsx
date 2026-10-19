@@ -8,19 +8,21 @@ import { cn } from '@/lib/utils'
 interface Tab {
   to: string
   label: MessageKey
-  managersOnly?: boolean
+  // Sellers have a drawer; managers have none and look after everyone's.
+  audience?: 'sellers' | 'managers'
 }
 
 const tabs: Tab[] = [
-  { to: '/cash-drawer', label: 'drawer.tabs.mine' },
-  { to: '/cash-drawer/today', label: 'drawer.tabs.today', managersOnly: true },
+  { to: '/cash-drawer', label: 'drawer.tabs.mine', audience: 'sellers' },
+  { to: '/cash-drawer/today', label: 'drawer.tabs.today', audience: 'managers' },
   { to: '/cash-drawer/history', label: 'drawer.tabs.history' },
 ]
 
 export function CashDrawerLayout() {
   const { t } = useTranslation()
   const user = useUser()
-  const visible = tabs.filter((tab) => !tab.managersOnly || managesStore(user.role))
+  const viewer = managesStore(user.role) ? 'managers' : 'sellers'
+  const visible = tabs.filter((tab) => !tab.audience || tab.audience === viewer)
 
   return (
     <div className="grid gap-6">
