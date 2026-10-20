@@ -5,6 +5,7 @@ import {
   type LucideIcon,
   Package,
   Receipt,
+  ShieldCheck,
   ShoppingCart,
   Tags,
   Truck,
@@ -29,6 +30,7 @@ const MANAGERS: Role[] = ['ADMIN', 'SUPERVISOR']
 
 export const navItems: NavItem[] = [
   { to: '/', label: 'app.nav.dashboard', icon: LayoutDashboard },
+  { to: '/supervision', label: 'app.nav.supervision', icon: ShieldCheck, roles: MANAGERS },
   // Only sellers charge: managers have no cash drawer.
   { to: '/checkout', label: 'app.nav.checkout', icon: ShoppingCart, roles: ['SELLER'] },
   { to: '/cash-drawer', label: 'app.nav.cashDrawer', icon: Wallet },
