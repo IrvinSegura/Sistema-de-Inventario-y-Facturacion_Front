@@ -1,22 +1,66 @@
-// Calendar days as yyyy-mm-dd in the browser's time zone, the format the reports use.
-export function toDay(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+// Calendar days as yyyy-mm-dd in the store's time zone, the one the API groups reports and cash
+// drawers by: a sale at 23:30 in the store belongs to that day wherever the browser is. Day
+// arithmetic is done on UTC dates, so neither the browser's zone nor daylight saving shifts a day.
+
+// Must match the API's app.store.time-zone.
+export const STORE_TIME_ZONE = import.meta.env.VITE_STORE_TIME_ZONE || 'America/Mexico_City'
+
+// The earliest day the API accepts in date filters and reports.
+export const FIRST_DAY = '2000-01-01'
+
+const formats = new Map<string, Intl.DateTimeFormat>()
+
+// yyyy-mm-dd and hh:mm:ss of an instant in a zone, cached per zone.
+function wallClock(instant: Date, timeZone: string) {
+  let format = formats.get(timeZone)
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    })
+    formats.set(timeZone, format)
+  }
+  const parts = Object.fromEntries(format.formatToParts(instant).map((part) => [part.type, part.value]))
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, utc: Date.UTC(Number(parts.year), Number(parts.month) - 1,
+    Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second)) }
+}
+
+// The calendar day an instant falls on in the store (or the given zone).
+export function toDay(instant: Date, timeZone = STORE_TIME_ZONE): string {
+  return wallClock(instant, timeZone).day
+}
+
+function utcDate(day: string): Date {
+  return new Date(`${day}T00:00:00Z`)
 }
 
 export function addDays(day: string, days: number): string {
-  const date = new Date(`${day}T00:00:00`)
-  date.setDate(date.getDate() + days)
-  return toDay(date)
+  const date = utcDate(day)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
 }
 
-// Midnight of a calendar day in the browser's time zone, as an instant for the list endpoints.
-export function startOfDay(day: string): string {
-  return new Date(`${day}T00:00:00`).toISOString()
+export function lastDayOfMonth(day: string): string {
+  const date = utcDate(day)
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).toISOString().slice(0, 10)
 }
 
-export function dayAfter(day: string): string {
-  return startOfDay(addDays(day, 1))
+// 0 = Sunday ... 6 = Saturday.
+export function weekday(day: string): number {
+  return utcDate(day).getUTCDay()
+}
+
+// Midnight of a calendar day in the store (or the given zone), as an instant for the list endpoints.
+export function startOfDay(day: string, timeZone = STORE_TIME_ZONE): string {
+  const midnight = utcDate(day).getTime()
+  // The zone's offset at a guess, then again at the result, for days when daylight saving changes.
+  const offsetAt = (instant: number) => wallClock(new Date(instant), timeZone).utc - Math.floor(instant / 1000) * 1000
+  const guess = midnight - offsetAt(midnight)
+  return new Date(midnight - offsetAt(guess)).toISOString()
+}
+
+export function dayAfter(day: string, timeZone = STORE_TIME_ZONE): string {
+  return startOfDay(addDays(day, 1), timeZone)
 }
 
 // Calendar days, both inclusive.
@@ -37,7 +81,5 @@ export function lastDaysRange(days: number): DayRange {
 
 // Calendar days in a range, both ends included.
 export function daysInRange(range: DayRange): number {
-  const from = new Date(`${range.from}T12:00:00`).getTime()
-  const to = new Date(`${range.to}T12:00:00`).getTime()
-  return Math.round((to - from) / 86_400_000) + 1
+  return Math.round((utcDate(range.to).getTime() - utcDate(range.from).getTime()) / 86_400_000) + 1
 }

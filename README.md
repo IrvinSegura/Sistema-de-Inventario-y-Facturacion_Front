@@ -22,6 +22,12 @@ checkout (point of sale) and cash drawer for a grocery store.
 - Inventory (managers): stock of every product with quick adjustments, the low-stock report (restock the
   selected products, or all of them, in a new purchase) and each product's stock ledger (kardex) with
   links to the purchase or sale behind every movement; each of the three exports a styled Excel report.
+- Reports: sales against the previous period of the same length (figures, gross profit for managers, sales
+  by day, week or month next to the same days before, payment methods, sellers and best sellers); sellers
+  get their own. Managers also get sales by product (cost, gross profit and margin, or the products in stock
+  that didn't sell), sales by registered customer, the cash closing of any day (by payment method and
+  seller, every drawer's count and difference) and money in and out (sales against purchases, net and
+  accumulated flow). Each one prints or exports to Excel.
 
 - Excel reports: each one opens on a dashboard (figure cards, summary tables next to native Excel charts)
   followed by the data as real Excel tables (filters, banded rows, totals that follow the filters). Figures
@@ -62,3 +68,4 @@ npm run dev
 | Variable | Description |
 |---|---|
 | `VITE_API_URL` | API base URL, no trailing slash (`.env.development` / `.env.production`) |
+| `VITE_STORE_TIME_ZONE` | The store's time zone (IANA ID), the same as the API's `app.store.time-zone`; date filters and "today" follow it. Defaults to `America/Mexico_City` |

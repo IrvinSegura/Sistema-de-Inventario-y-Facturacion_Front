@@ -16,10 +16,11 @@ import { ErrorAlert } from '@/components/ErrorAlert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { dateLocale } from '@/i18n'
+import { type PurchaseReport, usePurchaseReport } from '@/features/purchases/queries'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { type DayRange, toDay } from './days'
+import { lastDaysRange } from './days'
 import { moneySeries } from './money-series'
 import { MoneyChart } from './MoneyChart'
 import {
@@ -28,7 +29,7 @@ import {
   type SaleReport,
   type SaleSummary,
   useLowStock,
-  usePurchases,
+  useRecentPurchases,
   useRecentSales,
   useSaleReport,
 } from './queries'
@@ -36,25 +37,19 @@ import {
 const periods = [7, 30, 90] as const
 type Period = (typeof periods)[number]
 
-function lastDays(days: Period): DayRange {
-  const to = new Date()
-  const from = new Date(to)
-  from.setDate(from.getDate() - (days - 1))
-  return { from: toDay(from), to: toDay(to) }
-}
-
 export function DashboardPage() {
   const { t } = useTranslation()
   const { role } = useUser()
   const isManager = managesStore(role)
   const [period, setPeriod] = useState<Period>(30)
-  const range = useMemo(() => lastDays(period), [period])
+  const range = useMemo(() => lastDaysRange(period), [period])
 
   const report = useSaleReport(range)
-  const purchases = usePurchases(range, isManager)
+  const purchases = usePurchaseReport(range, null, isManager)
+  const recentPurchases = useRecentPurchases(range, isManager)
   const recentSales = useRecentSales(range)
   const lowStock = useLowStock()
-  const error = report.error ?? purchases.error ?? recentSales.error
+  const error = report.error ?? purchases.error ?? recentSales.error ?? recentPurchases.error
 
   return (
     <div className="grid gap-6">
@@ -90,7 +85,7 @@ export function DashboardPage() {
           <CardContent>
             {report.data ? (
               <MoneyChart showPurchases={isManager}
-                data={moneySeries(range, report.data.byDay ?? [], purchases.data ?? [], period === 90 ? 7 : 1)} />
+                data={moneySeries(range, report.data.byDay ?? [], purchases.data?.byDay ?? [], period === 90 ? 7 : 1)} />
             ) : (
               <ChartPlaceholder />
             )}
@@ -138,7 +133,7 @@ export function DashboardPage() {
           <CardDescription>{t(isManager ? 'dashboard.recentHint' : 'dashboard.recentSalesHint')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <RecentMovements sales={recentSales.data} purchases={isManager ? purchases.data : []} />
+          <RecentMovements sales={recentSales.data} purchases={isManager ? recentPurchases.data : []} />
         </CardContent>
       </Card>
     </div>
@@ -147,13 +142,13 @@ export function DashboardPage() {
 
 function KpiTiles({ report, purchases, isManager }: {
   report?: SaleReport
-  purchases?: PurchaseSummary[]
+  purchases?: PurchaseReport
   isManager: boolean
 }) {
   const { t } = useTranslation()
   const sales = report?.completed?.total
   const saleCount = report?.completed?.saleCount ?? 0
-  const spent = purchases && fromCents(purchases.reduce((sum, purchase) => sum + toCents(purchase.total ?? 0), 0))
+  const spent = purchases?.total
 
   const tiles: { label: string; value?: number; hint: string; signed?: boolean }[] = [
     {
@@ -166,7 +161,7 @@ function KpiTiles({ report, purchases, isManager }: {
           {
             label: t('dashboard.purchases'),
             value: spent,
-            hint: t('dashboard.purchasesCount', { count: purchases?.length ?? 0 }),
+            hint: t('dashboard.purchasesCount', { count: purchases?.purchaseCount ?? 0 }),
           },
           {
             label: t('dashboard.netFlow'),

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { errorMessage } from '@/api/errors'
-import { useUser } from '@/auth/auth-context'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorAlert } from '@/components/ErrorAlert'
@@ -22,7 +21,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CancelSaleDialog } from '@/features/cash-drawer/DrawerSales'
 import { formatDate } from '@/features/cash-drawer/format'
 import { daysInRange, lastDaysRange } from '@/features/dashboard/days'
-import { useAllUserAccounts } from '@/features/users/queries'
 import { dateLocale } from '@/i18n'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
@@ -47,6 +45,7 @@ import {
 } from './queries'
 import { SaleDetailDialog } from './SaleDetailDialog'
 import { salesWorkbook } from './sales-report'
+import { useSellerOptions } from './use-seller-options'
 
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
@@ -58,7 +57,6 @@ const statuses: SaleStatus[] = ['COMPLETED', 'CANCELLED']
 // customer and status, and each ticket to see, reprint or cancel.
 export function SalesPage() {
   const { t, i18n } = useTranslation()
-  const user = useUser()
   const [filters, setFilters] = useState<SaleFilters>(() => ({
     range: lastDaysRange(DEFAULT_RANGE_DAYS), saleNumber: null, sellerId: null, customerId: null, status: null,
   }))
@@ -78,13 +76,7 @@ export function SalesPage() {
   }
   const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
   const summary = useSalesSummary(filters.range, filters.sellerId, reportable)
-  // Sellers to filter by: admins list every seller account; supervisors (who can't list accounts)
-  // get the ones who sold in the period, from the report.
-  const accounts = useAllUserAccounts(user.role === 'ADMIN')
-  const periodSellers = useSalesSummary(filters.range, null, reportable && user.role !== 'ADMIN')
-  const sellers = user.role === 'ADMIN'
-    ? (accounts.data ?? []).filter((account) => account.role === 'SELLER').map((account) => ({ id: account.id!, name: account.name! }))
-    : (periodSellers.data?.bySeller ?? []).map((seller) => ({ id: seller.sellerId!, name: seller.name! }))
+  const sellers = useSellerOptions(filters.range, reportable)
   const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const reportMeta = useReportMeta()
   const byNumber = filters.saleNumber !== null

@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { customerKeys } from '@/features/customers/queries'
@@ -39,11 +39,20 @@ export interface SaleInput {
 // The key is generated once per checkout and reused on retries, so a double click or a lost
 // response never charges twice: the API returns the sale it already recorded.
 export function useRecordSale() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ idempotencyKey, customerId, paymentMethod, items }: SaleInput) =>
       unwrap(api.POST('/api/v1/sales', {
         params: { header: { 'Idempotency-Key': idempotencyKey } },
         body: { customerId, paymentMethod, items },
       })),
+    // The sale changes stock, the drawer's tickets and every report.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['sales'] })
+      void queryClient.invalidateQueries({ queryKey: ['sale-reports'] })
+      void queryClient.invalidateQueries({ queryKey: ['products'] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+      void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+    },
   })
 }

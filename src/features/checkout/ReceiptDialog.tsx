@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { PrintButton } from '@/components/PrintButton'
+import { PrintDocument, PrintFields, PrintNotice, PrintTable, PrintTotals } from '@/components/PrintDocument'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -84,18 +85,50 @@ function ReceiptBody({ sale }: { sale: Sale }) {
   )
 }
 
-// Paper ticket: store name, sale number and the same lines and totals as on screen.
+// Printed receipt: who bought, who sold and how it was paid, the lines with their prices and VAT,
+// and the same server-side totals as on screen.
 export function ReceiptSlip({ sale }: { sale: Sale }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const when = (instant: string) => new Date(instant).toLocaleString(dateLocale(i18n.language),
+    { dateStyle: 'long', timeStyle: 'short' })
+  const items = sale.items ?? []
+  const units = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0)
+  const cancellation = sale.cancellation
   return (
-    <div className="mx-auto grid max-w-xs gap-3">
-      <div className="text-center">
-        <p className="text-base font-semibold">{t('app.name')}</p>
-        <p>{t('receipt.title', { number: sale.saleNumber })}</p>
-        <p><ReceiptMeta sale={sale} /></p>
-        {sale.status === 'CANCELLED' && <p className="font-semibold">{t('receipt.cancelledStamp')}</p>}
-      </div>
-      <ReceiptBody sale={sale} />
-    </div>
+    <PrintDocument kind={t('print.sale.kind')} folio={sale.saleNumber} date={when(sale.saleDate!)}
+      notice={sale.status === 'CANCELLED' && (
+        <PrintNotice title={t('print.sale.cancelled')}>
+          {t('print.sale.cancelledDetail', {
+            date: cancellation?.cancelledAt ? when(cancellation.cancelledAt) : '',
+            name: cancellation?.cancelledBy?.name ?? '',
+            reason: cancellation?.reason ?? '',
+          })}
+        </PrintNotice>
+      )}>
+      <PrintFields columns={4} fields={[
+        [t('print.sale.customer'), sale.customer?.name],
+        [t('print.sale.seller'), sale.seller?.name],
+        [t('print.sale.payment'), t(`checkout.paymentMethods.${sale.paymentMethod!}`)],
+        [t('print.status'), t(`sales.status.${sale.status!}`)],
+      ]} />
+      <PrintTable rows={items} rowKey={(item) => item.productId!} columns={[
+        { header: t('print.columns.sku'), cell: (item) => item.sku, className: 'font-mono text-[8pt] text-slate-500' },
+        { header: t('print.columns.product'), cell: (item) => item.name, className: 'font-medium text-slate-900' },
+        { header: t('print.columns.quantity'), cell: (item) => item.quantity, numeric: true },
+        { header: t('print.columns.unitPrice'), cell: (item) => formatMoney(item.unitPrice!), numeric: true },
+        { header: t('print.columns.vat'), cell: (item) => `${Math.round((item.taxRate ?? 0) * 100)}%`, numeric: true },
+        { header: t('print.columns.amount'), cell: (item) => formatMoney(item.subtotal!), numeric: true },
+      ]} />
+      <PrintTotals
+        aside={<>
+          <p>{t('print.items', { count: items.length, units })}</p>
+          {sale.status !== 'CANCELLED' && <p className="mt-1 font-medium text-slate-700">{t('print.sale.thanks')}</p>}
+        </>}
+        rows={[
+          { label: t('checkout.subtotal'), value: formatMoney(sale.subtotal!) },
+          { label: t('checkout.vat'), value: formatMoney(sale.tax!) },
+          { label: t('checkout.total'), value: formatMoney(sale.total!), grand: true },
+        ]} />
+    </PrintDocument>
   )
 }

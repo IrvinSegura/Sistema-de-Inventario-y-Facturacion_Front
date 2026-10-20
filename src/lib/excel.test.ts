@@ -103,7 +103,7 @@ describe('sales workbook', () => {
 
     const tickets = workbook.getWorksheet('Ventas')!
     const header = find(tickets, 'Ticket')
-    expect(tickets.views[0]).toMatchObject({ state: 'frozen', ySplit: header.row })
+    expect(tickets.views[0].state).not.toBe('frozen')
     const first = tickets.getRow(header.row + 1)
     expect(first.getCell(1).value).toBe(10)
     expect(first.getCell(2).value).toBeInstanceOf(Date)

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 import { errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { PrintButton } from '@/components/PrintButton'
+import { PrintDocument, PrintFields, PrintSection, PrintSignatures, PrintTable, PrintTotals } from '@/components/PrintDocument'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -128,21 +129,36 @@ function PurchaseLines({ purchase }: { purchase: Purchase }) {
   )
 }
 
-// Paper receipt of the stock in: store, supplier, lines and a signature line for who received it.
+// Printed receipt of the stock in: supplier, lines and totals, with lines to sign for who delivered
+// and who received it.
 function PurchaseSlip({ purchase }: { purchase: Purchase }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const items = purchase.items ?? []
+  const units = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0)
+  const date = new Date(purchase.purchaseDate!).toLocaleString(dateLocale(i18n.language),
+    { dateStyle: 'long', timeStyle: 'short' })
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
-      <div className="text-center">
-        <p className="text-base font-semibold">{t('app.name')}</p>
-        <p>{t('purchases.detail.title', { id: purchase.id })}</p>
-        <p><PurchaseMeta purchase={purchase} /></p>
-      </div>
-      <PurchaseLines purchase={purchase} />
-      <div className="mt-12 grid grid-cols-2 gap-12 text-center text-xs">
-        <p className="border-t pt-1">{t('purchases.detail.receivedBy')}</p>
-        <p className="border-t pt-1">{t('purchases.detail.deliveredBy')}</p>
-      </div>
-    </div>
+    <PrintDocument kind={t('print.purchase.kind')} folio={purchase.id} date={date}>
+      <PrintFields columns={2} fields={[
+        [t('print.purchase.supplier'), purchase.supplier?.name],
+        [t('print.purchase.recordedBy'), purchase.recordedBy?.name],
+      ]} />
+      <PrintSection title={t('print.purchase.lines')}>
+        <PrintTable rows={items} rowKey={(item) => item.productId!} columns={[
+          { header: t('print.columns.sku'), cell: (item) => item.sku, className: 'font-mono text-[8pt] text-slate-500' },
+          { header: t('print.columns.product'), cell: (item) => item.name, className: 'font-medium text-slate-900' },
+          { header: t('print.columns.quantity'), cell: (item) => item.quantity, numeric: true },
+          { header: t('print.columns.unitCost'), cell: (item) => formatMoney(item.unitCost!), numeric: true },
+          { header: t('print.columns.amount'), cell: (item) => formatMoney(item.subtotal!), numeric: true },
+        ]} />
+      </PrintSection>
+      <PrintTotals
+        aside={t('print.items', { count: items.length, units })}
+        rows={[{ label: t('purchases.detail.total'), value: formatMoney(purchase.total!), grand: true }]} />
+      <PrintSignatures signers={[
+        { label: t('purchases.detail.deliveredBy'), name: purchase.supplier?.name },
+        { label: t('purchases.detail.receivedBy'), name: purchase.recordedBy?.name },
+      ]} />
+    </PrintDocument>
   )
 }

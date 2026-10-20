@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CalendarCheck, Users } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toDay } from '@/features/dashboard/days'
 import { amountField } from '@/lib/amount-field'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
+import { useToday } from '@/lib/use-today'
 
 import { ClosingDetails, CloseDrawerForm, DrawerMembers } from './DrawerParts'
 import { isFromPastDay } from './drawer-day'
@@ -39,7 +39,7 @@ function MyDrawerPage() {
   const user = useUser()
   const current = useCurrentDrawer()
   const latest = useLatestDrawer(current.data === null)
-  const [today] = useState(() => toDay(new Date()))
+  const today = useToday()
 
   if (current.isPending || (current.data === null && latest.isPending)) {
     return <LoadingBlock />

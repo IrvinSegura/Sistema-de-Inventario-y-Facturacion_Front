@@ -12,7 +12,7 @@ export type LowStockProduct = Schemas['LowStockProductResponse']
 export const dashboardKeys = {
   report: (range: DayRange) => ['sale-reports', range] as const,
   recentSales: (range: DayRange) => ['sales', 'recent', range] as const,
-  purchases: (range: DayRange) => ['purchases', 'range', range] as const,
+  recentPurchases: (range: DayRange) => ['purchases', 'recent', range] as const,
   lowStock: ['stock-reports', 'low-stock'] as const,
 }
 
@@ -41,29 +41,17 @@ export function useRecentSales(range: DayRange) {
   })
 }
 
-// The API pages at most 100 items; a few pages cover a store's purchases for 90 days.
-const PURCHASE_PAGE_SIZE = 100
-const MAX_PURCHASE_PAGES = 5
-
-// Every purchase of the period, newest first, to chart money out (admins and supervisors).
-export function usePurchases(range: DayRange, enabled: boolean) {
+// Newest purchases of the period, for the latest movements (admins and supervisors); the totals and
+// the chart come from the purchases summary.
+export function useRecentPurchases(range: DayRange, enabled: boolean) {
   return useQuery({
-    queryKey: dashboardKeys.purchases(range),
+    queryKey: dashboardKeys.recentPurchases(range),
     enabled,
     queryFn: async () => {
-      const purchases: PurchaseSummary[] = []
-      for (let page = 0; page < MAX_PURCHASE_PAGES; page++) {
-        const result = await unwrap(api.GET('/api/v1/purchases', {
-          params: {
-            query: { from: startOfDay(range.from), to: dayAfter(range.to), page, size: PURCHASE_PAGE_SIZE },
-          },
-        }))
-        purchases.push(...(result.content ?? []))
-        if (page + 1 >= (result.page?.totalPages ?? 0)) {
-          break
-        }
-      }
-      return purchases
+      const page = await unwrap(api.GET('/api/v1/purchases', {
+        params: { query: { from: startOfDay(range.from), to: dayAfter(range.to), size: RECENT_COUNT } },
+      }))
+      return page.content ?? []
     },
     placeholderData: keepPreviousData,
   })
