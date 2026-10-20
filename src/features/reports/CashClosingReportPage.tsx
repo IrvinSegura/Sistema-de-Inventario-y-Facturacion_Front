@@ -42,7 +42,7 @@ export function CashClosingReportPage() {
   const [sellerId, setSellerId] = useState<number | null>(null)
   const [viewing, setViewing] = useState<CashDrawer | null>(null)
   const [exporting, setExporting] = useState(false)
-  const closing = useDayClosing(date, sellerId ?? undefined)
+  const closing = useDayClosing(date, { sellerId: sellerId ?? undefined })
   const sellers = useSellerOptions({ from: date, to: date })
   const reportMeta = useReportMeta()
 

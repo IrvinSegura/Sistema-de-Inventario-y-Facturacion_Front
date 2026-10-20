@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
+import { addDays } from '@/features/dashboard/days'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type CashDrawer = Schemas['CashDrawerResponse']
@@ -18,6 +19,8 @@ export interface AssignedDrawer {
 export const HISTORY_PAGE_SIZE = 20
 // The API pages at most 100 items: enough for one drawer's tickets.
 const MAX_PAGE_SIZE = 100
+// How far back to look for drawers someone forgot to close.
+const STALE_LOOKBACK_DAYS = 7
 
 export interface DrawerSearch {
   from?: string
@@ -33,6 +36,7 @@ export const drawerKeys = {
   search: (search: DrawerSearch, page: number, size: number, sort: SortState | null) =>
     ['cash-drawers', 'search', search, page, size, sort] as const,
   assignable: ['cash-drawers', 'assignable-sellers'] as const,
+  stale: (today: string) => ['cash-drawers', 'stale', today] as const,
   // Under 'sale-reports' so a sale or cancellation anywhere refreshes the closings too.
   dayClosing: (date: string, sellerId?: number) => ['sale-reports', 'cash-closing', date, sellerId ?? 'all'] as const,
   drawerClosing: (drawerId: number) => ['sale-reports', 'cash-closing', 'drawer', drawerId] as const,
@@ -79,12 +83,39 @@ export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PA
   })
 }
 
+// For screens that follow the day as it happens.
+export interface LiveOptions {
+  refetchInterval?: number
+}
+
+// Drawers from the past STALE_LOOKBACK_DAYS days still open (managers only); nobody can sell from
+// them until they're closed. Reads every page of the window, newest day first.
+export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions = {}) {
+  const from = addDays(today, -STALE_LOOKBACK_DAYS)
+  const to = addDays(today, -1)
+  return useQuery({
+    queryKey: drawerKeys.stale(today),
+    queryFn: async () => {
+      const stale: CashDrawer[] = []
+      for (let page = 0; ; page++) {
+        const result = await unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { from, to, page, size: MAX_PAGE_SIZE } } }))
+        stale.push(...(result.content ?? []).filter((drawer) => !drawer.closing))
+        if (page + 1 >= (result.page?.totalPages ?? 0)) {
+          return stale
+        }
+      }
+    },
+    refetchInterval,
+  })
+}
+
 // One day by payment method, plus that day's drawers. Without sellerId (managers only) it covers
 // the whole store; a seller gets their own only once their drawer is closed (409 before).
-export function useDayClosing(date: string, sellerId?: number) {
+export function useDayClosing(date: string, { sellerId, refetchInterval }: LiveOptions & { sellerId?: number } = {}) {
   return useQuery({
     queryKey: drawerKeys.dayClosing(date, sellerId),
     queryFn: () => unwrap(api.GET('/api/v1/sale-reports/cash-closing', { params: { query: { date, sellerId } } })),
+    refetchInterval,
   })
 }
 

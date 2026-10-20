@@ -26,6 +26,8 @@ import { ReportsLayout } from '@/features/reports/ReportsLayout'
 import { SalesReportPage } from '@/features/reports/SalesReportPage'
 import { SuppliersPage } from '@/features/purchases/SuppliersPage'
 import { SalesPage } from '@/features/sales/SalesPage'
+import { LivePage } from '@/features/supervision/LivePage'
+import { SupervisionLayout } from '@/features/supervision/SupervisionLayout'
 import { UsersPage } from '@/features/users/UsersPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
@@ -52,6 +54,9 @@ export function App() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route element={<RequireRole roles={['ADMIN', 'SUPERVISOR']} />}>
+            <Route path="supervision" element={<SupervisionLayout />}>
+              <Route index element={<LivePage />} />
+            </Route>
             <Route path="customers" element={<CustomersPage />} />
             <Route path="sales" element={<SalesPage />} />
             <Route path="inventory" element={<InventoryLayout />}>

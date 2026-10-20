@@ -217,7 +217,7 @@ export interface paths {
         };
         /**
          * List sales, newest first unless sorted
-         * @description Sellers only get their own sales. Sort by saleNumber, saleDate, total, paymentMethod, status, customer or seller.
+         * @description Sellers only get their own sales. Each one carries its cancellation (who, when and why) when cancelled. Sort by saleNumber, saleDate, total, paymentMethod, status, customer, seller or cancelledAt (with status=CANCELLED or a cancellation date range).
          */
         get: operations["search_1"];
         put?: never;
@@ -693,8 +693,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Stock ledger of a product, newest first
-         * @description Every purchase, sale, cancellation and adjustment with the resulting stock. The sort parameter is ignored. When paging through a busy product, send the 'to' of the first request on every page so new movements don't shift the pages.
+         * Stock ledger of a product, or one type of movement across the store, newest first
+         * @description Every purchase, sale, cancellation and adjustment with the resulting stock. Send a productId, or a type with 'from' and 'to' (up to 366 days) to list the whole store, e.g. every adjustment of a month; 400 otherwise. The sort parameter is ignored. When paging through a busy ledger, send the 'to' of the first request on every page so new movements don't shift the pages.
          */
         get: operations["search_6"];
         put?: never;
@@ -955,6 +955,7 @@ export interface components {
             id?: number;
             /** Format: int64 */
             productId?: number;
+            productName?: string;
             /** @enum {string} */
             type?: "PURCHASE" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
             /** Format: int32 */
@@ -1207,6 +1208,7 @@ export interface components {
             /** @enum {string} */
             status?: "COMPLETED" | "CANCELLED";
             total?: number;
+            cancellation?: components["schemas"]["Cancellation"];
         };
         DailyTotal: {
             /** Format: date */
@@ -1903,6 +1905,10 @@ export interface operations {
                 from?: string;
                 /** @description Exclusive, ISO-8601 instant */
                 to?: string;
+                /** @description Cancelled at or after this ISO-8601 instant (only cancelled sales match) */
+                cancelledFrom?: string;
+                /** @description Cancelled before this ISO-8601 instant (only cancelled sales match) */
+                cancelledTo?: string;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -2677,8 +2683,10 @@ export interface operations {
     };
     search_6: {
         parameters: {
-            query: {
-                productId: number;
+            query?: {
+                /** @description Required unless type is sent */
+                productId?: number;
+                /** @description Required, with from and to, unless productId is sent */
                 type?: "PURCHASE" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
                 /** @description Inclusive, ISO-8601 instant */
                 from?: string;
