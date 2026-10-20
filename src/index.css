@@ -170,18 +170,27 @@
     }
 }
 
-/* <PrintDocument> renders into .print-area: hidden on screen, the only thing on paper. */
+/* <PrintButton> renders its document into .print-area: hidden on screen, the only thing on paper. */
 .print-area {
     display: none;
 }
 
 @media print {
+    @page {
+        margin: 14mm 12mm;
+    }
+    html, body {
+        background: #fff !important;
+    }
     body > *:not(.print-area) {
         display: none !important;
     }
+    /* Keeps the colored bands and stripes, which browsers drop by default. */
     .print-area {
         display: block;
         color: #000;
         background: #fff;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
     }
 }

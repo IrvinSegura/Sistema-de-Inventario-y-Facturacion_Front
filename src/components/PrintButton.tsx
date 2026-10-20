@@ -30,7 +30,7 @@ export function PrintButton({ label, document, variant = 'outline', className }:
         <Printer />
         {label}
       </Button>
-      {printing && createPortal(<div className="print-area p-6 text-sm">{document}</div>, globalThis.document.body)}
+      {printing && createPortal(<div className="print-area">{document}</div>, globalThis.document.body)}
     </>
   )
 }

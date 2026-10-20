@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Calculator } from 'lucide-react'
-import { Fragment, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { PrintButton } from '@/components/PrintButton'
+import { PrintDocument, PrintFields, PrintSection, PrintSignatures, PrintTable, PrintTotals } from '@/components/PrintDocument'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -305,56 +306,66 @@ function PaymentMethodRows({ closing }: { closing: CashClosing }) {
   )
 }
 
-// Paper version of a closed drawer, with lines to sign.
+// Printed closing of a drawer: who and when, sales by payment method (and cash by seller when
+// shared), the cash count and lines to sign.
 function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClosing }) {
   const { t, i18n } = useTranslation()
   const figures = drawer.closing!
-  const row = (label: string, value: string, strong = false) => (
-    <div className={cn('flex justify-between gap-4', strong && 'font-semibold')}>
-      <span>{label}</span>
-      <span className="tabular-nums">{value}</span>
-    </div>
-  )
+  const difference = figures.difference!
+  const methods = PAYMENT_METHODS.map((method) => ({ method, amounts: closing.byPaymentMethod?.[method] }))
   return (
-    <div className="mx-auto grid max-w-sm gap-4">
-      <div className="text-center">
-        <p className="text-base font-semibold">{t('app.name')}</p>
-        <p>{t('drawer.slipTitle', { date: formatDate(drawer.businessDate!, i18n.language) })}</p>
-      </div>
-      <div className="grid gap-1">
-        {row(t('drawer.responsible'), drawer.responsible?.name ?? '')}
-        {isShared(drawer) && row(t('drawer.members'), memberNames(drawer))}
-        {row(t('drawer.openedAtLabel'), formatTime(drawer.openedAt!, i18n.language))}
-        {row(t('drawer.closedAtLabel'), `${formatTime(figures.closedAt!, i18n.language)} · ${figures.closedBy?.name ?? ''}`)}
-      </div>
-      <div className="grid gap-1 border-t border-dashed border-black pt-3">
-        {PAYMENT_METHODS.map((method) => (
-          <Fragment key={method}>
-            {row(t(`checkout.paymentMethods.${method}`), formatMoney(closing.byPaymentMethod?.[method]?.net ?? 0))}
-          </Fragment>
-        ))}
-        {row(t('drawer.netTotal'), formatMoney(closing.total?.net ?? 0), true)}
-      </div>
+    <PrintDocument kind={t('print.closing.kind')} folio={drawer.id}
+      date={formatDate(drawer.businessDate!, i18n.language, 'long')}>
+      <PrintFields columns={isShared(drawer) ? 2 : 3} fields={[
+        [t('drawer.responsible'), drawer.responsible?.name],
+        [t('print.closing.shift'), `${formatTime(drawer.openedAt!, i18n.language)} – ${formatTime(figures.closedAt!, i18n.language)}`],
+        [t('print.closing.closedBy'), figures.closedBy?.name],
+        ...(isShared(drawer) ? [[t('drawer.members'), memberNames(drawer)] as [string, string]] : []),
+      ]} />
+      <PrintSection title={t('print.closing.byMethod')}>
+        <PrintTable rows={methods} rowKey={({ method }) => method} columns={[
+          { header: t('print.closing.method'), cell: ({ method }) => t(`checkout.paymentMethods.${method}`), className: 'font-medium text-slate-900' },
+          { header: t('print.closing.sales'), cell: ({ amounts }) => amounts?.saleCount ?? 0, numeric: true },
+          { header: t('print.columns.amount'), cell: ({ amounts }) => formatMoney(amounts?.salesTotal ?? 0), numeric: true },
+          {
+            header: t('print.closing.cancellations'),
+            cell: ({ amounts }) => (amounts?.cancellationCount ?? 0) > 0
+              ? <span className="text-red-700">−{formatMoney(amounts?.cancellationsTotal ?? 0)} ({amounts?.cancellationCount})</span>
+              : '—',
+            numeric: true,
+          },
+          { header: t('print.closing.net'), cell: ({ amounts }) => formatMoney(amounts?.net ?? 0), numeric: true, className: 'font-semibold' },
+        ]} />
+        <PrintTotals rows={[{ label: t('drawer.netTotal'), value: formatMoney(closing.total?.net ?? 0), grand: true }]} />
+      </PrintSection>
       {isShared(drawer) && (
-        <div className="grid gap-1 border-t border-dashed border-black pt-3">
-          {(closing.bySeller ?? []).map(({ seller, cash }) => (
-            <Fragment key={seller?.id}>
-              {row(t('drawer.cashOf', { name: seller?.name }), formatMoney(cash?.net ?? 0))}
-            </Fragment>
-          ))}
-        </div>
+        <PrintSection title={t('print.closing.bySeller')}>
+          <PrintTable rows={closing.bySeller ?? []} rowKey={({ seller }, index) => seller?.id ?? index} columns={[
+            { header: t('print.closing.seller'), cell: ({ seller }) => seller?.name, className: 'font-medium text-slate-900' },
+            { header: t('checkout.paymentMethods.CASH'), cell: ({ cash }) => formatMoney(cash?.net ?? 0), numeric: true },
+            { header: t('checkout.total'), cell: ({ total }) => formatMoney(total?.net ?? 0), numeric: true, className: 'font-semibold' },
+          ]} />
+        </PrintSection>
       )}
-      <div className="grid gap-1 border-t border-dashed border-black pt-3">
-        {row(t('drawer.openingFloat'), formatMoney(drawer.openingFloat!))}
-        {row(t('drawer.expectedCash'), formatMoney(figures.expectedCash!))}
-        {row(t('drawer.countedCash'), formatMoney(figures.countedCash!))}
-        {row(t(differenceLabel(figures.difference!)), formatMoney(figures.difference!), true)}
-      </div>
-      {figures.note && <p>{t('drawer.note', { note: figures.note })}</p>}
-      <div className="mt-10 grid grid-cols-2 gap-6 text-center">
-        <p className="border-t border-black pt-1">{t('drawer.responsibleSignature')}</p>
-        <p className="border-t border-black pt-1">{t('drawer.managerSignature')}</p>
-      </div>
-    </div>
+      <PrintSection title={t('print.closing.cash')}>
+        <PrintTotals
+          aside={figures.note && t('drawer.note', { note: figures.note })}
+          rows={[
+            { label: t('drawer.openingFloat'), value: formatMoney(drawer.openingFloat!) },
+            { label: t('drawer.expectedCash'), value: formatMoney(figures.expectedCash!) },
+            { label: t('drawer.countedCash'), value: formatMoney(figures.countedCash!) },
+            {
+              label: t(differenceLabel(difference)),
+              value: formatMoney(difference),
+              strong: true,
+              tone: difference < 0 ? 'danger' : difference > 0 ? 'warning' : undefined,
+            },
+          ]} />
+      </PrintSection>
+      <PrintSignatures signers={[
+        { label: t('drawer.responsibleSignature'), name: drawer.responsible?.name },
+        { label: t('drawer.managerSignature') },
+      ]} />
+    </PrintDocument>
   )
 }

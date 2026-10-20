@@ -6,8 +6,8 @@ export function formatTime(instant: string, language: string): string {
 }
 
 // Business dates are plain local days ("2026-10-15"); parsed at noon so no time zone shifts the day.
-export function formatDate(day: string, language: string): string {
-  return new Date(`${day}T12:00:00`).toLocaleDateString(dateLocale(language), { dateStyle: 'medium' })
+export function formatDate(day: string, language: string, style: 'medium' | 'long' = 'medium'): string {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(dateLocale(language), { dateStyle: style })
 }
 
 const wholePesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
