@@ -50,7 +50,7 @@ export interface TableSection {
   rows: Row[]
   totalsLabel?: string
   highlights?: Highlight[]
-  // The sheet's main table: its header stays frozen and repeats on every printed page.
+  // The sheet's main table: its header repeats on every printed page.
   main?: boolean
 }
 
@@ -748,9 +748,8 @@ class SheetWriter {
     for (let column = 1; column <= this.span; column++) {
       sheet.getColumn(column).width = Math.max(this.widths[column] ?? 0, this.dashboard ? GRID_WIDTH : 12)
     }
-    sheet.views = this.mainHeaderRow !== null
-      ? [{ state: 'frozen', ySplit: this.mainHeaderRow, showGridLines: false, zoomScale: 100 }]
-      : [{ showGridLines: false, zoomScale: 100 }]
+    // No frozen panes: the title band and the table header scroll away with the data.
+    sheet.views = [{ showGridLines: false, zoomScale: 100 }]
     sheet.pageSetup = {
       orientation: this.spec.landscape || this.dashboard ? 'landscape' : 'portrait',
       fitToPage: true,
