@@ -18,13 +18,14 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/features/cash-drawer/format'
-import { lastDaysRange } from '@/features/dashboard/days'
+import { daysInRange, lastDaysRange } from '@/features/dashboard/days'
 import { dateLocale } from '@/i18n'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
 import { type SortState } from '@/lib/sort'
 import { usePageSize } from '@/lib/use-page-size'
+import { cn } from '@/lib/utils'
 
 import { PurchaseDetailDialog } from './PurchaseDetailDialog'
 import { purchasesWorkbook } from './purchases-report'
@@ -33,11 +34,12 @@ import {
   fetchPurchaseDetails,
   MAX_DETAILED_PURCHASES,
   MAX_EXPORT_ROWS,
+  MAX_REPORT_DAYS,
   type PurchaseFilters,
-  type PurchaseSummary,
+  type PurchaseReport,
   useAllSuppliers,
+  usePurchaseReport,
   usePurchases,
-  usePurchaseTotals,
 } from './queries'
 
 const ALL_SUPPLIERS = 'all'
@@ -58,7 +60,8 @@ export function PurchasesPage() {
     setSort(next)
     setPage(0)
   }
-  const totals = usePurchaseTotals(filters)
+  const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
+  const report = usePurchaseReport(filters.range, filters.supplierId, reportable)
   const suppliers = useAllSuppliers()
   const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const rows = purchases.data?.content ?? []
@@ -68,7 +71,7 @@ export function PurchasesPage() {
     setPage(0)
   }
 
-  const summary = totals.data && summarize(totals.data.purchases)
+  const summary = report.data && summarize(report.data)
 
   async function exportExcel() {
     setExporting(true)
@@ -119,7 +122,8 @@ export function PurchasesPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {!reportable && <p className="text-sm text-muted-foreground">{t('purchases.summaryTooLong', { count: MAX_REPORT_DAYS })}</p>}
+      <div className={cn('grid gap-4 sm:grid-cols-2 lg:grid-cols-4', !reportable && 'hidden')}>
         <StatTile label={t('purchases.stats.spent')} value={summary && formatMoney(summary.total)}
           hint={t('purchases.stats.count', { count: summary?.count ?? 0 })} />
         <StatTile label={t('purchases.stats.average')} value={summary && formatMoney(summary.average)}
@@ -189,23 +193,16 @@ export function PurchasesPage() {
   )
 }
 
-function summarize(purchases: PurchaseSummary[]) {
-  const bySupplier = new Map<number, { name: string; cents: number }>()
-  let cents = 0
-  for (const purchase of purchases) {
-    const amount = toCents(purchase.total ?? 0)
-    cents += amount
-    const id = purchase.supplier?.id ?? 0
-    const entry = bySupplier.get(id) ?? { name: purchase.supplier?.name ?? '', cents: 0 }
-    entry.cents += amount
-    bySupplier.set(id, entry)
-  }
-  const top = [...bySupplier.values()].sort((a, b) => b.cents - a.cents)[0]
+// The tiles' figures from the API's summary of the period.
+function summarize(report: PurchaseReport) {
+  const count = report.purchaseCount ?? 0
+  const total = report.total ?? 0
+  const top = report.bySupplier?.[0]
   return {
-    count: purchases.length,
-    total: fromCents(cents),
-    average: purchases.length > 0 ? fromCents(Math.round(cents / purchases.length)) : 0,
-    supplierCount: bySupplier.size,
-    topSupplier: top && { name: top.name, total: fromCents(top.cents) },
+    count,
+    total,
+    average: count > 0 ? fromCents(Math.round(toCents(total) / count)) : 0,
+    supplierCount: report.bySupplier?.length ?? 0,
+    topSupplier: top && { name: top.name ?? '', total: top.total ?? 0 },
   }
 }

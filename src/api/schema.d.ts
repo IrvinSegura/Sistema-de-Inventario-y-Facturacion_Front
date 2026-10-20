@@ -560,7 +560,7 @@ export interface paths {
         };
         /**
          * Sales summary for a period
-         * @description Totals, payment methods, sellers, top 10 products and a daily breakdown of completed sales; cancelled sales are counted separately, on the day of the sale (not of the cancellation). Dates are calendar days in the store's time zone, both inclusive, up to 366 days, between 2000-01-01 and 9999-12-30.
+         * @description Totals, payment methods, sellers, top 10 products and a daily breakdown of completed sales; cancelled sales are counted separately, on the day of the sale (not of the cancellation). Dates are calendar days in the store's time zone, both inclusive, up to 366 days, between 2000-01-01 and 9999-12-30. 'profit' (gross profit of the lines with a known cost) is for managers only; it is null for sellers.
          */
         get: operations["salesReport"];
         put?: never;
@@ -591,6 +591,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sale-reports/by-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Completed sales by product for a period, or the products that didn't sell
+         * @description Products sold in the period, best first by amount before VAT, with the cost of the units sold and the gross profit when every unit has a recorded cost. With unsold=true: active products with stock and no completed sale in the period, most units first. Same dates as the sales summary; the sort parameter is ignored.
+         */
+        get: operations["salesByProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sale-reports/by-customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Completed sales by registered customer for a period, best first
+         * @description The walk-in customer is left out. Same dates as the sales summary; the sort parameter is ignored.
+         */
+        get: operations["salesByCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/purchases/{id}": {
         parameters: {
             query?: never;
@@ -600,6 +640,26 @@ export interface paths {
         };
         /** Get a purchase with its items */
         get: operations["findById_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchase-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Purchases summary for a period
+         * @description Totals, units, suppliers, the 10 products with the most money spent and a daily breakdown. Dates are calendar days in the store's time zone, both inclusive, up to 366 days, between 2000-01-01 and 9999-12-30.
+         */
+        get: operations["purchasesReport"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1171,6 +1231,12 @@ export interface components {
             quantity?: number;
             subtotal?: number;
         };
+        Profit: {
+            costedSubtotal?: number;
+            cost?: number;
+            grossProfit?: number;
+            margin?: number;
+        };
         SaleReportResponse: {
             /** Format: date */
             from?: string;
@@ -1184,6 +1250,7 @@ export interface components {
             bySeller?: components["schemas"]["SellerTotal"][];
             topProducts?: components["schemas"]["ProductTotal"][];
             byDay?: components["schemas"]["DailyTotal"][];
+            profit?: components["schemas"]["Profit"];
         };
         SellerTotal: {
             /** Format: int64 */
@@ -1232,6 +1299,44 @@ export interface components {
             cash?: components["schemas"]["Amounts"];
             total?: components["schemas"]["Amounts"];
         };
+        PagedModelProductSalesResponse: {
+            content?: components["schemas"]["ProductSalesResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        ProductSalesResponse: {
+            /** Format: int64 */
+            productId?: number;
+            sku?: string;
+            name?: string;
+            category?: components["schemas"]["CategoryRef"];
+            active?: boolean;
+            /** Format: int32 */
+            stock?: number;
+            averageCost?: number;
+            /** Format: int64 */
+            quantity?: number;
+            subtotal?: number;
+            cost?: number;
+            grossProfit?: number;
+            /** Format: date-time */
+            lastSaleDate?: string;
+        };
+        CustomerSalesResponse: {
+            /** Format: int64 */
+            customerId?: number;
+            name?: string;
+            taxId?: string;
+            /** Format: int64 */
+            saleCount?: number;
+            total?: number;
+            averageTicket?: number;
+            /** Format: date-time */
+            lastSaleDate?: string;
+        };
+        PagedModelCustomerSalesResponse: {
+            content?: components["schemas"]["CustomerSalesResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelPurchaseSummaryResponse: {
             content?: components["schemas"]["PurchaseSummaryResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -1243,6 +1348,31 @@ export interface components {
             recordedBy?: components["schemas"]["Ref"];
             /** Format: date-time */
             purchaseDate?: string;
+            total?: number;
+        };
+        PurchaseReportResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            timeZone?: string;
+            /** Format: int64 */
+            supplierId?: number;
+            /** Format: int64 */
+            purchaseCount?: number;
+            /** Format: int64 */
+            units?: number;
+            total?: number;
+            bySupplier?: components["schemas"]["SupplierTotal"][];
+            topProducts?: components["schemas"]["ProductTotal"][];
+            byDay?: components["schemas"]["DailyTotal"][];
+        };
+        SupplierTotal: {
+            /** Format: int64 */
+            supplierId?: number;
+            name?: string;
+            /** Format: int64 */
+            purchaseCount?: number;
             total?: number;
         };
         PagedModelProductResponse: {
@@ -2410,6 +2540,71 @@ export interface operations {
             };
         };
     };
+    salesByProduct: {
+        parameters: {
+            query: {
+                /** @description First day, e.g. 2026-10-01 */
+                from: string;
+                /** @description Last day (inclusive), e.g. 2026-10-31 */
+                to: string;
+                categoryId?: number;
+                /** @description Products that didn't sell instead of the ones that did */
+                unsold?: boolean;
+                /** @description Zero-based page index (0..N) */
+                page?: number;
+                /** @description The size of the page to be returned */
+                size?: number;
+                /** @description Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+                sort?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelProductSalesResponse"];
+                };
+            };
+        };
+    };
+    salesByCustomer: {
+        parameters: {
+            query: {
+                /** @description First day, e.g. 2026-10-01 */
+                from: string;
+                /** @description Last day (inclusive), e.g. 2026-10-31 */
+                to: string;
+                /** @description Zero-based page index (0..N) */
+                page?: number;
+                /** @description The size of the page to be returned */
+                size?: number;
+                /** @description Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+                sort?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelCustomerSalesResponse"];
+                };
+            };
+        };
+    };
     findById_6: {
         parameters: {
             query?: never;
@@ -2428,6 +2623,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PurchaseResponse"];
+                };
+            };
+        };
+    };
+    purchasesReport: {
+        parameters: {
+            query: {
+                /** @description First day, e.g. 2026-10-01 */
+                from: string;
+                /** @description Last day (inclusive), e.g. 2026-10-31 */
+                to: string;
+                supplierId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseReportResponse"];
                 };
             };
         };

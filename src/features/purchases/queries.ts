@@ -10,6 +10,7 @@ export type CreateSupplier = Schemas['CreateSupplierRequest']
 export type UpdateSupplier = Schemas['UpdateSupplierRequest']
 export type Purchase = Schemas['PurchaseResponse']
 export type PurchaseSummary = Schemas['PurchaseSummaryResponse']
+export type PurchaseReport = Schemas['PurchaseReportResponse']
 
 export const PAGE_SIZE = 20
 // The API pages at most 100 items.
@@ -177,11 +178,18 @@ export function useRecordPurchase() {
   })
 }
 
-// Every purchase of the filters at once (up to MAX_EXPORT_ROWS), for the period's totals and the export.
-export function usePurchaseTotals(filters: PurchaseFilters) {
+// The API's purchases summary covers at most this many days, like the sales report.
+export const MAX_REPORT_DAYS = 366
+
+// Totals, suppliers, top products and every day of the period, added up by the API in the store's
+// time zone (up to MAX_REPORT_DAYS); under 'purchases' so recording one refreshes it.
+export function usePurchaseReport(range: DayRange, supplierId: number | null, enabled = true) {
   return useQuery({
-    queryKey: [...purchaseKeys.all, 'totals', filters] as const,
-    queryFn: () => fetchAllPurchases(filters),
+    queryKey: [...purchaseKeys.all, 'report', range, supplierId] as const,
+    enabled,
+    queryFn: () => unwrap(api.GET('/api/v1/purchase-reports', {
+      params: { query: { ...range, supplierId: supplierId ?? undefined } },
+    })),
     placeholderData: keepPreviousData,
   })
 }
