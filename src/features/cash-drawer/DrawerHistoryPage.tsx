@@ -4,18 +4,18 @@ import { useTranslation } from 'react-i18next'
 
 import { errorMessage } from '@/api/errors'
 import { managesStore, useUser } from '@/auth/auth-context'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { Pagination } from '@/components/Pagination'
 import { SortableHead } from '@/components/SortableHead'
 import { TableSkeleton } from '@/components/TableSkeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { addDays, toDay } from '@/features/dashboard/days'
-import { useAllUserAccounts } from '@/features/users/queries'
+import { type DayRange, lastDaysRange } from '@/features/dashboard/days'
+import { useSellerOptions } from '@/features/sales/use-seller-options'
 import { formatMoney } from '@/lib/money'
 import { type SortState } from '@/lib/sort'
 import { usePageSize } from '@/lib/use-page-size'
@@ -35,63 +35,31 @@ export function DrawerHistoryPage() {
   const { t, i18n } = useTranslation()
   const user = useUser()
   const manager = managesStore(user.role)
-  const [today] = useState(() => toDay(new Date()))
-  const [from, setFrom] = useState(addDays(today, -DEFAULT_RANGE_DAYS))
-  const [to, setTo] = useState(today)
+  const [range, setRange] = useState<DayRange>(() => lastDaysRange(DEFAULT_RANGE_DAYS))
   const [seller, setSeller] = useState(ALL_SELLERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = usePageSize('drawer-history')
   // Column order; null keeps the list's default.
   const [sort, setSort] = useState<SortState | null>(null)
   const [selected, setSelected] = useState<CashDrawer | null>(null)
-  // Only admins can list accounts to filter by seller; only sellers have drawers.
-  const accounts = useAllUserAccounts(user.role === 'ADMIN')
-  const sellers = accounts.data?.filter((account) => account.role === 'SELLER')
+  // Managers filter by seller; only sellers have drawers.
+  const sellers = useSellerOptions(range, manager)
 
-  const search: DrawerSearch = { from, to, sellerId: seller === ALL_SELLERS ? undefined : Number(seller) }
+  const search: DrawerSearch = { ...range, sellerId: seller === ALL_SELLERS ? undefined : Number(seller) }
   const drawers = useDrawers(search, page, pageSize, sort)
   const changeSort = (next: SortState | null) => {
     setSort(next)
     setPage(0)
   }
 
-  // A range always runs forward: moving one end past the other drags it along.
-  function changeFrom(value: string) {
-    if (!value) {
-      return
-    }
-    setFrom(value)
-    if (value > to) {
-      setTo(value)
-    }
-    setPage(0)
-  }
-
-  function changeTo(value: string) {
-    if (!value) {
-      return
-    }
-    setTo(value)
-    if (value < from) {
-      setFrom(value)
-    }
-    setPage(0)
-  }
-
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="grid gap-2">
-          <Label htmlFor="history-from">{t('drawer.history.from')}</Label>
-          <Input id="history-from" type="date" value={from} max={today} className="w-40"
-            onChange={(event) => changeFrom(event.target.value)} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="history-to">{t('drawer.history.to')}</Label>
-          <Input id="history-to" type="date" value={to} max={today} className="w-40"
-            onChange={(event) => changeTo(event.target.value)} />
-        </div>
-        {sellers && (
+        <DateRangeFilter value={range} onChange={(next) => {
+          setRange(next)
+          setPage(0)
+        }} />
+        {manager && (
           <div className="grid gap-2">
             <Label htmlFor="history-seller">{t('drawer.columns.seller')}</Label>
             <Select id="history-seller" className="h-9 w-52" value={seller}
@@ -101,7 +69,7 @@ export function DrawerHistoryPage() {
               }}
               options={[
                 { value: ALL_SELLERS, label: t('drawer.history.allSellers') },
-                ...sellers.map((account) => ({ value: String(account.id), label: account.name })),
+                ...sellers.map((option) => ({ value: String(option.id), label: option.name })),
               ]} />
           </div>
         )}

@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { addDays, toDay } from '@/features/dashboard/days'
+import { addDays } from '@/features/dashboard/days'
 import { formatMoney } from '@/lib/money'
+import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
 import { DrawerDetailDialog } from './DrawerDetailDialog'
@@ -29,7 +30,7 @@ const MAX_STALE = 100
 // also open drawers for sellers, alone or shared.
 export function TodayDrawersPage() {
   const { t, i18n } = useTranslation()
-  const [today] = useState(() => toDay(new Date()))
+  const today = useToday()
   const day = useDayClosing(today)
   const recent = useDrawers({ from: addDays(today, -STALE_LOOKBACK_DAYS), to: addDays(today, -1) }, 0, MAX_STALE)
   // Sellers with no drawer today (nor one left open): the ones a manager can still assign.
