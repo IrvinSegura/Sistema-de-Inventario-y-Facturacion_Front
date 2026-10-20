@@ -39,7 +39,8 @@ export const navItems: NavItem[] = [
   { to: '/inventory', label: 'app.nav.inventory', icon: Warehouse, roles: MANAGERS },
   { to: '/purchases', label: 'app.nav.purchases', icon: Truck, roles: MANAGERS },
   { to: '/customers', label: 'app.nav.customers', icon: Contact, roles: MANAGERS },
-  { to: '/reports', label: 'app.nav.reports', icon: ChartColumn, roles: MANAGERS },
+  // Sellers get their own sales report; managers every report.
+  { to: '/reports', label: 'app.nav.reports', icon: ChartColumn },
   // Every account: sellers, supervisors and admins.
   { to: '/users', label: 'app.nav.users', icon: Users, roles: ['ADMIN'] },
 ]
