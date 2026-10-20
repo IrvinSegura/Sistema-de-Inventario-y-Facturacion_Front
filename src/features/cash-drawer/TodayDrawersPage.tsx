@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { addDays } from '@/features/dashboard/days'
 import { formatMoney } from '@/lib/money'
 import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
@@ -20,11 +19,7 @@ import { DrawerStatus, PaymentMethodSection, SharedBadge } from './DrawerParts'
 import { differenceClass, formatDate } from './format'
 import { memberNames } from './members'
 import { OpenAssignedDrawerDialog } from './OpenAssignedDrawerDialog'
-import { type CashDrawer, useAssignableSellers, useDayClosing, useDrawers } from './queries'
-
-// How far back to look for drawers someone forgot to close.
-const STALE_LOOKBACK_DAYS = 7
-const MAX_STALE = 100
+import { type CashDrawer, useAssignableSellers, useDayClosing, useStaleDrawers } from './queries'
 
 // Admins and supervisors: every drawer of today, the store's day so far and forgotten drawers; they
 // also open drawers for sellers, alone or shared.
@@ -32,7 +27,7 @@ export function TodayDrawersPage() {
   const { t, i18n } = useTranslation()
   const today = useToday()
   const day = useDayClosing(today)
-  const recent = useDrawers({ from: addDays(today, -STALE_LOOKBACK_DAYS), to: addDays(today, -1) }, 0, MAX_STALE)
+  const staleDrawers = useStaleDrawers(today)
   // Sellers with no drawer today (nor one left open): the ones a manager can still assign.
   const assignable = useAssignableSellers()
   const [selected, setSelected] = useState<CashDrawer | null>(null)
@@ -46,7 +41,7 @@ export function TodayDrawersPage() {
   }
 
   const drawers = day.data.drawers ?? []
-  const stale = recent.data?.content?.filter((drawer) => !drawer.closing) ?? []
+  const stale = staleDrawers.data ?? []
   const notOpened = assignable.data ?? []
   const openCount = drawers.filter((drawer) => !drawer.closing).length
 

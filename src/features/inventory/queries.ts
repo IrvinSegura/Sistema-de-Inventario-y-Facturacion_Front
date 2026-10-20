@@ -85,14 +85,15 @@ export function useLowStockPage(categoryId: number | null, page: number, size = 
   })
 }
 
-// Just the count, for the stock overview's tiles.
-export function useLowStockCount() {
+// Just the count, for the stock overview's tiles and the supervision alerts (which poll it).
+export function useLowStockCount({ refetchInterval }: { refetchInterval?: number } = {}) {
   return useQuery({
     queryKey: ['stock-reports', 'low-stock', 'count'] as const,
     queryFn: async () => {
       const page = await unwrap(api.GET('/api/v1/stock-reports/low-stock', { params: { query: { size: 1 } } }))
       return page.page?.totalElements ?? 0
     },
+    refetchInterval,
   })
 }
 
