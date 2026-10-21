@@ -27,8 +27,10 @@ import { customerSalesWorkbook } from './reports-excel'
 
 const DEFAULT_RANGE_DAYS = 30
 
-// Registered customers by what they bought in the period, best first; the walk-in customer is left
-// out. Managers only.
+/**
+ * Registered customers by what they bought in the period, best first; the walk-in customer is left
+ * out. Managers only.
+ */
 export function CustomerSalesReportPage() {
   const { t, i18n } = useTranslation()
   const [range, setRange] = useState<DayRange>(() => lastDaysRange(DEFAULT_RANGE_DAYS))
