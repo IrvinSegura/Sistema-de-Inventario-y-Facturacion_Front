@@ -4,18 +4,22 @@ import type { CashClosing, CashDrawer } from '@/features/cash-drawer/queries'
 type Ref = Schemas['Ref']
 type Amounts = Schemas['Amounts']
 
-// Closing difference in pesos (shortage or surplus) that raises an alert.
+/** Closing difference in pesos, shortage or surplus, from which a drawer raises an alert. */
 export const ALERT_MIN_DIFFERENCE = 50
 
+/** A seller's day so far: the drawer they sell from and their figures. */
 export interface SellerDay {
   seller: Ref
-  // Today's drawer they sell from; none when they only have cancellations of older sales today.
+  /** Today's drawer they sell from; none when they only have cancellations of older sales today. */
   drawer?: CashDrawer
+  /** Absent when the day's closing has no figures for them yet. */
   amounts?: Amounts
 }
 
-// Everyone in today's drawers plus anyone with figures today, best seller first. A seller in two
-// drawers shows with the first one.
+/**
+ * Everyone in today's drawers plus anyone with figures today, best seller first (by sales total,
+ * then by name). A seller in two drawers shows with the first one.
+ */
 export function sellerDays(closing: CashClosing): SellerDay[] {
   const days = new Map<number, SellerDay>()
   for (const drawer of closing.drawers ?? []) {
@@ -36,7 +40,7 @@ export function sellerDays(closing: CashClosing): SellerDay[] {
     (b.amounts?.salesTotal ?? 0) - (a.amounts?.salesTotal ?? 0) || (a.seller.name ?? '').localeCompare(b.seller.name ?? ''))
 }
 
-// Sales total over tickets; 0 without sales.
+/** Sales total over tickets; 0 without sales. */
 export function averageTicket(amounts?: Amounts): number {
   const count = amounts?.saleCount ?? 0
   return count > 0 ? (amounts?.salesTotal ?? 0) / count : 0
@@ -44,10 +48,14 @@ export function averageTicket(amounts?: Amounts): number {
 
 export interface UnbalancedDrawer {
   drawer: CashDrawer
+  /** Closing difference in pesos: negative is a shortage, positive a surplus. */
   difference: number
 }
 
-// Largest difference first.
+/**
+ * Closed drawers whose difference reaches ALERT_MIN_DIFFERENCE either way, largest first. Open
+ * drawers never qualify.
+ */
 export function unbalancedDrawers(drawers: CashDrawer[]): UnbalancedDrawer[] {
   return drawers
     .map((drawer) => ({ drawer, difference: drawer.closing?.difference ?? 0 }))

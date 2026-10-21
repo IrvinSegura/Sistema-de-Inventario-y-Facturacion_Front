@@ -29,7 +29,7 @@ import { averageTicket, type SellerDay, sellerDays, type UnbalancedDrawer, unbal
 const REFRESH_EVERY_MS = 60_000
 const live = { refetchInterval: REFRESH_EVERY_MS }
 
-// Managers' live view of the store's day; every figure and alert polls every REFRESH_EVERY_MS.
+/** Managers' live view of the store's day; every figure and alert polls every REFRESH_EVERY_MS. */
 export function LivePage() {
   const { t, i18n } = useTranslation()
   const today = useToday()
@@ -50,6 +50,7 @@ export function LivePage() {
   const total = day.data.total
   const openCount = drawers.filter((drawer) => !drawer.closing).length
   const sellers = sellerDays(day.data)
+  // Stale ones too: past midnight a drawer left open moves from today's list to the stale one.
   const selected = [...drawers, ...(staleDrawers.data ?? [])].find((drawer) => drawer.id === selectedId) ?? null
   const fetching = day.isFetching || staleDrawers.isFetching || lowStock.isFetching
   const updatedAt = formatTime(new Date(day.dataUpdatedAt).toISOString(), i18n.language)
@@ -117,7 +118,7 @@ export function LivePage() {
   )
 }
 
-// Only what needs action; a quiet line when nothing does.
+/** Stale drawers, unbalanced closings and low stock: only what needs action; a quiet line when nothing does. */
 function Alerts({ stale, unbalanced, lowStockCount, onView }: {
   stale: CashDrawer[]
   unbalanced: UnbalancedDrawer[]
