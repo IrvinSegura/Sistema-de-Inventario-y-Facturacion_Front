@@ -68,4 +68,4 @@ npm run dev
 | Variable | Description |
 |---|---|
 | `VITE_API_URL` | API base URL, no trailing slash (`.env.development` / `.env.production`) |
-| `VITE_STORE_TIME_ZONE` | The store's time zone (IANA ID), the same as the API's `app.store.time-zone`; date filters, "today" and every date and time shown follow it. Defaults to `America/Mexico_City`; a zone that isn't valid stops the app as it loads, with an error naming this setting |
+| `VITE_STORE_TIME_ZONE` | The store's time zone (IANA ID), the same as the API's `app.store.time-zone`; date filters, "today" and every date and time shown follow it. Unset or blank uses `America/Mexico_City`. A zone that isn't valid fails `npm run build`, and an app built with one stops as it loads (blank page, with an error naming this setting in the browser console) |
