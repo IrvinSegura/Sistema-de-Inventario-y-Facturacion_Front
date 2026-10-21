@@ -12,8 +12,10 @@ const YEAR = new Date().getFullYear()
 const PHOTO_URL = `${import.meta.env.BASE_URL}auth/grocery-store.jpg`
 const WAVE_ID = 'auth-photo-wave'
 
-// Sign-in screens: the form on the left and the store illustration along the right edge (wide
-// screens only). Light or dark from the toggles in the header.
+/**
+ * Sign-in screens: the form on the left and the store illustration along the right edge (wide
+ * screens only). Light or dark from the toggles in the header.
+ */
 export function AuthLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
 
@@ -54,8 +56,11 @@ export function AuthHeading({ icon, title, description }: { icon?: ReactNode; ti
   )
 }
 
-// Along the page's right edge, past the form's column, from below the header to a margin above the
-// bottom; its left edge is a wave. Anchored to the top so the awning stays in view. Without the file, a faint tint shows.
+/**
+ * Along the page's right edge, past the form's column, from below the header to a margin above the
+ * bottom; its left edge is a wave. Anchored to the top so the awning stays in view. Without the file,
+ * a faint tint shows.
+ */
 function WavePhoto() {
   return (
     <>

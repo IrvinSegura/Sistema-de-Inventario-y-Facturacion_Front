@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils'
 
 import { navItems } from './nav-items'
 
+/**
+ * On desktop always visible, icons only while `collapsed`. On phones a drawer shown while `drawerOpen`;
+ * Escape, the backdrop and its close button call onDrawerClose.
+ */
 export function AppSidebar({ collapsed, drawerOpen, onDrawerClose }: {
   collapsed: boolean
   drawerOpen: boolean
@@ -38,7 +42,8 @@ export function AppSidebar({ collapsed, drawerOpen, onDrawerClose }: {
         <SidebarNav compact={collapsed} />
       </aside>
 
-      {/* Phones: a drawer over the page. */}
+      {/* Phones: a drawer over the page. It stays mounted to slide in and out; while closed it lets
+          clicks through and is inert, keeping its links out of the tab order. */}
       <div className={cn('fixed inset-0 z-50 md:hidden', !drawerOpen && 'pointer-events-none')}>
         <div onClick={onDrawerClose} aria-hidden
           className={cn('absolute inset-0 bg-black/40 transition-opacity', drawerOpen ? 'opacity-100' : 'opacity-0')} />

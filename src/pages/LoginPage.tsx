@@ -17,7 +17,7 @@ import { AuthHeading, AuthLayout } from '@/pages/auth/AuthLayout'
 
 type LoginForm = { email: string; password: string }
 
-// Where the user was going (RequireAuth) and the email to prefill (back from a password reset).
+/** Where the user was going (RequireAuth) and the email to prefill (back from a password reset). */
 interface LoginState {
   from?: string
   email?: string
