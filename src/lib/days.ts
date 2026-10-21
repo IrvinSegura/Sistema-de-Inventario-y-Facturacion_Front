@@ -2,18 +2,39 @@
 // drawers by: a sale at 23:30 in the store belongs to that day wherever the browser is. Day
 // arithmetic is done on UTC dates, so neither the browser's zone nor daylight saving shifts a day.
 
+/**
+ * The zone's canonical IANA name ("america/mexico_city" becomes "America/Mexico_City"). A misspelled
+ * zone fails here as the app loads, naming the setting, instead of on every screen that shows a date;
+ * so does a fixed offset such as "-06:00", which would never follow daylight saving.
+ */
+export function checkedTimeZone(timeZone: string): string {
+  let resolved: string
+  try {
+    resolved = new Intl.DateTimeFormat('en-US', { timeZone }).resolvedOptions().timeZone
+  } catch {
+    throw new Error(`VITE_STORE_TIME_ZONE is not a valid IANA time zone: "${timeZone}"`)
+  }
+  if (/^[+-]/.test(resolved)) {
+    throw new Error(`VITE_STORE_TIME_ZONE must be an IANA time zone, not a fixed offset: "${timeZone}"`)
+  }
+  return resolved
+}
+
+/** The store's zone from the setting; blank counts as unset, so it falls back to Mexico City. */
+export function storeTimeZone(setting: string | undefined): string {
+  return checkedTimeZone(setting?.trim() || 'America/Mexico_City')
+}
+
 // Must match the API's app.store.time-zone.
-export const STORE_TIME_ZONE = import.meta.env.VITE_STORE_TIME_ZONE || 'America/Mexico_City'
+export const STORE_TIME_ZONE = storeTimeZone(import.meta.env.VITE_STORE_TIME_ZONE)
 
 /** The earliest day the API accepts in date filters and reports. */
 export const FIRST_DAY = '2000-01-01'
 
 const formats = new Map<string, Intl.DateTimeFormat>()
 
-/**
- * The calendar day (YYYY-MM-DD) of an instant in a zone, and its wall-clock time there read as UTC
- * milliseconds (whole seconds), which gives the zone's offset. Formats are cached per zone.
- */
+// The calendar day (YYYY-MM-DD) of an instant in a zone, and its wall-clock time there read as UTC
+// milliseconds (whole seconds), which gives the zone's offset.
 function wallClock(instant: Date, timeZone: string) {
   let format = formats.get(timeZone)
   if (!format) {
@@ -26,6 +47,11 @@ function wallClock(instant: Date, timeZone: string) {
   const parts = Object.fromEntries(format.formatToParts(instant).map((part) => [part.type, part.value]))
   return { day: `${parts.year}-${parts.month}-${parts.day}`, utc: Date.UTC(Number(parts.year), Number(parts.month) - 1,
     Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second)) }
+}
+
+/** The store's wall-clock time of an instant (or the given zone's) read as UTC, whole seconds. */
+export function wallClockAsUtc(instant: Date, timeZone = STORE_TIME_ZONE): Date {
+  return new Date(wallClock(instant, timeZone).utc)
 }
 
 /** The calendar day an instant (a Date or an ISO string) falls on in the store (or the given zone). */
