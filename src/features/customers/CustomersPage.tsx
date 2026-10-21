@@ -27,7 +27,7 @@ import { isInvoiceable } from './tax-regimes'
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
 
-// Admins and supervisors only (the route and the menu); the walk-in customer is read-only.
+/** Admins and supervisors only (the route and the menu); the walk-in customer is read-only. */
 export function CustomersPage() {
   const { t } = useTranslation()
   const [searchText, setSearchText] = useState('')
@@ -116,7 +116,7 @@ function CustomersTable({ customers, filtered, search, onEdit, onDelete, onCreat
   onSort: (sort: SortState | null) => void
   customers: Customer[]
   filtered: boolean
-  // Highlighted in names and tax IDs.
+  /** Highlighted in names and tax IDs. */
   search: string
   onEdit: (customer: Customer) => void
   onDelete: (customer: Customer) => void
@@ -214,7 +214,7 @@ function CustomersTable({ customers, filtered, search, onEdit, onDelete, onCreat
   )
 }
 
-// Whether the customer has the fiscal data an invoice (CFDI) needs; the title shows it.
+/** Whether the customer has the fiscal data an invoice (CFDI) needs; the title shows it. */
 function InvoiceStatus({ customer, className }: { customer: Customer, className?: string }) {
   const { t } = useTranslation()
   const invoiceable = isInvoiceable(customer)

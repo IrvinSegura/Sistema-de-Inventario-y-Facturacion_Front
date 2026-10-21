@@ -44,6 +44,7 @@ const EMAIL_MAX_LENGTH = 150
 const ADDRESS_MAX_LENGTH = 255
 const POSTAL_CODE = /^\d{5}$/
 
+// API field names that have an input here; the form uses the same names, so they map one to one.
 const fields = ['name', 'taxId', 'email', 'phone', 'address', 'fiscalPostalCode', 'taxRegime'] as const
 
 function customerSchema(t: TFunction) {
@@ -84,7 +85,10 @@ function customerSchema(t: TFunction) {
   })
 }
 
-// open: null closed, 'new' to create, a customer to edit it. onCreated gets the new customer.
+/**
+ * Creates or edits a customer. open: null closed, 'new' to create, a customer to edit it. onCreated
+ * gets the new customer (edits don't call it).
+ */
 export function CustomerDialog({ open, onOpenChange, onCreated }: {
   open: Customer | 'new' | null
   onOpenChange: (open: boolean) => void
