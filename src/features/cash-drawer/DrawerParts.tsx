@@ -36,7 +36,7 @@ import { type CashClosing, type CashDrawer, useDayClosing, useCloseDrawer, useDr
 const NOTE_MAX_LENGTH = 255
 const PAYMENT_METHODS = ['CASH', 'CARD', 'TRANSFER'] as const
 
-// Blind count: the expected cash is only shown after the count is recorded.
+/** Blind count: the expected cash is only shown after the count is recorded. */
 export function CloseDrawerForm({ drawer, autoFocus = true, onClosed }: {
   drawer: CashDrawer
   autoFocus?: boolean
@@ -60,6 +60,7 @@ export function CloseDrawerForm({ drawer, autoFocus = true, onClosed }: {
     setValue('countedCash', countedTotal(next), { shouldDirty: true, shouldValidate: isSubmitted })
   }
 
+  // Showing the counter replaces a typed amount with its total; hiding it leaves that total editable.
   function toggleCounter() {
     if (!counting) {
       applyCounts(counts)
@@ -111,6 +112,7 @@ export function CloseDrawerForm({ drawer, autoFocus = true, onClosed }: {
   )
 }
 
+/** Pieces per bill and coin, side by side; the form turns each change into the counted cash. */
 function DenominationCounter({ id, counts, onChange }: {
   id: string
   counts: DenominationCounts
@@ -128,6 +130,7 @@ function DenominationCounter({ id, counts, onChange }: {
           return (
             <div key={denomination.key} className="flex items-center gap-2">
               <Label htmlFor={inputId} className="w-14 justify-end tabular-nums">{amount}</Label>
+              {/* Text, not number: browsers ignore maxLength on number inputs; cleanCount drops non-digits. */}
               <Input id={inputId} type="text" inputMode="numeric" maxLength={MAX_PIECES_DIGITS} placeholder="0"
                 className="h-8 w-20 text-right tabular-nums"
                 aria-label={t(kind === 'bill' ? 'drawer.billsOf' : 'drawer.coinsOf', { amount })}
@@ -151,7 +154,7 @@ function DenominationCounter({ id, counts, onChange }: {
   )
 }
 
-// Open since or closed at, for the drawer lists.
+/** Open since or closed at, for the drawer lists. */
 export function DrawerStatus({ drawer }: { drawer: CashDrawer }) {
   const { t, i18n } = useTranslation()
   return drawer.closing ? (
@@ -163,7 +166,7 @@ export function DrawerStatus({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-// Opening float, expected and counted cash and the difference, as recorded when it was closed.
+/** Opening float, expected and counted cash and the difference, as recorded when it was closed. */
 function ClosingFigures({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   const closing = drawer.closing!
@@ -183,7 +186,7 @@ function ClosingFigures({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-// Who sells from the drawer, who closes it and who opened it, for shared or assigned drawers.
+/** Who sells from the drawer, who closes it and who opened it, for shared or assigned drawers. */
 export function DrawerMembers({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   return (
@@ -198,14 +201,16 @@ export function DrawerMembers({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-// "Shared" next to a drawer's names in the lists.
+/** "Shared" next to a drawer's names in the lists; nothing for a personal drawer. */
 export function SharedBadge({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   return isShared(drawer) ? <Badge variant="outline">{t('drawer.shared')}</Badge> : null
 }
 
-// A closed drawer: its figures, its movements by payment method (and by seller when shared) and a
-// printable closing slip.
+/**
+ * A closed drawer: its figures, its movements by payment method (and by seller when shared) and a
+ * printable closing slip.
+ */
 export function ClosingDetails({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   const closing = useDrawerClosing(drawer.id!)
@@ -228,6 +233,7 @@ export function ClosingDetails({ drawer }: { drawer: CashDrawer }) {
 
 type ClosingQuery = ReturnType<typeof useDayClosing> | ReturnType<typeof useDrawerClosing>
 
+/** A closing's sales and cancellations by payment method, with its loading and error states. */
 export function PaymentMethodSection({ closing, title }: {
   closing: ClosingQuery
   title?: string
@@ -243,13 +249,14 @@ export function PaymentMethodSection({ closing, title }: {
   )
 }
 
-// A shared drawer's movements by seller: the cash each one put in (net of refunds) and all their sales.
+/** A shared drawer's movements by seller: the cash each one put in (net of refunds) and all their sales. */
 export function BySellerSection({ closing }: { closing: ClosingQuery }) {
   const { t } = useTranslation()
   const sellers = closing.data?.bySeller ?? []
   return (
     <section className="grid gap-3">
       <h3 className="text-sm font-medium">{t('drawer.bySeller')}</h3>
+      {/* No error here: it always follows a PaymentMethodSection, which shows the same query's error. */}
       {closing.isPending && <p className="text-sm text-muted-foreground">{t('app.loading')}…</p>}
       {closing.data && sellers.length === 0 && <p className="text-sm text-muted-foreground">{t('drawer.noSales')}</p>}
       {sellers.length > 0 && (
@@ -269,6 +276,7 @@ export function BySellerSection({ closing }: { closing: ClosingQuery }) {
   )
 }
 
+/** Only payment methods with sales or cancellations get a row, then the net total. */
 function PaymentMethodRows({ closing }: { closing: CashClosing }) {
   const { t } = useTranslation()
   const rows = PAYMENT_METHODS
@@ -306,8 +314,10 @@ function PaymentMethodRows({ closing }: { closing: CashClosing }) {
   )
 }
 
-// Printed closing of a drawer: who and when, sales by payment method (and cash by seller when
-// shared), the cash count and lines to sign.
+/**
+ * Printed closing of a drawer: who and when, sales by payment method (and cash by seller when
+ * shared), the cash count and lines to sign.
+ */
 function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClosing }) {
   const { t, i18n } = useTranslation()
   const figures = drawer.closing!
@@ -316,6 +326,7 @@ function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClo
   return (
     <PrintDocument kind={t('print.closing.kind')} folio={drawer.id}
       date={formatDate(drawer.businessDate!, i18n.language, 'long')}>
+      {/* Shared adds the members field: four fields in two rows of two, otherwise three in one row. */}
       <PrintFields columns={isShared(drawer) ? 2 : 3} fields={[
         [t('drawer.responsible'), drawer.responsible?.name],
         [t('print.closing.shift'), `${formatTime(drawer.openedAt!, i18n.language)} – ${formatTime(figures.closedAt!, i18n.language)}`],

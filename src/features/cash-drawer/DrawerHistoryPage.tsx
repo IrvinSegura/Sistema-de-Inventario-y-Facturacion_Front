@@ -30,7 +30,7 @@ import { type CashDrawer, type DrawerSearch, useDrawers } from './queries'
 const DEFAULT_RANGE_DAYS = 30
 const ALL_SELLERS = 'all'
 
-// Past drawers by business day; sellers see the ones they were in, managers everyone's.
+/** Past drawers by business day; sellers see the ones they were in, managers everyone's. */
 export function DrawerHistoryPage() {
   const { t, i18n } = useTranslation()
   const user = useUser()
@@ -39,7 +39,7 @@ export function DrawerHistoryPage() {
   const [seller, setSeller] = useState(ALL_SELLERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = usePageSize('drawer-history')
-  // Column order; null keeps the list's default.
+  // null sends no sort, so the API's default applies: newest business day first.
   const [sort, setSort] = useState<SortState | null>(null)
   const [selected, setSelected] = useState<CashDrawer | null>(null)
   // Managers filter by seller; only sellers have drawers.

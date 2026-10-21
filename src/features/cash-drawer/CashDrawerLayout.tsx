@@ -5,7 +5,7 @@ import { managesStore, useUser } from '@/auth/auth-context'
 import { type SectionTab, SectionTabs } from '@/components/SectionTabs'
 
 interface Tab extends SectionTab {
-  // Sellers have a drawer; managers have none and look after everyone's.
+  /** Sellers have a drawer; managers have none and look after everyone's. Absent: shown to both. */
   audience?: 'sellers' | 'managers'
 }
 
