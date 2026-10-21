@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
-import type { DayRange } from '@/features/dashboard/days'
+import type { DayRange } from '@/lib/days'
 
 export type ProductSales = Schemas['ProductSalesResponse']
 export type CustomerSales = Schemas['CustomerSalesResponse']

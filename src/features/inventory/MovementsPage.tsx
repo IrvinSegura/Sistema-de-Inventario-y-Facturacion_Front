@@ -26,15 +26,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/features/cash-drawer/format'
 import { categoryName } from '@/features/categories/category-labels'
-import { type DayRange, lastDaysRange } from '@/features/dashboard/days'
 import { ProductPicker } from '@/features/products/ProductPicker'
 import { type Product, useProduct } from '@/features/products/queries'
-import type { DraftState } from '@/features/purchases/purchase-draft'
 import { PurchaseDetailDialog } from '@/features/purchases/PurchaseDetailDialog'
+import type { DraftState } from '@/features/purchases/purchase-draft'
 import { SaleDetailDialog } from '@/features/sales/SaleDetailDialog'
-import { dateLocale } from '@/i18n'
+import { formatDate, formatDateTime } from '@/lib/date-format'
+import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { useReportMeta } from '@/lib/report-meta'
 import { usePageSize } from '@/lib/use-page-size'
@@ -87,7 +86,6 @@ export function MovementsPage() {
 
   const filters: MovementFilters | null = productId === null ? null : { productId, type, range, asOf }
   const movements = useMovements(filters, page, pageSize)
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
 
   // Any filter change starts again from the newest movement.
   function refilter(change: () => void) {
@@ -275,7 +273,7 @@ export function MovementsPage() {
                         : movement.saleId ? () => setSaleId(movement.saleId!) : null
                       return (
                         <TableRow key={movement.id}>
-                          <TableCell className="pl-4 whitespace-nowrap">{when.format(new Date(movement.movementDate!))}</TableCell>
+                          <TableCell className="pl-4 whitespace-nowrap">{formatDateTime(movement.movementDate, i18n.language)}</TableCell>
                           <TableCell>
                             <span className="flex items-center gap-2">
                               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">

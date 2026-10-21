@@ -4,7 +4,7 @@ import type { CashClosing } from '@/features/cash-drawer/queries'
 import { memberNames } from '@/features/cash-drawer/members'
 import { categoryName } from '@/features/categories/category-labels'
 import type { SaleReport } from '@/features/sales/queries'
-import { excelDate, type Kpi, type Section, type SheetSpec, type Tone } from '@/lib/excel'
+import { excelDate, excelStoreDay, type Kpi, type Section, type SheetSpec, type Tone } from '@/lib/excel'
 
 import { closingFigures, PAYMENT_METHODS } from './closing-data'
 import { bucketTitle, formatChange, formatPercent } from './format'
@@ -437,7 +437,7 @@ export function productSalesWorkbook({ t, rows, unsold, period, info, truncated 
           stock: row.stock,
           averageCost: row.averageCost ?? undefined,
           value: stockValue(row) ?? undefined,
-          lastSale: row.lastSaleDate ? excelDate(row.lastSaleDate) : undefined,
+          lastSale: excelStoreDay(row.lastSaleDate),
         })),
       }],
     }]
@@ -511,7 +511,7 @@ export function customerSalesWorkbook({ t, rows, period, truncated }: {
             formula: (cells) => `IFERROR(${cells.total}/${cells.tickets},0)` },
           { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
             formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TClientes', 'total')}),0)` },
-          { key: 'lastSale', header: t('reports.customers.lastPurchase'), type: 'datetime' },
+          { key: 'lastSale', header: t('reports.customers.lastPurchase'), type: 'date' },
         ],
         rows: rows.map((row, index) => {
           const sum = rows.reduce((total, other) => total + (other.total ?? 0), 0)
@@ -523,7 +523,7 @@ export function customerSalesWorkbook({ t, rows, period, truncated }: {
             total: row.total,
             average: row.averageTicket,
             share: sum > 0 ? (row.total ?? 0) / sum : 0,
-            lastSale: row.lastSaleDate ? excelDate(row.lastSaleDate) : undefined,
+            lastSale: excelStoreDay(row.lastSaleDate),
           }
         }),
       },

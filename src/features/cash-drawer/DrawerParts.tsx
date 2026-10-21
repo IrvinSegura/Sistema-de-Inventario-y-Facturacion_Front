@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { amountField } from '@/lib/amount-field'
+import { formatDate, formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 import { cn } from '@/lib/utils'
@@ -29,7 +30,7 @@ import {
   MAX_PIECES_DIGITS,
 } from './denominations'
 import { isFromPastDay } from './drawer-day'
-import { differenceClass, differenceLabel, formatDate, formatDenomination, formatTime } from './format'
+import { differenceClass, differenceLabel, formatDenomination } from './format'
 import { isShared, memberNames } from './members'
 import { type CashClosing, type CashDrawer, useDayClosing, useCloseDrawer, useDrawerClosing } from './queries'
 
@@ -158,10 +159,10 @@ function DenominationCounter({ id, counts, onChange }: {
 export function DrawerStatus({ drawer }: { drawer: CashDrawer }) {
   const { t, i18n } = useTranslation()
   return drawer.closing ? (
-    <Badge variant="secondary">{t('drawer.status.closed', { time: formatTime(drawer.closing.closedAt!, i18n.language) })}</Badge>
+    <Badge variant="secondary">{t('drawer.status.closed', { time: formatTime(drawer.closing.closedAt, i18n.language) })}</Badge>
   ) : (
     <Badge className="bg-emerald-600 text-white dark:bg-emerald-500">
-      {t('drawer.status.open', { time: formatTime(drawer.openedAt!, i18n.language) })}
+      {t('drawer.status.open', { time: formatTime(drawer.openedAt, i18n.language) })}
     </Badge>
   )
 }
@@ -329,7 +330,7 @@ function ClosingSlip({ drawer, closing }: { drawer: CashDrawer; closing: CashClo
       {/* Shared adds the members field: four fields in two rows of two, otherwise three in one row. */}
       <PrintFields columns={isShared(drawer) ? 2 : 3} fields={[
         [t('drawer.responsible'), drawer.responsible?.name],
-        [t('print.closing.shift'), `${formatTime(drawer.openedAt!, i18n.language)} – ${formatTime(figures.closedAt!, i18n.language)}`],
+        [t('print.closing.shift'), `${formatTime(drawer.openedAt, i18n.language)} – ${formatTime(figures.closedAt, i18n.language)}`],
         [t('print.closing.closedBy'), figures.closedBy?.name],
         ...(isShared(drawer) ? [[t('drawer.members'), memberNames(drawer)] as [string, string]] : []),
       ]} />

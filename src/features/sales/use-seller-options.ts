@@ -1,6 +1,6 @@
 import { useUser } from '@/auth/auth-context'
-import { type DayRange, daysInRange } from '@/features/dashboard/days'
 import { useAllUserAccounts } from '@/features/users/queries'
+import { type DayRange, daysInRange } from '@/lib/days'
 
 import { MAX_REPORT_DAYS, useSalesSummary } from './queries'
 

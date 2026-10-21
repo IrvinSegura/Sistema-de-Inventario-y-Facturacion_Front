@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { amountField } from '@/lib/amount-field'
+import { formatDate, formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 import { useToday } from '@/lib/use-today'
@@ -23,7 +24,6 @@ import { useToday } from '@/lib/use-today'
 import { ClosingDetails, CloseDrawerForm, DrawerMembers } from './DrawerParts'
 import { isFromPastDay } from './drawer-day'
 import { DrawerSales } from './DrawerSales'
-import { formatDate, formatTime } from './format'
 import { isAssigned, isResponsible, isShared } from './members'
 import { type CashDrawer, useCurrentDrawer, useLatestDrawer, useOpenDrawer } from './queries'
 
@@ -138,7 +138,7 @@ function OpenDrawerHeader({ drawer }: { drawer: CashDrawer }) {
       <CardTitle>{t('drawer.openNow', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
       <CardDescription>
         {t('drawer.openedAt', {
-          time: formatTime(drawer.openedAt!, i18n.language),
+          time: formatTime(drawer.openedAt, i18n.language),
           amount: formatMoney(drawer.openingFloat!),
         })}
       </CardDescription>
@@ -206,7 +206,7 @@ function ClosingSummaryCard({ drawer }: { drawer: CashDrawer }) {
       <CardHeader>
         <CardTitle>{t('drawer.lastClosing', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
         <CardDescription>
-          {t('drawer.closedAtBy', { time: formatTime(closing.closedAt!, i18n.language), name: closing.closedBy?.name })}
+          {t('drawer.closedAtBy', { time: formatTime(closing.closedAt, i18n.language), name: closing.closedBy?.name })}
         </CardDescription>
       </CardHeader>
       <CardContent>

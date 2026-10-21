@@ -21,11 +21,11 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { ReceiptDialog } from '@/features/checkout/ReceiptDialog'
+import { formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 import { cn } from '@/lib/utils'
 
-import { formatTime } from './format'
 import { type SaleSummary, useCancelSale, useDrawerSales, useSale } from './queries'
 
 const REASON_MAX_LENGTH = 255
@@ -66,7 +66,7 @@ export function DrawerSales({ drawerId, canCancel, showSeller = false }: {
                 aria-label={t('drawer.viewTicket', { number: sale.saleNumber })}>
                 <span className="font-medium tabular-nums">#{sale.saleNumber}</span>
                 <span className="truncate text-muted-foreground">
-                  {formatTime(sale.saleDate!, i18n.language)} · {t(`checkout.paymentMethods.${sale.paymentMethod!}`)}
+                  {formatTime(sale.saleDate, i18n.language)} · {t(`checkout.paymentMethods.${sale.paymentMethod!}`)}
                   {showSeller && <> · {sale.seller?.name}</>}
                 </span>
                 <span className={cn('tabular-nums', cancelled && 'text-muted-foreground line-through')}>

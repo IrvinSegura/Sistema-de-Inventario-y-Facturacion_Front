@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, Tooltip, type TooltipContentProps, XAxis, YAxis } from 'recharts'
 
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
 import { formatMoney, formatMoneyCompact } from '@/lib/money'
 
 import type { MoneyBucket } from './money-series'
@@ -15,7 +15,7 @@ const series = [
 export function MoneyChart({ data, showPurchases }: { data: MoneyBucket[]; showPurchases: boolean }) {
   const { t, i18n } = useTranslation()
   const visible = showPurchases ? series : series.slice(0, 1)
-  const day = new Intl.DateTimeFormat(dateLocale(i18n.language), { day: 'numeric', month: 'short' })
+  const day = new Intl.DateTimeFormat(intlLocale(i18n.language), { day: 'numeric', month: 'short' })
   // Local midnight (no Z), so formatting in the browser's zone keeps the same calendar day.
   const label = (bucket: MoneyBucket) => day.format(new Date(`${bucket.start}T00:00:00`))
 
@@ -57,7 +57,7 @@ function MoneyTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !bucket) {
     return null
   }
-  const format = new Intl.DateTimeFormat(dateLocale(i18n.language), { day: 'numeric', month: 'long' })
+  const format = new Intl.DateTimeFormat(intlLocale(i18n.language), { day: 'numeric', month: 'long' })
   const start = format.format(new Date(`${bucket.start}T00:00:00`))
   const title = bucket.start === bucket.end
     ? start

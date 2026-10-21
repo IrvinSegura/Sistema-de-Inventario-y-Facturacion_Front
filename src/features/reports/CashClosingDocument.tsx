@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
 import { PrintDocument, PrintFields, PrintSection, PrintSignatures, PrintTable, PrintTotals } from '@/components/PrintDocument'
-import { formatTime } from '@/features/cash-drawer/format'
 import { memberNames } from '@/features/cash-drawer/members'
 import type { CashClosing } from '@/features/cash-drawer/queries'
+import { formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 
 import { closingFigures, PAYMENT_METHODS } from './closing-data'
@@ -22,7 +22,7 @@ export function CashClosingDocument({ closing, date, seller, status }: {
   const figures = closingFigures(closing)
   const methods = PAYMENT_METHODS.map((method) => ({ method, amounts: closing.byPaymentMethod?.[method] }))
   const drawers = closing.drawers ?? []
-  const time = (instant?: string) => instant ? formatTime(instant, i18n.language) : '—'
+  const time = (instant?: string) => formatTime(instant, i18n.language)
 
   return (
     <PrintDocument kind={t('reports.closing.printKind')} date={date}>

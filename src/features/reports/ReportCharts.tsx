@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bar, CartesianGrid, ComposedChart, Line, Tooltip, type TooltipContentProps, XAxis, YAxis } from 'recharts'
 
-import { addDays } from '@/features/dashboard/days'
 import type { MessageKey } from '@/i18n'
+import { addDays } from '@/lib/days'
 import { formatMoney, formatMoneyCompact } from '@/lib/money'
 
 import { bucketLabel, bucketTitle } from './format'

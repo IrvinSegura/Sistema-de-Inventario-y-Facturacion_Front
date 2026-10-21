@@ -20,7 +20,7 @@ const meta: ReportMeta = {
   pageLabel: 'Página &P de &N',
   emptyLabel: 'No hay datos con estos filtros.',
   totalLabel: 'Total',
-  locale: 'es-MX',
+  language: 'es',
 }
 
 let t: TFunction

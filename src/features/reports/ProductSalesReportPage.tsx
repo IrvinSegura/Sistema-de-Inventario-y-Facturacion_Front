@@ -15,13 +15,12 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/features/cash-drawer/format'
 import { categoryName } from '@/features/categories/category-labels'
 import { useCategories } from '@/features/categories/queries'
 import { useLabeledCategories } from '@/features/categories/use-labeled-categories'
-import { type DayRange, lastDaysRange } from '@/features/dashboard/days'
 import { MAX_REPORT_DAYS } from '@/features/sales/queries'
-import { dateLocale } from '@/i18n'
+import { formatDate, formatStoreDate } from '@/lib/date-format'
+import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
@@ -51,7 +50,6 @@ export function ProductSalesReportPage() {
   const categories = useLabeledCategories(useCategories().data)
   const reportMeta = useReportMeta()
   const rows = products.data?.content ?? []
-  const lastSale = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' })
 
   const changeFilters = (change: Partial<ProductSalesFilters>) => {
     setFilters((current) => ({ ...current, ...change }))
@@ -176,7 +174,7 @@ export function ProductSalesReportPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums">{value === null ? '—' : formatMoney(value)}</TableCell>
                         <TableCell className="hidden pr-4 text-right text-muted-foreground lg:table-cell">
-                          {product.lastSaleDate ? lastSale.format(new Date(product.lastSaleDate)) : t('reports.products.never')}
+                          {product.lastSaleDate ? formatStoreDate(product.lastSaleDate, i18n.language) : t('reports.products.never')}
                         </TableCell>
                       </TableRow>
                     )

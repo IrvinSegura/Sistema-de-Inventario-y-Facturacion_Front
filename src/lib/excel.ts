@@ -8,6 +8,8 @@
 
 import type { Cell, Fill, Font, Workbook, Worksheet } from 'exceljs'
 
+import { formatDateTime } from './date-format'
+import { STORE_TIME_ZONE, toDay, wallClockAsUtc } from './days'
 import { addCharts, type ChartPart, type ChartType } from './excel-charts'
 
 export type ColumnType = 'text' | 'code' | 'money' | 'int' | 'percent' | 'date' | 'datetime'
@@ -116,7 +118,8 @@ export interface ReportMeta {
   pageLabel: string
   emptyLabel: string
   totalLabel: string
-  locale: string
+  /** The screen language ('es', 'en'); dates follow it. */
+  language: string
 }
 
 const COLORS = {
@@ -179,13 +182,19 @@ function font(extra: Partial<Font> = {}): Partial<Font> {
 const thin = { style: 'thin' as const, color: argb(COLORS.border) }
 
 /**
- * Excel keeps dates without a time zone: write the local wall-clock time as if it were UTC, so the
- * cell shows what the screen shows.
+ * Excel keeps dates without a time zone: write the store's wall-clock time (or the given zone's) as
+ * if it were UTC, so the cell shows what the screen shows wherever the file is opened. A missing or
+ * malformed instant leaves the cell empty rather than failing the whole export.
  */
-export function excelDate(value: string | Date): Date {
-  const date = typeof value === 'string' ? new Date(value) : value
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
-    date.getHours(), date.getMinutes(), date.getSeconds()))
+export function excelDate(value: string | Date | null | undefined, timeZone = STORE_TIME_ZONE): Date | undefined {
+  const date = value === null || value === undefined ? undefined : new Date(value)
+  return date && !Number.isNaN(date.getTime()) ? wallClockAsUtc(date, timeZone) : undefined
+}
+
+/** The store day an instant falls on, for 'date' columns that show a day like the screen does; empty when missing. */
+export function excelStoreDay(value: string | Date | null | undefined, timeZone = STORE_TIME_ZONE): Date | undefined {
+  const date = value === null || value === undefined ? undefined : new Date(value)
+  return date && !Number.isNaN(date.getTime()) ? excelDay(toDay(date, timeZone)) : undefined
 }
 
 /** A calendar day such as "2026-10-19", at midnight UTC so no time zone shifts it to another day. */
@@ -418,7 +427,7 @@ class SheetWriter {
     subtitle.font = font({ size: 11, color: argb(COLORS.brandSoft) })
     subtitle.alignment = { indent: 1, vertical: 'top' }
 
-    const generated = new Intl.DateTimeFormat(this.meta.locale, { dateStyle: 'long', timeStyle: 'short' }).format(new Date())
+    const generated = formatDateTime(new Date(), this.meta.language, 'long')
     const stamp: [number, string, Partial<Font>][] = [
       [2, this.meta.generatedLabel.toUpperCase(), font({ size: 8, bold: true, color: argb(COLORS.brandSoft) })],
       [3, generated, font({ size: 10, color: white })],

@@ -15,12 +15,12 @@ import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { dateLocale } from '@/i18n'
 import { type PurchaseReport, usePurchaseReport } from '@/features/purchases/queries'
+import { formatDateTime } from '@/lib/date-format'
+import { lastDaysRange } from '@/lib/days'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { lastDaysRange } from './days'
 import { moneySeries } from './money-series'
 import { MoneyChart } from './MoneyChart'
 import {
@@ -376,8 +376,6 @@ function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchase
     return <p className="py-10 text-center text-sm text-muted-foreground">{t('dashboard.recentEmpty')}</p>
   }
 
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
-
   return (
     <ul className="divide-y">
       {movements.map(({ key, date, title, detail, amount, icon: Icon, stockIcon: StockIcon, stockLabel, cancelled }) => (
@@ -391,7 +389,7 @@ function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchase
               {cancelled && <Badge variant="outline">{t('dashboard.movement.cancelled')}</Badge>}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {[when.format(new Date(date)), detail].filter(Boolean).join(' · ')}
+              {[formatDateTime(date, i18n.language), detail].filter(Boolean).join(' · ')}
             </p>
           </div>
           <div className="grid shrink-0 justify-items-end gap-0.5">

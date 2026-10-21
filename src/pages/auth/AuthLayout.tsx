@@ -2,10 +2,11 @@ import { Store } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { todayDay } from '@/lib/days'
 import { PreferencesMenu } from '@/preferences/PreferencesMenu'
 
-// Read once: the footer doesn't need to change at midnight on New Year's Eve.
-const YEAR = new Date().getFullYear()
+// Read once, in the store's zone: the footer doesn't need to change at midnight on New Year's Eve.
+const YEAR = todayDay().slice(0, 4)
 
 // Store illustration (pre-cropped). In public/ so a missing file only leaves the wave's tint
 // instead of breaking the build.
