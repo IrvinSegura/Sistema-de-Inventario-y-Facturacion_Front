@@ -2,11 +2,11 @@ import type { TFunction } from 'i18next'
 
 import { categoryName } from '@/features/categories/category-labels'
 import type { Product } from '@/features/products/queries'
-import { excelDate, type Row, type SheetSpec } from '@/lib/excel'
+import { type Column, countExact, excelDate, type Kpi, type Row, type SheetSpec, sumExact } from '@/lib/excel'
 import { fromCents, toCents, withTax } from '@/lib/money'
 
-import type { LowStockProduct, Movement } from './queries'
 import { MOVEMENT_TYPES } from './movement-params'
+import type { LowStockProduct, Movement, MovementType } from './queries'
 
 const STATUS_COLORS = { ok: '58B368', low: 'E0A030', out: 'C2412D', inactive: '9CA3AF' }
 
@@ -108,21 +108,21 @@ export function stockWorkbook({ t, products, truncated, info }: {
           title: t('excel.stock.figures'),
           items: [
             { label: t('excel.stock.products'), value: rows.length, type: 'int', hint: t('excel.stock.productsHint'),
-              formula: (ref) => `COUNTA(${ref('TExistencias', 'sku')})` },
+              formula: (ref) => `COUNTA(${ref('TStock', 'sku')})` },
             { label: t('excel.stock.units'), value: units, type: 'int', hint: t('excel.stock.unitsHint'),
-              formula: (ref) => `SUMIF(${ref('TExistencias', 'stock')},">0")` },
+              formula: (ref) => `SUMIF(${ref('TStock', 'stock')},">0")` },
             { label: t('excel.stock.value'), value, type: 'money', hint: t('excel.stock.valueHint'),
-              formula: (ref) => `SUM(${ref('TExistencias', 'value')})` },
+              formula: (ref) => `SUM(${ref('TStock', 'value')})` },
             { label: t('excel.stock.valueWithVat'), value: valueWithVat, type: 'money', hint: t('excel.stock.valueWithVatHint'),
-              formula: (ref) => `SUMPRODUCT((${ref('TExistencias', 'stock')}>0)*${ref('TExistencias', 'stock')},${ref('TExistencias', 'priceWithVat')})` },
+              formula: (ref) => `SUMPRODUCT((${ref('TStock', 'stock')}>0)*${ref('TStock', 'stock')},${ref('TStock', 'priceWithVat')})` },
             { label: ok, value: count(ok), type: 'int', tone: 'success', hint: t('excel.stock.okHint'),
-              formula: (ref) => `COUNTIF(${ref('TExistencias', 'status')},${quote(ok)})` },
+              formula: (ref) => `COUNTIF(${ref('TStock', 'status')},${quote(ok)})` },
             { label: low, value: count(low), type: 'int', tone: 'warning', hint: t('excel.stock.lowHint'),
-              formula: (ref) => `COUNTIF(${ref('TExistencias', 'status')},${quote(low)})` },
+              formula: (ref) => `COUNTIF(${ref('TStock', 'status')},${quote(low)})` },
             { label: out, value: count(out), type: 'int', tone: 'danger', hint: t('excel.stock.outHint'),
-              formula: (ref) => `COUNTIF(${ref('TExistencias', 'status')},${quote(out)})` },
+              formula: (ref) => `COUNTIF(${ref('TStock', 'status')},${quote(out)})` },
             { label: t('excel.stock.missingUnits'), value: rows.reduce((sum, row) => sum + (row.shortage as number), 0), type: 'int',
-              tone: 'muted', hint: t('excel.stock.missingUnitsHint'), formula: (ref) => `SUM(${ref('TExistencias', 'shortage')})` },
+              tone: 'muted', hint: t('excel.stock.missingUnitsHint'), formula: (ref) => `SUM(${ref('TStock', 'shortage')})` },
           ],
         },
         ...(truncated ? [{ kind: 'note' as const, text: t('excel.truncated', { count: products.length }) }] : []),
@@ -130,40 +130,41 @@ export function stockWorkbook({ t, products, truncated, info }: {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TCategorias',
+            name: 'TStockByCategory',
             title: t('excel.stock.byCategory'),
             columns: [
               { key: 'category', header: t('products.columns.category'), width: 22 },
               { key: 'products', header: t('excel.stock.products'), type: 'int', total: 'sum',
-                formula: (cells, ref) => `COUNTIF(${ref('TExistencias', 'category')},${cells.category})` },
+                formula: (cells, ref) => countExact(ref('TStock', 'category'), cells.category) },
               { key: 'units', header: t('excel.units'), type: 'int', total: 'sum',
-                formula: (cells, ref) => `SUMIFS(${ref('TExistencias', 'stock')},${ref('TExistencias', 'category')},${cells.category},${ref('TExistencias', 'stock')},">0")` },
+                formula: (cells, ref) => sumExact(ref('TStock', 'category'), cells.category, ref('TStock', 'stock'), `${ref('TStock', 'stock')}>0`) },
               { key: 'value', header: t('excel.stock.value'), type: 'money', total: 'sum', visual: 'bar',
-                formula: (cells, ref) => `SUMIF(${ref('TExistencias', 'category')},${cells.category},${ref('TExistencias', 'value')})` },
+                formula: (cells, ref) => sumExact(ref('TStock', 'category'), cells.category, ref('TStock', 'value')) },
               { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-                formula: (cells, ref) => `IFERROR(${cells.value}/SUM(${ref('TCategorias', 'value')}),0)` },
+                formula: (cells, ref) => `IFERROR(${cells.value}/SUM(${ref('TStockByCategory', 'value')}),0)` },
             ],
             rows: categories,
           },
-          chart: { type: 'doughnut', title: t('excel.stock.valueByCategory'), table: 'TCategorias', category: 'category', series: [{ column: 'value' }] },
+          chart: { type: 'doughnut', title: t('excel.stock.valueByCategory'), table: 'TStockByCategory', category: 'category', series: [{ column: 'value' }] },
         },
         {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TEstados',
+            name: 'TStatuses',
             title: t('excel.stock.byStatus'),
             columns: [
               { key: 'status', header: t('inventory.columns.status'), width: 22 },
+              // Our own labels, never data: COUNTIF is safe here (data criteria use countExact).
               { key: 'products', header: t('excel.stock.products'), type: 'int', total: 'sum',
-                formula: (cells, ref) => `COUNTIF(${ref('TExistencias', 'status')},${cells.status})` },
+                formula: (cells, ref) => `COUNTIF(${ref('TStock', 'status')},${cells.status})` },
               { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-                formula: (cells, ref) => `IFERROR(${cells.products}/SUM(${ref('TEstados', 'products')}),0)` },
+                formula: (cells, ref) => `IFERROR(${cells.products}/SUM(${ref('TStatuses', 'products')}),0)` },
             ],
             rows: statuses.map((row) => ({ ...row, share: rows.length ? row.products / rows.length : 0 })),
           },
           chart: {
-            type: 'pie', title: t('excel.stock.productsByStatus'), table: 'TEstados', category: 'status',
+            type: 'pie', title: t('excel.stock.productsByStatus'), table: 'TStatuses', category: 'status',
             series: [{ column: 'products' }], colors: statuses.map((row) => row.color), height: 14,
           },
         },
@@ -171,7 +172,7 @@ export function stockWorkbook({ t, products, truncated, info }: {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TTopValor',
+            name: 'TTopValue',
             title: t('excel.stock.topValue'),
             columns: [
               { key: 'rank', header: t('excel.rank'), type: 'int', width: 7 },
@@ -181,7 +182,7 @@ export function stockWorkbook({ t, products, truncated, info }: {
             ],
             rows: top,
           },
-          chart: { type: 'bar', title: t('excel.stock.topValueChart'), table: 'TTopValor', category: 'name', series: [{ column: 'value' }] },
+          chart: { type: 'bar', title: t('excel.stock.topValueChart'), table: 'TTopValue', category: 'name', series: [{ column: 'value' }] },
         },
         { kind: 'links', label: t('excel.goTo'), sheets: [t('excel.sheets.stock')] },
       ],
@@ -194,7 +195,7 @@ export function stockWorkbook({ t, products, truncated, info }: {
       landscape: true,
       sections: [{
         kind: 'table',
-        name: 'TExistencias',
+        name: 'TStock',
         main: true,
         columns: [
           { key: 'sku', header: t('inventory.columns.sku'), type: 'code' },
@@ -275,14 +276,14 @@ export function lowStockWorkbook({ t, products, info }: {
           title: t('excel.lowStock.figures'),
           items: [
             { label: t('excel.lowStock.products'), value: rows.length, type: 'int', tone: 'warning', hint: t('excel.lowStock.productsHint'),
-              formula: (ref) => `COUNTA(${ref('TStockBajo', 'sku')})` },
+              formula: (ref) => `COUNTA(${ref('TLowStock', 'sku')})` },
             { label: t('inventory.status.out'), value: out, type: 'int', tone: 'danger', hint: t('excel.lowStock.outHint'),
-              formula: (ref) => `COUNTIF(${ref('TStockBajo', 'stock')},"<=0")` },
+              formula: (ref) => `COUNTIF(${ref('TLowStock', 'stock')},"<=0")` },
             { label: t('excel.lowStock.toOrder'), value: toOrder, type: 'int', hint: t('excel.lowStock.toOrderHint'),
-              formula: (ref) => `SUM(${ref('TStockBajo', 'suggested')})` },
+              formula: (ref) => `SUM(${ref('TLowStock', 'suggested')})` },
             { label: t('excel.lowStock.coverage'), value: rows.length ? rows.reduce((sum, row) => sum + (row.coverage as number), 0) / rows.length : 0,
               type: 'percent', tone: 'muted', hint: t('excel.lowStock.coverageHint'),
-              formula: (ref) => `IFERROR(AVERAGE(${ref('TStockBajo', 'coverage')}),0)` },
+              formula: (ref) => `IFERROR(AVERAGE(${ref('TLowStock', 'coverage')}),0)` },
           ],
         },
         { kind: 'note', text: t('excel.lowStock.note') },
@@ -290,24 +291,24 @@ export function lowStockWorkbook({ t, products, info }: {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TResurtidoCategoria',
+            name: 'TRestockByCategory',
             title: t('excel.lowStock.byCategory'),
             columns: [
               { key: 'category', header: t('products.columns.category'), width: 22 },
               { key: 'products', header: t('excel.lowStock.products'), type: 'int', total: 'sum',
-                formula: (cells, ref) => `COUNTIF(${ref('TStockBajo', 'category')},${cells.category})` },
+                formula: (cells, ref) => countExact(ref('TLowStock', 'category'), cells.category) },
               { key: 'suggested', header: t('inventory.columns.suggested'), type: 'int', total: 'sum', visual: 'bar',
-                formula: (cells, ref) => `SUMIF(${ref('TStockBajo', 'category')},${cells.category},${ref('TStockBajo', 'suggested')})` },
+                formula: (cells, ref) => sumExact(ref('TLowStock', 'category'), cells.category, ref('TLowStock', 'suggested')) },
             ],
             rows: categories,
           },
-          chart: { type: 'column', title: t('excel.lowStock.toOrderByCategory'), table: 'TResurtidoCategoria', category: 'category', series: [{ column: 'suggested', color: 'E0A030' }] },
+          chart: { type: 'column', title: t('excel.lowStock.toOrderByCategory'), table: 'TRestockByCategory', category: 'category', series: [{ column: 'suggested', color: 'E0A030' }] },
         },
         {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TMasUrgentes',
+            name: 'TMostUrgent',
             title: t('excel.lowStock.mostUrgent'),
             columns: [
               { key: 'name', header: t('products.columns.product'), width: 28 },
@@ -317,7 +318,7 @@ export function lowStockWorkbook({ t, products, info }: {
             rows: top,
           },
           chart: {
-            type: 'bar', title: t('excel.lowStock.stockVsMin'), table: 'TMasUrgentes', category: 'name',
+            type: 'bar', title: t('excel.lowStock.stockVsMin'), table: 'TMostUrgent', category: 'name',
             series: [{ column: 'stock', color: 'C2412D' }, { column: 'min', color: 'C9D6E8' }], height: 18,
           },
         },
@@ -332,7 +333,7 @@ export function lowStockWorkbook({ t, products, info }: {
       landscape: true,
       sections: [{
         kind: 'table',
-        name: 'TStockBajo',
+        name: 'TLowStock',
         main: true,
         columns: [
           { key: 'rank', header: t('excel.rank'), type: 'int', width: 7 },
@@ -356,6 +357,54 @@ export function lowStockWorkbook({ t, products, info }: {
   ]
 }
 
+// The two movement workbooks share their rows, units in and out, and detail columns, so both
+// count a movement the same way.
+function movementRows(movements: Movement[], reference: (movement: Movement) => string, extra: (movement: Movement) => Row) {
+  // The API lists newest first; a ledger reads from the oldest.
+  return [...movements].reverse().map((movement): Row => {
+    const quantity = movement.quantity ?? 0
+    return {
+      date: excelDate(movement.movementDate!),
+      ...extra(movement),
+      reference: reference(movement),
+      entry: quantity > 0 ? quantity : null,
+      exit: quantity < 0 ? -quantity : null,
+      stock: movement.resultingStock,
+      recordedBy: movement.recordedBy?.name,
+    }
+  })
+}
+
+function unitsOf(rows: Row[], key: 'entry' | 'exit') {
+  return rows.reduce((sum, row) => sum + ((row[key] as number | null) ?? 0), 0)
+}
+
+function flowKpis(t: TFunction, table: string, rows: Row[]): Kpi[] {
+  const entries = unitsOf(rows, 'entry')
+  const exits = unitsOf(rows, 'exit')
+  return [
+    { label: t('excel.ledger.entries'), value: entries, type: 'int', tone: 'success', hint: t('excel.ledger.entriesHint'),
+      formula: (ref) => `SUM(${ref(table, 'entry')})` },
+    { label: t('excel.ledger.exits'), value: exits, type: 'int', tone: 'danger', hint: t('excel.ledger.exitsHint'),
+      formula: (ref) => `SUM(${ref(table, 'exit')})` },
+    { label: t('excel.ledger.net'), value: entries - exits, type: 'int', hint: t('excel.ledger.netHint'),
+      formula: (ref) => `SUM(${ref(table, 'entry')})-SUM(${ref(table, 'exit')})` },
+  ]
+}
+
+// The detail table's columns, with what tells the movements apart (type or product) second.
+function movementColumns(t: TFunction, second: Column): Column[] {
+  return [
+    { key: 'date', header: t('inventory.ledger.columns.date'), type: 'datetime' },
+    second,
+    { key: 'reference', header: t('inventory.ledger.columns.reference'), width: 34 },
+    { key: 'entry', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success' },
+    { key: 'exit', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger' },
+    { key: 'stock', header: t('inventory.ledger.columns.stock'), type: 'int', visual: 'bar' },
+    { key: 'recordedBy', header: t('inventory.ledger.columns.recordedBy'), width: 24 },
+  ]
+}
+
 /**
  * Classic kardex in date order with entries and exits apart, the stock after each movement, a
  * dashboard by movement type and the stock over time. Takes the movements newest first, as the
@@ -370,30 +419,11 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
   info: [string, string][]
   reference: (movement: Movement) => string
 }): SheetSpec[] {
-  // The API lists newest first; a kardex reads from the oldest.
-  const rows: Row[] = [...movements].reverse().map((movement) => {
-    const quantity = movement.quantity ?? 0
-    return {
-      date: excelDate(movement.movementDate!),
-      type: t(`inventory.types.${movement.type!}`),
-      reference: reference(movement),
-      entry: quantity > 0 ? quantity : null,
-      exit: quantity < 0 ? -quantity : null,
-      stock: movement.resultingStock,
-      recordedBy: movement.recordedBy?.name,
-    }
-  })
-  const entries = rows.reduce((sum, row) => sum + ((row.entry as number | null) ?? 0), 0)
-  const exits = rows.reduce((sum, row) => sum + ((row.exit as number | null) ?? 0), 0)
+  const rows = movementRows(movements, reference, (movement) => ({ type: t(`inventory.types.${movement.type!}`) }))
   const types = MOVEMENT_TYPES.map((type) => {
     const label = t(`inventory.types.${type}`)
     const list = rows.filter((row) => row.type === label)
-    return {
-      type: label,
-      movements: list.length,
-      entries: list.reduce((sum, row) => sum + ((row.entry as number | null) ?? 0), 0),
-      exits: list.reduce((sum, row) => sum + ((row.exit as number | null) ?? 0), 0),
-    }
+    return { type: label, movements: list.length, entries: unitsOf(list, 'entry'), exits: unitsOf(list, 'exit') }
   })
 
   return [
@@ -416,13 +446,8 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
             // From the product, with no formula: the rows may be filtered or cut short, so they can't give today's stock.
             { label: t('excel.ledger.currentStock'), value: product.stock, type: 'int', hint: t('excel.ledger.minimum', { count: product.minStock }) },
             { label: t('excel.ledger.movements'), value: rows.length, type: 'int', tone: 'muted', hint: period,
-              formula: (ref) => `COUNTA(${ref('TKardex', 'type')})` },
-            { label: t('excel.ledger.entries'), value: entries, type: 'int', tone: 'success', hint: t('excel.ledger.entriesHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'entry')})` },
-            { label: t('excel.ledger.exits'), value: exits, type: 'int', tone: 'danger', hint: t('excel.ledger.exitsHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'exit')})` },
-            { label: t('excel.ledger.net'), value: entries - exits, type: 'int', hint: t('excel.ledger.netHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'entry')})-SUM(${ref('TKardex', 'exit')})` },
+              formula: (ref) => `COUNTA(${ref('TLedger', 'type')})` },
+            ...flowKpis(t, 'TLedger', rows),
           ],
         },
         ...(truncated ? [{ kind: 'note' as const, text: t('inventory.ledger.exportTruncated', { count: movements.length }) }] : []),
@@ -430,28 +455,29 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TTipos',
+            name: 'TMovementTypes',
             title: t('excel.ledger.byType'),
             columns: [
               { key: 'type', header: t('inventory.ledger.columns.type'), width: 20 },
+              // Our own labels, never data: COUNTIF is safe here (data criteria use countExact).
               { key: 'movements', header: t('excel.ledger.movements'), type: 'int', total: 'sum',
-                formula: (cells, ref) => `COUNTIF(${ref('TKardex', 'type')},${cells.type})` },
+                formula: (cells, ref) => `COUNTIF(${ref('TLedger', 'type')},${cells.type})` },
               { key: 'entries', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success',
-                formula: (cells, ref) => `SUMIF(${ref('TKardex', 'type')},${cells.type},${ref('TKardex', 'entry')})` },
+                formula: (cells, ref) => `SUMIF(${ref('TLedger', 'type')},${cells.type},${ref('TLedger', 'entry')})` },
               { key: 'exits', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger',
-                formula: (cells, ref) => `SUMIF(${ref('TKardex', 'type')},${cells.type},${ref('TKardex', 'exit')})` },
+                formula: (cells, ref) => `SUMIF(${ref('TLedger', 'type')},${cells.type},${ref('TLedger', 'exit')})` },
             ],
             rows: types,
           },
           chart: {
-            type: 'column', title: t('excel.ledger.inAndOut'), table: 'TTipos', category: 'type',
+            type: 'column', title: t('excel.ledger.inAndOut'), table: 'TMovementTypes', category: 'type',
             series: [{ column: 'entries', color: '58B368' }, { column: 'exits', color: 'C2412D' }], height: 14,
           },
         },
         // An area chart needs at least two points.
         ...(rows.length > 1 ? [{
           kind: 'chart' as const,
-          chart: { type: 'area' as const, title: t('excel.ledger.stockOverTime'), table: 'TKardex', category: 'date', series: [{ column: 'stock' }] },
+          chart: { type: 'area' as const, title: t('excel.ledger.stockOverTime'), table: 'TLedger', category: 'date', series: [{ column: 'stock' }] },
         }] : []),
         { kind: 'links', label: t('excel.goTo'), sheets: [t('excel.sheets.ledger')] },
       ],
@@ -464,17 +490,84 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
       landscape: true,
       sections: [{
         kind: 'table',
-        name: 'TKardex',
+        name: 'TLedger',
         main: true,
-        columns: [
-          { key: 'date', header: t('inventory.ledger.columns.date'), type: 'datetime' },
-          { key: 'type', header: t('inventory.ledger.columns.type'), width: 18 },
-          { key: 'reference', header: t('inventory.ledger.columns.reference'), width: 34 },
-          { key: 'entry', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success' },
-          { key: 'exit', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger' },
-          { key: 'stock', header: t('inventory.ledger.columns.stock'), type: 'int', visual: 'bar' },
-          { key: 'recordedBy', header: t('inventory.ledger.columns.recordedBy'), width: 24 },
-        ],
+        columns: movementColumns(t, { key: 'type', header: t('inventory.ledger.columns.type'), width: 18 }),
+        rows,
+      }],
+    },
+  ]
+}
+
+/**
+ * One type of movement across the store (e.g. a month's adjustments): the totals, the same by
+ * product (most movements first) and every movement in date order. Takes the movements newest
+ * first, as the API lists them.
+ */
+export function storeLedgerWorkbook({ t, type, movements, truncated, period, reference }: {
+  t: TFunction
+  type: MovementType
+  movements: Movement[]
+  truncated: boolean
+  period: string
+  reference: (movement: Movement) => string
+}): SheetSpec[] {
+  const typeLabel = t(`inventory.types.${type}`)
+  const title = t('excel.storeLedger.title', { type: typeLabel })
+  const rows = movementRows(movements, reference, (movement) => ({ product: movement.productName }))
+  const products = [...groupBy(rows, (row) => String(row.product ?? '')).entries()]
+    .map(([product, list]) => ({ product, movements: list.length, entries: unitsOf(list, 'entry'), exits: unitsOf(list, 'exit') }))
+    .sort((a, b) => b.movements - a.movements || a.product.localeCompare(b.product))
+  const info: [string, string][] = [[t('inventory.ledger.columns.type'), typeLabel]]
+
+  return [
+    {
+      name: t('excel.sheets.summary'),
+      title,
+      subtitle: period,
+      info,
+      sections: [
+        {
+          kind: 'kpis',
+          title: t('excel.ledger.figures'),
+          items: [
+            { label: t('excel.ledger.movements'), value: rows.length, type: 'int', tone: 'muted', hint: period,
+              formula: (ref) => `COUNTA(${ref('TMovements', 'product')})` },
+            { label: t('excel.storeLedger.products'), value: products.length, type: 'int', tone: 'muted',
+              formula: (ref) => `ROWS(${ref('TProducts', 'product')})` },
+            ...flowKpis(t, 'TMovements', rows),
+          ],
+        },
+        ...(truncated ? [{ kind: 'note' as const, text: t('inventory.ledger.exportTruncated', { count: movements.length }) }] : []),
+        {
+          kind: 'table',
+          name: 'TProducts',
+          title: t('excel.storeLedger.byProduct'),
+          columns: [
+            { key: 'product', header: t('inventory.ledger.columns.product'), width: 34 },
+            { key: 'movements', header: t('excel.ledger.movements'), type: 'int', total: 'sum',
+              formula: (cells, ref) => countExact(ref('TMovements', 'product'), cells.product) },
+            { key: 'entries', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success',
+              formula: (cells, ref) => sumExact(ref('TMovements', 'product'), cells.product, ref('TMovements', 'entry')) },
+            { key: 'exits', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger',
+              formula: (cells, ref) => sumExact(ref('TMovements', 'product'), cells.product, ref('TMovements', 'exit')) },
+          ],
+          rows: products,
+        },
+        { kind: 'links', label: t('excel.goTo'), sheets: [t('excel.sheets.movements')] },
+      ],
+    },
+    {
+      name: t('excel.sheets.movements'),
+      title,
+      subtitle: period,
+      info,
+      landscape: true,
+      sections: [{
+        kind: 'table',
+        name: 'TMovements',
+        main: true,
+        columns: movementColumns(t, { key: 'product', header: t('inventory.ledger.columns.product'), width: 30 }),
         rows,
       }],
     },

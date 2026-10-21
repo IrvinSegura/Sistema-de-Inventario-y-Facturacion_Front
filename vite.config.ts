@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
+import { configDefaults } from 'vitest/config'
 
 /**
  * Fails the build, not the deployed page, when VITE_STORE_TIME_ZONE is misspelled or a fixed
@@ -31,6 +32,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    },
+    test: {
+      // Worktrees under .claude/ are other checkouts of this repo, each with its own (older) tests.
+      exclude: [...configDefaults.exclude, '.claude/**'],
     },
   }
 })

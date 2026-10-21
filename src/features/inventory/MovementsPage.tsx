@@ -41,7 +41,7 @@ import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
 import { AdjustStockDialog } from './AdjustStockDialog'
-import { ledgerWorkbook } from './inventory-reports'
+import { ledgerWorkbook, storeLedgerWorkbook } from './inventory-reports'
 import {
   DEFAULT_RANGE_DAYS,
   MAX_STORE_WIDE_DAYS,
@@ -129,7 +129,7 @@ export function MovementsPage() {
   }
 
   async function exportExcel() {
-    if (!filters || !product.data) {
+    if (!filters || (!storeWide && !product.data)) {
       return
     }
     setExporting(true)
@@ -141,10 +141,15 @@ export function MovementsPage() {
       const period = range
         ? t('excel.period', { from: formatDate(range.from, i18n.language), to: formatDate(range.to, i18n.language) })
         : t('excel.allDates')
-      await downloadWorkbook(`${t('excel.files.ledger')}_${product.data.sku}`, ledgerWorkbook({
-        t, product: product.data, movements: all, truncated, period, reference,
-        info: [[t('inventory.ledger.columns.type'), type ? t(`inventory.types.${type}`) : t('inventory.ledger.allTypes')]],
-      }), reportMeta)
+      if (storeWide && type && range) {
+        await downloadWorkbook(`${t('excel.files.storeLedger')}_${type.toLowerCase()}_${range.from}_${range.to}`,
+          storeLedgerWorkbook({ t, type, movements: all, truncated, period, reference }), reportMeta)
+      } else if (product.data) {
+        await downloadWorkbook(`${t('excel.files.ledger')}_${product.data.sku}`, ledgerWorkbook({
+          t, product: product.data, movements: all, truncated, period, reference,
+          info: [[t('inventory.ledger.columns.type'), type ? t(`inventory.types.${type}`) : t('inventory.ledger.allTypes')]],
+        }), reportMeta)
+      }
     } catch (error) {
       toast.error(errorMessage(error))
     } finally {
@@ -260,7 +265,7 @@ export function MovementsPage() {
                   )}
                 </>
               ) : (
-                <Button variant="outline" className="h-9" onClick={() => refilter({ range: lastDaysRange(DEFAULT_RANGE_DAYS) })}>
+                <Button variant="outline" className="h-9" onClick={() => refilter({ range: lastDaysRange(DEFAULT_RANGE_DAYS, today) })}>
                   {t('inventory.ledger.filterDates')}
                 </Button>
               )}
@@ -269,13 +274,10 @@ export function MovementsPage() {
               <Button variant="ghost" className="h-9" onClick={showNewest} aria-label={t('inventory.ledger.refresh')}>
                 <RefreshCw className={cn(movements.isFetching && 'animate-spin')} />
               </Button>
-              {/* The ledger workbook covers one product; the store-wide list isn't exported. */}
-              {!storeWide && (
-                <Button variant="outline" className="h-9" disabled={exporting || rows.length === 0} onClick={() => void exportExcel()}>
-                  <FileSpreadsheet />
-                  {t('inventory.ledger.export')}
-                </Button>
-              )}
+              <Button variant="outline" className="h-9" disabled={exporting || rows.length === 0} onClick={() => void exportExcel()}>
+                <FileSpreadsheet />
+                {t('inventory.ledger.export')}
+              </Button>
             </div>
           </div>
 

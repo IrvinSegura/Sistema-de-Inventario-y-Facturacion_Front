@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import { toDay } from '@/lib/days'
-import { excelDate, excelDay, excelStoreDay, type Kpi, type Row, type SheetSpec } from '@/lib/excel'
+import { countExact, excelDate, excelDay, excelStoreDay, type Kpi, type Row, type SheetSpec, sumExact } from '@/lib/excel'
 import { fromCents, toCents } from '@/lib/money'
 
 import type { Purchase, PurchaseSummary } from './queries'
@@ -45,7 +45,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
   })))
   const units = lineRows.reduce((sum, row) => sum + ((row.quantity as number) ?? 0), 0)
 
-  // By name, not id: the TProveedores formulas match TCompras on the supplier name column.
+  // By name, not id: the TSuppliers formulas match TPurchases on the supplier name column.
   const suppliers: Row[] = [...purchases.reduce((groups, purchase) => {
     const name = purchase.supplier?.name ?? ''
     const entry = groups.get(name) ?? { count: 0, cents: 0, last: purchase.purchaseDate! }
@@ -89,15 +89,15 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
 
   const kpis: Kpi[] = [
     { label: t('purchases.stats.spent'), value: total, type: 'money', hint: t('excel.purchases.spentHint'),
-      formula: (ref) => `SUM(${ref('TCompras', 'total')})` },
+      formula: (ref) => `SUM(${ref('TPurchases', 'total')})` },
     { label: t('excel.purchases.count'), value: purchases.length, type: 'int', hint: t('excel.purchases.countHint'),
-      formula: (ref) => `COUNTA(${ref('TCompras', 'id')})` },
+      formula: (ref) => `COUNTA(${ref('TPurchases', 'id')})` },
     { label: t('purchases.stats.average'), value: purchases.length ? fromCents(Math.round(totalCents / purchases.length)) : 0,
-      type: 'money', hint: t('purchases.stats.averageHint'), formula: (ref) => `IFERROR(AVERAGE(${ref('TCompras', 'total')}),0)` },
+      type: 'money', hint: t('purchases.stats.averageHint'), formula: (ref) => `IFERROR(AVERAGE(${ref('TPurchases', 'total')}),0)` },
     { label: t('purchases.stats.suppliers'), value: suppliers.length, type: 'int', tone: 'muted', hint: t('purchases.stats.suppliersHint') },
     ...(details ? [
       { label: t('excel.units'), value: units, type: 'int' as const, tone: 'success' as const, hint: t('excel.purchases.unitsHint'),
-        formula: (ref: (table: string, column: string) => string) => `SUM(${ref('TDetalleCompras', 'quantity')})` },
+        formula: (ref: (table: string, column: string) => string) => `SUM(${ref('TPurchaseLines', 'quantity')})` },
       { label: t('excel.purchases.products'), value: products.length, type: 'int' as const, tone: 'muted' as const,
         hint: t('excel.purchases.productsHint') },
     ] : []),
@@ -115,27 +115,27 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
         kind: 'pair',
         table: {
           kind: 'table',
-          name: 'TProveedores',
+          name: 'TSuppliers',
           title: t('excel.purchases.bySupplier'),
           columns: [
             { key: 'name', header: t('purchases.columns.supplier'), width: 26 },
             { key: 'purchases', header: t('excel.purchases.count'), type: 'int', total: 'sum',
-              formula: (cells, ref) => `COUNTIF(${ref('TCompras', 'supplier')},${cells.name})` },
+              formula: (cells, ref) => countExact(ref('TPurchases', 'supplier'), cells.name) },
             { key: 'total', header: t('purchases.columns.total'), type: 'money', total: 'sum', visual: 'bar',
-              formula: (cells, ref) => `SUMIF(${ref('TCompras', 'supplier')},${cells.name},${ref('TCompras', 'total')})` },
+              formula: (cells, ref) => sumExact(ref('TPurchases', 'supplier'), cells.name, ref('TPurchases', 'total')) },
             { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-              formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TProveedores', 'total')}),0)` },
+              formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TSuppliers', 'total')}),0)` },
             { key: 'last', header: t('excel.purchases.lastPurchase'), type: 'date' },
           ],
           rows: suppliers,
         },
-        chart: { type: 'doughnut', title: t('excel.purchases.supplierShare'), table: 'TProveedores', category: 'name', series: [{ column: 'total' }], height: 15 },
+        chart: { type: 'doughnut', title: t('excel.purchases.supplierShare'), table: 'TSuppliers', category: 'name', series: [{ column: 'total' }], height: 15 },
       },
       ...(days.length > 0 ? [{
         kind: 'pair' as const,
         table: {
           kind: 'table' as const,
-          name: 'TComprasDia',
+          name: 'TDailyPurchases',
           title: t('excel.purchases.byDay'),
           columns: [
             { key: 'date', header: t('purchases.columns.date'), type: 'date' as const },
@@ -146,7 +146,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
         },
         chart: {
           type: days.length > 31 ? 'line' as const : 'column' as const, title: t('excel.purchases.spentByDay'),
-          table: 'TComprasDia', category: 'date', series: [{ column: 'total', color: '2F80C2' }],
+          table: 'TDailyPurchases', category: 'date', series: [{ column: 'total', color: '2F80C2' }],
           height: Math.min(Math.max(15, days.length + 3), 24),
         },
       }] : []),
@@ -154,17 +154,17 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
         kind: 'pair' as const,
         table: {
           kind: 'table' as const,
-          name: 'TProductosComprados',
+          name: 'TPurchasedProducts',
           title: t('excel.purchases.byProduct'),
           columns: [
             { key: 'sku', header: t('inventory.columns.sku'), type: 'code' as const },
             { key: 'name', header: t('purchases.columns.product'), width: 26 },
             { key: 'units', header: t('excel.units'), type: 'int' as const, total: 'sum' as const,
               formula: (cells: Record<string, string>, ref: (table: string, column: string) => string) =>
-                `SUMIF(${ref('TDetalleCompras', 'sku')},${cells.sku},${ref('TDetalleCompras', 'quantity')})` },
+                sumExact(ref('TPurchaseLines', 'sku'), cells.sku, ref('TPurchaseLines', 'quantity')) },
             { key: 'cost', header: t('excel.purchases.cost'), type: 'money' as const, total: 'sum' as const, visual: 'bar' as const,
               formula: (cells: Record<string, string>, ref: (table: string, column: string) => string) =>
-                `SUMIF(${ref('TDetalleCompras', 'sku')},${cells.sku},${ref('TDetalleCompras', 'subtotal')})` },
+                sumExact(ref('TPurchaseLines', 'sku'), cells.sku, ref('TPurchaseLines', 'subtotal')) },
             { key: 'average', header: t('excel.purchases.averageCost'), type: 'money' as const,
               formula: (cells: Record<string, string>) => `IFERROR(ROUND(${cells.cost}/${cells.units},2),0)` },
             { key: 'min', header: t('excel.purchases.minCost'), type: 'money' as const },
@@ -173,7 +173,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
           rows: products,
         },
         chart: {
-          type: 'bar' as const, title: t('excel.purchases.topProductsChart'), table: 'TProductosComprados', category: 'name',
+          type: 'bar' as const, title: t('excel.purchases.topProductsChart'), table: 'TPurchasedProducts', category: 'name',
           series: [{ column: 'cost', color: '1C9A8A' }], height: Math.min(Math.max(15, products.length + 4), 26),
         },
       }] : [{ kind: 'note' as const, text: t('excel.purchases.noDetails', { count: purchases.length }) }]),
@@ -187,7 +187,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
     landscape: true,
     sections: [{
       kind: 'table',
-      name: 'TCompras',
+      name: 'TPurchases',
       main: true,
       columns: [
         { key: 'id', header: t('purchases.columns.folio'), type: 'int', width: 10 },
@@ -213,7 +213,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
       landscape: true,
       sections: [{
         kind: 'table',
-        name: 'TDetalleCompras',
+        name: 'TPurchaseLines',
         main: true,
         columns: [
           { key: 'id', header: t('purchases.columns.folio'), type: 'int', width: 10 },

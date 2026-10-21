@@ -65,13 +65,22 @@ export function useMovements(filters: MovementFilters | null, page: number, size
 
 /** The whole filtered ledger, newest first, up to MAX_EXPORT_ROWS; `truncated` tells if there were more. */
 export async function fetchAllMovements(filters: MovementFilters) {
+  // A fixed bound so movements recorded meanwhile don't shift the pages; one stamped before it but
+  // committed late can still shift them, hence the ids already seen.
+  const query = movementQuery({ ...filters, asOf: filters.asOf ?? new Date().toISOString() })
   const movements: Movement[] = []
+  const seen = new Set<number | undefined>()
   let total = 0
   for (let page = 0; movements.length < MAX_EXPORT_ROWS; page++) {
     const result = await unwrap(api.GET('/api/v1/inventory-movements', {
-      params: { query: { ...movementQuery(filters), page, size: MAX_PAGE_SIZE } },
+      params: { query: { ...query, page, size: MAX_PAGE_SIZE } },
     }))
-    movements.push(...(result.content ?? []))
+    for (const movement of result.content ?? []) {
+      if (!seen.has(movement.id)) {
+        seen.add(movement.id)
+        movements.push(movement)
+      }
+    }
     total = result.page?.totalElements ?? 0
     if (page + 1 >= (result.page?.totalPages ?? 0)) {
       break

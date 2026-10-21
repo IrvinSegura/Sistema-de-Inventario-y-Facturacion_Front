@@ -53,7 +53,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
     kind: 'pair',
     table: {
       kind: 'table',
-      name: 'TVendedores',
+      name: 'TSellers',
       title: t('reports.sales.bySeller'),
       columns: [
         { key: 'name', header: t('sales.columns.seller'), width: 24 },
@@ -62,7 +62,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
         { key: 'average', header: t('sales.stats.averageTicket'), type: 'money',
           formula: (cells) => `IFERROR(${cells.total}/${cells.tickets},0)` },
         { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-          formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TVendedores', 'total')}),0)` },
+          formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TSellers', 'total')}),0)` },
         ...(compared ? [{ key: 'change', header: t('reports.vsPrevious'), type: 'percent' as const }] : []),
       ],
       rows: sellerRows(report, previous).map((row) => ({
@@ -70,7 +70,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
         change: changeCell(row.change),
       })),
     },
-    chart: { type: 'bar', title: t('excel.sales.salesBySeller'), table: 'TVendedores', category: 'name', series: [{ column: 'total', color: '2F80C2' }], height: 14 },
+    chart: { type: 'bar', title: t('excel.sales.salesBySeller'), table: 'TSellers', category: 'name', series: [{ column: 'total', color: '2F80C2' }], height: 14 },
   }
 
   return [{
@@ -100,7 +100,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
       { kind: 'note', text: t('reports.excel.salesNote') },
       ...(compared ? [{
         kind: 'table' as const,
-        name: 'TComparativo',
+        name: 'TComparison',
         title: t('reports.excel.comparison'),
         columns: [
           { key: 'metric', header: t('reports.metric'), width: 26 },
@@ -123,7 +123,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
         kind: 'pair',
         table: {
           kind: 'table',
-          name: 'TVentasPeriodo',
+          name: 'TPeriodSales',
           title: t(`reports.sales.chart.${grouping}`),
           columns: [
             { key: 'period', header: t(`reports.grouping.${grouping}`), width: 24 },
@@ -144,7 +144,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
         chart: {
           type: series.length > 31 ? 'line' : 'column',
           title: t('reports.excel.salesVsPrevious'),
-          table: 'TVentasPeriodo',
+          table: 'TPeriodSales',
           category: 'period',
           series: compared ? [{ column: 'current' }, { column: 'previous', color: 'E0A030' }] : [{ column: 'current' }],
           height: Math.min(Math.max(16, series.length + 3), 24),
@@ -154,14 +154,14 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
         kind: 'pair',
         table: {
           kind: 'table',
-          name: 'TFormasPago',
+          name: 'TPaymentMethods',
           title: t('reports.sales.byMethod'),
           columns: [
             { key: 'name', header: t('sales.columns.payment'), width: 18 },
             { key: 'tickets', header: t('excel.sales.tickets'), type: 'int', total: 'sum' },
             { key: 'total', header: t('sales.columns.total'), type: 'money', total: 'sum' },
             { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-              formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TFormasPago', 'total')}),0)` },
+              formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TPaymentMethods', 'total')}),0)` },
             ...(compared ? [{ key: 'change', header: t('reports.vsPrevious'), type: 'percent' as const }] : []),
           ],
           rows: methodRows(report, previous).map((row) => ({
@@ -169,14 +169,14 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
             change: changeCell(row.change),
           })),
         },
-        chart: { type: 'doughnut', title: t('excel.sales.methodShare'), table: 'TFormasPago', category: 'name', series: [{ column: 'total' }], height: 14 },
+        chart: { type: 'doughnut', title: t('excel.sales.methodShare'), table: 'TPaymentMethods', category: 'name', series: [{ column: 'total' }], height: 14 },
       },
       ...(showSellers ? [sellers] : []),
       ...((report.topProducts?.length ?? 0) > 0 ? [{
         kind: 'pair' as const,
         table: {
           kind: 'table' as const,
-          name: 'TMasVendidos',
+          name: 'TTopProducts',
           title: t('reports.sales.topProducts'),
           columns: [
             { key: 'rank', header: t('excel.rank'), type: 'int' as const, width: 7 },
@@ -189,7 +189,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
             rank: index + 1, sku: product.sku, name: product.name, quantity: product.quantity, subtotal: product.subtotal,
           })),
         },
-        chart: { type: 'bar' as const, title: t('excel.sales.topProductsChart'), table: 'TMasVendidos', category: 'name', series: [{ column: 'subtotal', color: '1C9A8A' }] },
+        chart: { type: 'bar' as const, title: t('excel.sales.topProductsChart'), table: 'TTopProducts', category: 'name', series: [{ column: 'subtotal', color: '1C9A8A' }] },
       }] : []),
     ],
   }]
@@ -242,7 +242,7 @@ export function cashClosingWorkbook({ t, closing, date, seller, status }: {
         kind: 'pair',
         table: {
           kind: 'table',
-          name: 'TCorteFormas',
+          name: 'TClosingPaymentMethods',
           title: t('reports.closing.byMethod'),
           columns: [
             { key: 'method', header: t('sales.columns.payment'), width: 18 },
@@ -265,11 +265,11 @@ export function cashClosingWorkbook({ t, closing, date, seller, status }: {
             }
           }),
         },
-        chart: { type: 'column', title: t('reports.closing.netByMethod'), table: 'TCorteFormas', category: 'method', series: [{ column: 'net' }], height: 12 },
+        chart: { type: 'column', title: t('reports.closing.netByMethod'), table: 'TClosingPaymentMethods', category: 'method', series: [{ column: 'net' }], height: 12 },
       },
       {
         kind: 'table',
-        name: 'TCorteVendedores',
+        name: 'TClosingSellers',
         title: t('reports.closing.bySeller'),
         columns: [
           { key: 'seller', header: t('sales.columns.seller'), width: 26 },
@@ -290,7 +290,7 @@ export function cashClosingWorkbook({ t, closing, date, seller, status }: {
       },
       {
         kind: 'table',
-        name: 'TCajas',
+        name: 'TDrawers',
         title: t('reports.closing.drawers'),
         columns: [
           { key: 'responsible', header: t('drawer.responsible'), width: 22 },
@@ -346,14 +346,14 @@ export function cashFlowWorkbook({ t, language, series, grouping, period }: {
         title: t('reports.flow.figures'),
         items: [
           { label: t('reports.flow.metrics.sales'), value: sales, type: 'money', hint: t('reports.flow.metrics.salesHint'),
-            formula: (ref) => `SUM(${ref('TFlujo', 'sales')})` },
+            formula: (ref) => `SUM(${ref('TCashFlow', 'sales')})` },
           { label: t('reports.flow.metrics.purchases'), value: purchases, type: 'money', tone: 'warning',
-            hint: t('reports.flow.metrics.purchasesHint'), formula: (ref) => `SUM(${ref('TFlujo', 'purchases')})` },
+            hint: t('reports.flow.metrics.purchasesHint'), formula: (ref) => `SUM(${ref('TCashFlow', 'purchases')})` },
           { label: t('reports.flow.metrics.net'), value: net, type: 'money', tone: net < 0 ? 'danger' : 'success',
-            hint: t('reports.flow.metrics.netHint'), formula: (ref) => `SUM(${ref('TFlujo', 'sales')})-SUM(${ref('TFlujo', 'purchases')})` },
+            hint: t('reports.flow.metrics.netHint'), formula: (ref) => `SUM(${ref('TCashFlow', 'sales')})-SUM(${ref('TCashFlow', 'purchases')})` },
           { label: t('reports.flow.metrics.ratio'), value: sales > 0 ? purchases / sales : 0, type: 'percent', tone: 'muted',
             hint: t('reports.flow.metrics.ratioHint'),
-            formula: (ref) => `IFERROR(SUM(${ref('TFlujo', 'purchases')})/SUM(${ref('TFlujo', 'sales')}),0)` },
+            formula: (ref) => `IFERROR(SUM(${ref('TCashFlow', 'purchases')})/SUM(${ref('TCashFlow', 'sales')}),0)` },
         ],
       },
       { kind: 'note', text: t('reports.flow.note') },
@@ -361,7 +361,7 @@ export function cashFlowWorkbook({ t, language, series, grouping, period }: {
         kind: 'pair',
         table: {
           kind: 'table',
-          name: 'TFlujo',
+          name: 'TCashFlow',
           title: t(`reports.flow.by.${grouping}`),
           columns: [
             { key: 'period', header: t(`reports.grouping.${grouping}`), width: 24 },
@@ -381,7 +381,7 @@ export function cashFlowWorkbook({ t, language, series, grouping, period }: {
           })),
         },
         chart: {
-          type: 'column', title: t('reports.flow.chart'), table: 'TFlujo', category: 'period',
+          type: 'column', title: t('reports.flow.chart'), table: 'TCashFlow', category: 'period',
           series: [{ column: 'sales' }, { column: 'purchases', color: 'E0A030' }],
           height: Math.min(Math.max(16, series.length + 3), 24),
         },
@@ -422,7 +422,7 @@ export function productSalesWorkbook({ t, rows, unsold, period, info, truncated 
       landscape: true,
       sections: [...note, { kind: 'note', text: t('reports.products.unsoldHint') }, {
         kind: 'table',
-        name: 'TSinVenta',
+        name: 'TUnsold',
         main: true,
         columns: [
           ...productColumns,
@@ -451,7 +451,7 @@ export function productSalesWorkbook({ t, rows, unsold, period, info, truncated 
     landscape: true,
     sections: [...note, { kind: 'note', text: t('reports.products.noCostHint') }, {
       kind: 'table',
-      name: 'TVentasProducto',
+      name: 'TProductSales',
       main: true,
       columns: [
         ...productColumns,
@@ -499,7 +499,7 @@ export function customerSalesWorkbook({ t, rows, period, truncated }: {
       { kind: 'note', text: t('reports.customers.hint') },
       {
         kind: 'table',
-        name: 'TClientes',
+        name: 'TCustomers',
         main: true,
         columns: [
           { key: 'rank', header: t('excel.rank'), type: 'int', width: 7 },
@@ -510,7 +510,7 @@ export function customerSalesWorkbook({ t, rows, period, truncated }: {
           { key: 'average', header: t('sales.stats.averageTicket'), type: 'money',
             formula: (cells) => `IFERROR(${cells.total}/${cells.tickets},0)` },
           { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum',
-            formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TClientes', 'total')}),0)` },
+            formula: (cells, ref) => `IFERROR(${cells.total}/SUM(${ref('TCustomers', 'total')}),0)` },
           { key: 'lastSale', header: t('reports.customers.lastPurchase'), type: 'date' },
         ],
         rows: rows.map((row, index) => {

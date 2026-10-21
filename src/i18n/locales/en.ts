@@ -616,8 +616,9 @@ export const en = {
       stock: 'Stock',
       lowStock: 'Low stock',
       ledger: 'Stock ledger',
+      movements: 'Movements',
     },
-    files: { sales: 'sales', purchases: 'purchases', stock: 'stock', lowStock: 'low_stock', ledger: 'stock_ledger', salesReport: 'sales_report', cashClosing: 'cash_closing', cashFlow: 'cash_flow', productSales: 'sales_by_product', unsoldProducts: 'products_not_sold', customerSales: 'sales_by_customer' },
+    files: { sales: 'sales', purchases: 'purchases', stock: 'stock', lowStock: 'low_stock', ledger: 'stock_ledger', storeLedger: 'store_movements', salesReport: 'sales_report', cashClosing: 'cash_closing', cashFlow: 'cash_flow', productSales: 'sales_by_product', unsoldProducts: 'products_not_sold', customerSales: 'sales_by_customer' },
     sales: {
       completedOnly: 'Completed sales only',
       ticketsHint: 'Tickets in the period',
@@ -739,6 +740,11 @@ export const en = {
       detail: 'Movements',
       entry: 'In',
       exit: 'Out',
+    },
+    storeLedger: {
+      title: '{{type}} · whole store',
+      products: 'Products',
+      byProduct: 'By product',
     },
   },
   search: {

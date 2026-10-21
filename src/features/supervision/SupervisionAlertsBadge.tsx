@@ -1,9 +1,9 @@
+import { use } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
-import { useToday } from '@/lib/use-today'
 
-import { useLiveAlerts } from './live-alerts'
+import { LiveAlertsContext } from './live-alerts'
 import { alertCount } from './live-day'
 
 /**
@@ -12,8 +12,8 @@ import { alertCount } from './live-day'
  */
 export function SupervisionAlertsBadge({ compact }: { compact: boolean }) {
   const { t } = useTranslation()
-  const today = useToday()
-  const { alerts } = useLiveAlerts(today)
+  // Null outside LiveAlertsProvider's manager branch: nothing to count.
+  const alerts = use(LiveAlertsContext)?.alerts
   const count = alerts ? alertCount(alerts) : 0
   if (count === 0) {
     return null

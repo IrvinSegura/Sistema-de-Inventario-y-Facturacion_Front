@@ -44,23 +44,23 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
 
   const kpis: Kpi[] = [
     kpi({ label: t('sales.stats.sales'), value: total, type: 'money', hint: t('excel.sales.completedOnly') },
-      (ref) => `SUMIF(${ref('TVentas', 'status')},${quote(completed)},${ref('TVentas', 'total')})`),
+      (ref) => `SUMIF(${ref('TSales', 'status')},${quote(completed)},${ref('TSales', 'total')})`),
     kpi({ label: t('excel.sales.completedCount'), value: count, type: 'int', hint: t('excel.sales.ticketsHint') },
-      (ref) => `COUNTIF(${ref('TVentas', 'status')},${quote(completed)})`),
+      (ref) => `COUNTIF(${ref('TSales', 'status')},${quote(completed)})`),
     kpi({ label: t('sales.stats.averageTicket'), value: report?.averageTicket ?? (count ? total / count : 0), type: 'money',
       hint: t('sales.stats.averageTicketHint') },
-    (ref) => `IFERROR(AVERAGEIF(${ref('TVentas', 'status')},${quote(completed)},${ref('TVentas', 'total')}),0)`),
+    (ref) => `IFERROR(AVERAGEIF(${ref('TSales', 'status')},${quote(completed)},${ref('TSales', 'total')}),0)`),
     // Tickets carry only their total, so VAT and the pre-VAT subtotal need the report.
     ...(report ? [
       { label: t('sales.stats.vat'), value: report.completed?.tax, type: 'money' as const, hint: t('excel.sales.vatHint') },
     ] : []),
     kpi({ label: t('sales.stats.cancelled'), value: cancelledTotal, type: 'money', tone: 'danger', hint: t('excel.sales.cancelledHint') },
-      (ref) => `SUMIF(${ref('TVentas', 'status')},${quote(cancelledLabel)},${ref('TVentas', 'total')})`),
+      (ref) => `SUMIF(${ref('TSales', 'status')},${quote(cancelledLabel)},${ref('TSales', 'total')})`),
     kpi({ label: t('excel.sales.cancelledCount'), value: cancelledCount, type: 'int', tone: 'danger', hint: t('excel.sales.ticketsHint') },
-      (ref) => `COUNTIF(${ref('TVentas', 'status')},${quote(cancelledLabel)})`),
+      (ref) => `COUNTIF(${ref('TSales', 'status')},${quote(cancelledLabel)})`),
     kpi({ label: t('excel.sales.cancelRate'), value: allCount ? cancelledCount / allCount : 0, type: 'percent', tone: 'warning',
       hint: t('excel.sales.cancelRateHint') },
-    (ref) => `IFERROR(COUNTIF(${ref('TVentas', 'status')},${quote(cancelledLabel)})/COUNTA(${ref('TVentas', 'status')}),0)`),
+    (ref) => `IFERROR(COUNTIF(${ref('TSales', 'status')},${quote(cancelledLabel)})/COUNTA(${ref('TSales', 'status')}),0)`),
     ...(report ? [
       { label: t('excel.sales.subtotal'), value: report.completed?.subtotal, type: 'money' as const, tone: 'muted' as const,
         hint: t('excel.sales.subtotalHint') },
@@ -123,7 +123,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
           kind: 'pair' as const,
           table: {
             kind: 'table' as const,
-            name: 'TVentasDia',
+            name: 'TDailySales',
             title: t('excel.sales.byDay'),
             columns: [
               { key: 'date', header: t('sales.columns.date'), type: 'date' as const },
@@ -134,7 +134,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
           },
           chart: {
             type: byDay.length > 31 ? 'line' as const : 'column' as const, title: t('excel.sales.salesByDay'),
-            table: 'TVentasDia', category: 'date', series: [{ column: 'total' }],
+            table: 'TDailySales', category: 'date', series: [{ column: 'total' }],
             height: Math.min(Math.max(16, byDay.length + 3), 24),
           },
         }] : []),
@@ -142,23 +142,23 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TFormasPago',
+            name: 'TPaymentMethods',
             title: t('excel.sales.byMethod'),
             columns: [
               { key: 'name', header: t('sales.columns.payment'), width: 18 },
               { key: 'tickets', header: t('excel.sales.tickets'), type: 'int', total: 'sum' },
               { key: 'total', header: t('sales.columns.total'), type: 'money', total: 'sum' },
-              { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum', formula: share('TFormasPago') },
+              { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum', formula: share('TPaymentMethods') },
             ],
             rows: methods,
           },
-          chart: { type: 'doughnut', title: t('excel.sales.methodShare'), table: 'TFormasPago', category: 'name', series: [{ column: 'total' }], height: 14 },
+          chart: { type: 'doughnut', title: t('excel.sales.methodShare'), table: 'TPaymentMethods', category: 'name', series: [{ column: 'total' }], height: 14 },
         },
         {
           kind: 'pair',
           table: {
             kind: 'table',
-            name: 'TVendedores',
+            name: 'TSellers',
             title: t('excel.sales.bySeller'),
             columns: [
               { key: 'name', header: t('sales.columns.seller'), width: 24 },
@@ -166,17 +166,17 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
               { key: 'total', header: t('sales.columns.total'), type: 'money', total: 'sum', visual: 'bar' },
               { key: 'average', header: t('sales.stats.averageTicket'), type: 'money',
                 formula: (cells) => `IFERROR(${cells.total}/${cells.tickets},0)` },
-              { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum', formula: share('TVendedores') },
+              { key: 'share', header: t('excel.share'), type: 'percent', total: 'sum', formula: share('TSellers') },
             ],
             rows: sellers,
           },
-          chart: { type: 'bar', title: t('excel.sales.salesBySeller'), table: 'TVendedores', category: 'name', series: [{ column: 'total', color: '2F80C2' }], height: 14 },
+          chart: { type: 'bar', title: t('excel.sales.salesBySeller'), table: 'TSellers', category: 'name', series: [{ column: 'total', color: '2F80C2' }], height: 14 },
         },
         ...(products.length > 0 ? [{
           kind: 'pair' as const,
           table: {
             kind: 'table' as const,
-            name: 'TMasVendidos',
+            name: 'TTopProducts',
             title: t('excel.sales.topProducts'),
             columns: [
               { key: 'rank', header: t('excel.rank'), type: 'int' as const, width: 7 },
@@ -187,7 +187,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
             ],
             rows: products,
           },
-          chart: { type: 'bar' as const, title: t('excel.sales.topProductsChart'), table: 'TMasVendidos', category: 'name', series: [{ column: 'subtotal', color: '1C9A8A' }] },
+          chart: { type: 'bar' as const, title: t('excel.sales.topProductsChart'), table: 'TTopProducts', category: 'name', series: [{ column: 'subtotal', color: '1C9A8A' }] },
         }] : []),
         { kind: 'links', label: t('excel.goTo'), sheets: [t('excel.sheets.sales')] },
       ],
@@ -202,7 +202,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
         ...(truncated ? [{ kind: 'note' as const, text: t('sales.exportTruncated', { count: sales.length }) }] : []),
         {
           kind: 'table',
-          name: 'TVentas',
+          name: 'TSales',
           main: true,
           columns: [
             { key: 'number', header: t('sales.columns.number'), type: 'int', width: 10 },
@@ -215,7 +215,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
               key: 'total', header: t('sales.columns.total'), type: 'money', visual: 'bar',
               // Cancelled tickets are listed but left out of the total.
               total: {
-                formula: (ref) => `SUMIF(${ref('TVentas', 'status')},${quote(completed)},${ref('TVentas', 'total')})`,
+                formula: (ref) => `SUMIF(${ref('TSales', 'status')},${quote(completed)},${ref('TSales', 'total')})`,
                 result: fromCents(cents(done)),
               },
             },
