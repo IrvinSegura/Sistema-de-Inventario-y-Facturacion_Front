@@ -49,9 +49,4 @@ export function currentLanguage(): Language {
   return i18n.resolvedLanguage === 'es' ? 'es' : 'en'
 }
 
-/** Dates and times follow the language; money always uses the store's currency format (MXN). */
-export function dateLocale(language: string): string {
-  return language.startsWith('es') ? 'es-MX' : 'en-US'
-}
-
 export default i18n
