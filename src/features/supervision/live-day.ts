@@ -6,8 +6,9 @@ import { STORE_TIME_ZONE, toDay } from '@/lib/days'
 type Ref = Schemas['Ref']
 type Amounts = Schemas['Amounts']
 
-/** Closing difference in pesos, shortage or surplus, from which a drawer raises an alert. */
-export const ALERT_MIN_DIFFERENCE = 50
+// The API's default for app.cash-drawer.unbalanced-threshold, for an API that doesn't send it yet;
+// remove it once every deployed API does.
+export const DEFAULT_UNBALANCED_THRESHOLD = 50
 
 /** A seller's day so far: the drawer they sell from and their figures. */
 export interface SellerDay {
@@ -55,14 +56,35 @@ export interface UnbalancedDrawer {
 }
 
 /**
- * Closed drawers whose difference reaches ALERT_MIN_DIFFERENCE either way, largest first. Open
- * drawers never qualify.
+ * The closing's drawers whose difference reaches the store's unbalanced threshold either way,
+ * largest first. Open drawers never qualify.
  */
-export function unbalancedDrawers(drawers: CashDrawer[]): UnbalancedDrawer[] {
-  return drawers
+export function unbalancedDrawers(closing: CashClosing): UnbalancedDrawer[] {
+  const threshold = closing.unbalancedThreshold ?? DEFAULT_UNBALANCED_THRESHOLD
+  return (closing.drawers ?? [])
     .map((drawer) => ({ drawer, difference: drawer.closing?.difference ?? 0 }))
-    .filter(({ difference }) => Math.abs(difference) >= ALERT_MIN_DIFFERENCE)
+    .filter(({ difference }) => Math.abs(difference) >= threshold)
     .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference))
+}
+
+/** What the live page's alerts show; the sidebar counts the same. */
+export interface LiveAlerts {
+  /** Drawers of earlier days still open. */
+  stale: CashDrawer[]
+  unbalanced: UnbalancedDrawer[]
+  lowStockCount: number
+  /** Manual stock adjustments recorded today across the store. */
+  adjustmentCount: number
+}
+
+/** One per alert line: the stale drawers, low stock and adjustments count once each, each unbalanced drawer on its own. */
+export function alertCount({ stale, unbalanced, lowStockCount, adjustmentCount }: LiveAlerts): number {
+  return (stale.length > 0 ? 1 : 0) + unbalanced.length + (lowStockCount > 0 ? 1 : 0) + (adjustmentCount > 0 ? 1 : 0)
+}
+
+/** Today's sales so far as a share of a whole earlier day's (1 = as much); null when that day sold nothing. */
+export function salesShare(soFar: number, earlierDay: number): number | null {
+  return earlierDay > 0 ? soFar / earlierDay : null
 }
 
 /**

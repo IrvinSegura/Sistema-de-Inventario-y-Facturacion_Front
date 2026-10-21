@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import type { CashDrawer } from '@/features/cash-drawer/queries'
 
-import { ALERT_MIN_DIFFERENCE, averageTicket, earlierSaleDay, sellerDays, unbalancedDrawers } from './live-day'
+import {
+  alertCount,
+  averageTicket,
+  DEFAULT_UNBALANCED_THRESHOLD,
+  earlierSaleDay,
+  type LiveAlerts,
+  salesShare,
+  sellerDays,
+  unbalancedDrawers,
+} from './live-day'
 
 const ana = { id: 1, name: 'Ana' }
 const luis = { id: 2, name: 'Luis' }
@@ -63,13 +72,43 @@ describe('averageTicket', () => {
 })
 
 describe('unbalancedDrawers', () => {
-  it('flags shortages and surpluses from the threshold up, the largest first', () => {
-    const drawers = [
-      closedDrawer(1, -ALERT_MIN_DIFFERENCE), closedDrawer(2, ALERT_MIN_DIFFERENCE - 0.01), closedDrawer(3, 120), { id: 4 },
-    ]
+  it("flags shortages and surpluses from the API's threshold up, the largest first", () => {
+    const drawers = [closedDrawer(1, -80), closedDrawer(2, 79.99), closedDrawer(3, 120), { id: 4 }]
 
-    expect(unbalancedDrawers(drawers).map(({ drawer, difference }) => [drawer.id, difference]))
-      .toEqual([[3, 120], [1, -ALERT_MIN_DIFFERENCE]])
+    expect(unbalancedDrawers({ drawers, unbalancedThreshold: 80 }).map(({ drawer, difference }) => [drawer.id, difference]))
+      .toEqual([[3, 120], [1, -80]])
+  })
+
+  it('falls back to the default threshold when the API sends none', () => {
+    const drawers = [closedDrawer(1, DEFAULT_UNBALANCED_THRESHOLD), closedDrawer(2, DEFAULT_UNBALANCED_THRESHOLD - 0.01)]
+
+    expect(unbalancedDrawers({ drawers }).map(({ drawer }) => drawer.id)).toEqual([1])
+  })
+})
+
+describe('alertCount', () => {
+  const quiet: LiveAlerts = { stale: [], unbalanced: [], lowStockCount: 0, adjustmentCount: 0 }
+
+  it('is zero when nothing needs a look', () => {
+    expect(alertCount(quiet)).toBe(0)
+  })
+
+  it('counts one line per kind, and each unbalanced drawer apart', () => {
+    const unbalanced = [{ drawer: closedDrawer(1, 60), difference: 60 }, { drawer: closedDrawer(2, -70), difference: -70 }]
+
+    expect(alertCount({ stale: [{ id: 3 }, { id: 4 }], unbalanced, lowStockCount: 12, adjustmentCount: 5 })).toBe(5)
+    expect(alertCount({ ...quiet, adjustmentCount: 1 })).toBe(1)
+  })
+})
+
+describe('salesShare', () => {
+  it('divides the sales so far by the earlier day', () => {
+    expect(salesShare(300, 400)).toBe(0.75)
+    expect(salesShare(0, 400)).toBe(0)
+  })
+
+  it('is null when the earlier day sold nothing', () => {
+    expect(salesShare(300, 0)).toBeNull()
   })
 })
 

@@ -1295,6 +1295,7 @@ export interface components {
             openingFloat?: number;
             expectedCash?: number;
             drawers?: components["schemas"]["CashDrawerResponse"][];
+            unbalancedThreshold?: number;
         };
         SellerAmounts: {
             seller?: components["schemas"]["Ref"];
