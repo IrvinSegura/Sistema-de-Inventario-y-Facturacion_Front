@@ -8,7 +8,7 @@ import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useUser } from '@/auth/auth-context'
-import { intlLocale } from '@/i18n/intl-locale'
+import { formatDateTime } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 
 /** A sheet with the store and the document's kind, folio and date on top, and who printed it below. */
@@ -24,7 +24,7 @@ export function PrintDocument({ kind, folio, date, notice, children }: {
   const user = useUser()
   // The document mounts right before printing, so this is when it was printed.
   const [printedAt] = useState(() => new Date())
-  const printed = printedAt.toLocaleString(intlLocale(i18n.language), { dateStyle: 'long', timeStyle: 'short' })
+  const printed = formatDateTime(printedAt, i18n.language, 'long')
   return (
     <article className="mx-auto grid max-w-[190mm] gap-6 font-sans text-[10pt] leading-snug text-slate-800">
       <header className="grid gap-4">

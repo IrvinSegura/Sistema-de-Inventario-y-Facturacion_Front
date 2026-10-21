@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { intlLocale } from '@/i18n/intl-locale'
+import { formatDateTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 
 import type { DraftState } from './purchase-draft'
@@ -82,7 +82,7 @@ function PurchaseMeta({ purchase }: { purchase: Purchase }) {
   const { t, i18n } = useTranslation()
   return (
     <>
-      {purchase.supplier?.name} · {new Date(purchase.purchaseDate!).toLocaleString(intlLocale(i18n.language))}
+      {purchase.supplier?.name} · {formatDateTime(purchase.purchaseDate, i18n.language)}
       {' · '}{t('purchases.detail.recordedBy', { name: purchase.recordedBy?.name })}
     </>
   )
@@ -138,8 +138,7 @@ function PurchaseSlip({ purchase }: { purchase: Purchase }) {
   const { t, i18n } = useTranslation()
   const items = purchase.items ?? []
   const units = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0)
-  const date = new Date(purchase.purchaseDate!).toLocaleString(intlLocale(i18n.language),
-    { dateStyle: 'long', timeStyle: 'short' })
+  const date = formatDateTime(purchase.purchaseDate, i18n.language, 'long')
   return (
     <PrintDocument kind={t('print.purchase.kind')} folio={purchase.id} date={date}>
       <PrintFields columns={2} fields={[

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { addDays, dayAfter, daysInRange, lastDayOfMonth, startOfDay, toDay, weekday } from './days'
+import {
+  addDays, checkedTimeZone, dayAfter, daysInRange, lastDayOfMonth, startOfDay, toDay, wallClockAsUtc, weekday,
+} from './days'
 
 describe('store days', () => {
   it('places an instant on its day in the store, not the browser', () => {
@@ -27,5 +29,23 @@ describe('store days', () => {
     expect(lastDayOfMonth('2028-02-10')).toBe('2028-02-29')
     expect(weekday('2026-10-19')).toBe(1)
     expect(daysInRange({ from: '2026-03-01', to: '2026-03-31' })).toBe(31)
+  })
+})
+
+describe('checkedTimeZone', () => {
+  it('keeps a valid zone', () => {
+    expect(checkedTimeZone('America/Mexico_City')).toBe('America/Mexico_City')
+  })
+
+  it('names the setting when the zone is misspelt', () => {
+    expect(() => checkedTimeZone('America/Mexico City')).toThrow('VITE_STORE_TIME_ZONE')
+  })
+})
+
+describe('wallClockAsUtc', () => {
+  it("reads the zone's clock across a daylight saving change", () => {
+    // Tijuana springs forward at 02:00 on 2026-03-08: 09:30 UTC is 01:30 PST, 10:30 UTC is 03:30 PDT.
+    expect(wallClockAsUtc(new Date('2026-03-08T09:30:00Z'), 'America/Tijuana').toISOString()).toBe('2026-03-08T01:30:00.000Z')
+    expect(wallClockAsUtc(new Date('2026-03-08T10:30:00Z'), 'America/Tijuana').toISOString()).toBe('2026-03-08T03:30:00.000Z')
   })
 })

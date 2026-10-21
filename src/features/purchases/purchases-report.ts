@@ -1,15 +1,10 @@
 import type { TFunction } from 'i18next'
 
-import { excelDate, excelDay, type Kpi, type Row, type SheetSpec } from '@/lib/excel'
+import { toDay } from '@/lib/days'
+import { excelDate, excelDay, excelStoreDay, type Kpi, type Row, type SheetSpec } from '@/lib/excel'
 import { fromCents, toCents } from '@/lib/money'
 
 import type { Purchase, PurchaseSummary } from './queries'
-
-/** The day (YYYY-MM-DD) of an instant in the browser's time zone. */
-function local(iso: string) {
-  const day = new Date(iso)
-  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
-}
 
 /**
  * Dashboard (figures, suppliers, purchases by day and the products bought, each with its chart), the
@@ -63,12 +58,12 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
   }, new Map<string, { count: number; cents: number; last: string }>())]
     .map(([name, entry]) => ({
       name, purchases: entry.count, total: fromCents(entry.cents), share: totalCents ? entry.cents / totalCents : 0,
-      last: excelDate(entry.last),
+      last: excelStoreDay(entry.last),
     }))
     .sort((a, b) => (b.total as number) - (a.total as number))
 
   const days: Row[] = [...purchases.reduce((groups, purchase) => {
-    const day = local(purchase.purchaseDate!)
+    const day = toDay(purchase.purchaseDate!)
     const entry = groups.get(day) ?? { count: 0, cents: 0 }
     entry.count++
     entry.cents += toCents(purchase.total ?? 0)

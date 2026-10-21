@@ -138,7 +138,7 @@ function OpenDrawerHeader({ drawer }: { drawer: CashDrawer }) {
       <CardTitle>{t('drawer.openNow', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
       <CardDescription>
         {t('drawer.openedAt', {
-          time: formatTime(drawer.openedAt!, i18n.language),
+          time: formatTime(drawer.openedAt, i18n.language),
           amount: formatMoney(drawer.openingFloat!),
         })}
       </CardDescription>
@@ -206,7 +206,7 @@ function ClosingSummaryCard({ drawer }: { drawer: CashDrawer }) {
       <CardHeader>
         <CardTitle>{t('drawer.lastClosing', { date: formatDate(drawer.businessDate!, i18n.language) })}</CardTitle>
         <CardDescription>
-          {t('drawer.closedAtBy', { time: formatTime(closing.closedAt!, i18n.language), name: closing.closedBy?.name })}
+          {t('drawer.closedAtBy', { time: formatTime(closing.closedAt, i18n.language), name: closing.closedBy?.name })}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -19,8 +19,7 @@ import { categoryName } from '@/features/categories/category-labels'
 import { useCategories } from '@/features/categories/queries'
 import { useLabeledCategories } from '@/features/categories/use-labeled-categories'
 import { MAX_REPORT_DAYS } from '@/features/sales/queries'
-import { intlLocale } from '@/i18n/intl-locale'
-import { formatDate } from '@/lib/date-format'
+import { formatDate, formatStoreDate } from '@/lib/date-format'
 import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
@@ -51,7 +50,6 @@ export function ProductSalesReportPage() {
   const categories = useLabeledCategories(useCategories().data)
   const reportMeta = useReportMeta()
   const rows = products.data?.content ?? []
-  const lastSale = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium' })
 
   const changeFilters = (change: Partial<ProductSalesFilters>) => {
     setFilters((current) => ({ ...current, ...change }))
@@ -176,7 +174,7 @@ export function ProductSalesReportPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums">{value === null ? '—' : formatMoney(value)}</TableCell>
                         <TableCell className="hidden pr-4 text-right text-muted-foreground lg:table-cell">
-                          {product.lastSaleDate ? lastSale.format(new Date(product.lastSaleDate)) : t('reports.products.never')}
+                          {product.lastSaleDate ? formatStoreDate(product.lastSaleDate, i18n.language) : t('reports.products.never')}
                         </TableCell>
                       </TableRow>
                     )

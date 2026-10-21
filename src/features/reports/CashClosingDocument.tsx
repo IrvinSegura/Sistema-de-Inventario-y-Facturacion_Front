@@ -22,7 +22,7 @@ export function CashClosingDocument({ closing, date, seller, status }: {
   const figures = closingFigures(closing)
   const methods = PAYMENT_METHODS.map((method) => ({ method, amounts: closing.byPaymentMethod?.[method] }))
   const drawers = closing.drawers ?? []
-  const time = (instant?: string) => instant ? formatTime(instant, i18n.language) : '—'
+  const time = (instant?: string) => formatTime(instant, i18n.language)
 
   return (
     <PrintDocument kind={t('reports.closing.printKind')} date={date}>

@@ -17,8 +17,7 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { intlLocale } from '@/i18n/intl-locale'
-import { formatDate } from '@/lib/date-format'
+import { formatDate, formatDateTime } from '@/lib/date-format'
 import { daysInRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
@@ -64,7 +63,6 @@ export function PurchasesPage() {
   const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
   const report = usePurchaseReport(filters.range, filters.supplierId, reportable)
   const suppliers = useAllSuppliers()
-  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const rows = purchases.data?.content ?? []
 
   const changeFilters = (change: Partial<PurchaseFilters>) => {
@@ -163,7 +161,7 @@ export function PurchasesPage() {
                 {rows.map((purchase) => (
                   <TableRow key={purchase.id} className="cursor-pointer" onClick={() => setViewing(purchase.id!)}>
                     <TableCell className="pl-4 font-medium tabular-nums">#{purchase.id}</TableCell>
-                    <TableCell className="whitespace-nowrap">{when.format(new Date(purchase.purchaseDate!))}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDateTime(purchase.purchaseDate, i18n.language)}</TableCell>
                     <TableCell className="max-w-56 truncate">{purchase.supplier?.name}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">{purchase.recordedBy?.name}</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{formatMoney(purchase.total!)}</TableCell>

@@ -13,8 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { MAX_REPORT_DAYS } from '@/features/sales/queries'
-import { intlLocale } from '@/i18n/intl-locale'
-import { formatDate } from '@/lib/date-format'
+import { formatDate, formatStoreDate } from '@/lib/date-format'
 import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
@@ -40,7 +39,6 @@ export function CustomerSalesReportPage() {
   const customers = useCustomerSales(range, page, pageSize)
   const reportMeta = useReportMeta()
   const rows = customers.data?.content ?? []
-  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium' })
 
   async function exportExcel() {
     setExporting(true)
@@ -104,7 +102,7 @@ export function CustomerSalesReportPage() {
                     <TableCell className="text-right font-medium tabular-nums">{formatMoney(customer.total ?? 0)}</TableCell>
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{formatMoney(customer.averageTicket ?? 0)}</TableCell>
                     <TableCell className="hidden pr-4 text-right text-muted-foreground lg:table-cell">
-                      {customer.lastSaleDate && when.format(new Date(customer.lastSaleDate))}
+                      {customer.lastSaleDate && formatStoreDate(customer.lastSaleDate, i18n.language)}
                     </TableCell>
                   </TableRow>
                 ))}
