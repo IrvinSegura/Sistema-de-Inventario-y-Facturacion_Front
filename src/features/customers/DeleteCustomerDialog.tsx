@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { showSuccess } from '@/lib/success-popup'
 
+import { updateRequestFrom } from './customer-update'
 import { type Customer, useDeleteCustomer, useUpdateCustomer } from './queries'
 
 // Same message as the API's CustomerService.IN_USE_MESSAGE.
@@ -50,16 +51,7 @@ export function DeleteCustomerDialog({ customer, onOpenChange }: { customer: Cus
   // The same data with active = false; the version guards against someone else's edit in between.
   const onDeactivate = () => {
     const customer = shown!
-    updateCustomer.mutate({
-      id: customer.id!,
-      name: customer.name!,
-      taxId: customer.taxId,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      active: false,
-      version: customer.version!,
-    }, {
+    updateCustomer.mutate(updateRequestFrom(customer, { active: false }), {
       onSuccess: () => {
         showSuccess(t('customers.delete.deactivatedTitle'), customer.name)
         close()
