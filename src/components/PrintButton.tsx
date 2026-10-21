@@ -4,16 +4,21 @@ import { createPortal } from 'react-dom'
 
 import { Button } from '@/components/ui/button'
 
-// Prints `document` alone: it is rendered into a .print-area outside the app (and any open
-// dialog), which the print styles in index.css leave as the only visible element on paper.
+/**
+ * Prints `document` alone: it is rendered into a .print-area outside the app (and any open
+ * dialog), which the print styles in index.css leave as the only visible element on paper.
+ */
 export function PrintButton({ label, document, variant = 'outline', className }: {
   label: string
+  /** Mounted only from the click until the print dialog closes. */
   document: ReactNode
   variant?: 'outline' | 'ghost' | 'default'
   className?: string
 }) {
   const [printing, setPrinting] = useState(false)
 
+  // Prints from an effect, once the portal is in the DOM; afterprint can fire before print() returns,
+  // so the listener goes first.
   useEffect(() => {
     if (!printing) {
       return
@@ -30,6 +35,7 @@ export function PrintButton({ label, document, variant = 'outline', className }:
         <Printer />
         {label}
       </Button>
+      {/* globalThis, because the document prop shadows the global document. */}
       {printing && createPortal(<div className="print-area">{document}</div>, globalThis.document.body)}
     </>
   )

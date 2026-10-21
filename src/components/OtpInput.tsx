@@ -2,14 +2,17 @@ import { type ClipboardEvent, type KeyboardEvent, useLayoutEffect, useRef } from
 
 import { cn } from '@/lib/utils'
 
-// One box per digit: typing moves to the next box, Backspace clears and goes back, and pasting a
-// whole code (or the phone's SMS autofill) fills every box. The value never has gaps.
+/**
+ * One box per digit: typing moves to the next box, Backspace clears and goes back, and pasting a
+ * whole code (or the phone's SMS autofill) fills every box. The value never has gaps.
+ */
 export function OtpInput({ value, onChange, length = 6, invalid, autoFocus, label }: {
   value: string
   onChange: (value: string) => void
   length?: number
   invalid?: boolean
   autoFocus?: boolean
+  /** Accessible name of the group; each box is announced as this label plus its position. */
   label: string
 }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([])
@@ -65,6 +68,7 @@ export function OtpInput({ value, onChange, length = 6, invalid, autoFocus, labe
     <div role="group" aria-label={label} className="flex justify-between gap-2">
       {digits.map((digit, index) => (
         <input key={index} ref={(element) => { inputs.current[index] = element }}
+          // maxLength is the whole code, not 1, so the SMS autofill in the first box arrives complete.
           value={digit} inputMode="numeric" pattern="\d*" maxLength={length}
           autoComplete={index === 0 ? 'one-time-code' : 'off'} autoFocus={autoFocus && index === 0}
           aria-label={`${label} ${index + 1}`} aria-invalid={invalid || undefined}
