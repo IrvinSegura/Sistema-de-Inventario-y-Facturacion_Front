@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
+import { LiveAlertsProvider } from '@/features/supervision/LiveAlertsProvider'
 
 import { AppSidebar, Brand } from './AppSidebar'
 import { UserMenu } from './UserMenu'
@@ -50,24 +51,26 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-svh bg-muted/30">
-      <AppSidebar collapsed={collapsed} drawerOpen={drawerOpen} onDrawerClose={() => setDrawerOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70">
-          <div className="flex h-16 items-center gap-2 px-4">
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label={t('app.toggleMenu')}>
-              <PanelLeft />
-            </Button>
-            <Brand className="md:hidden" />
-            <div className="ml-auto">
-              <UserMenu />
+    <LiveAlertsProvider>
+      <div className="flex min-h-svh bg-muted/30">
+        <AppSidebar collapsed={collapsed} drawerOpen={drawerOpen} onDrawerClose={() => setDrawerOpen(false)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70">
+            <div className="flex h-16 items-center gap-2 px-4">
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label={t('app.toggleMenu')}>
+                <PanelLeft />
+              </Button>
+              <Brand className="md:hidden" />
+              <div className="ml-auto">
+                <UserMenu />
+              </div>
             </div>
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          <Outlet />
-        </main>
+          </header>
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </LiveAlertsProvider>
   )
 }

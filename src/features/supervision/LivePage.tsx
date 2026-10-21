@@ -24,18 +24,16 @@ import { useDayCancellations } from '@/features/sales/queries'
 import { formatDay, formatTime } from '@/lib/date-format'
 import { addDays } from '@/lib/days'
 import { formatMoney } from '@/lib/money'
-import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
 import { CancellationsCard } from './CancellationsCard'
-import { LIVE_QUERY_OPTIONS, useLiveAlerts } from './live-alerts'
+import { LIVE_QUERY_OPTIONS, useSharedLiveAlerts } from './live-alerts'
 import { alertCount, averageTicket, type LiveAlerts, salesShare, type SellerDay, sellerDays } from './live-day'
 
 /** Managers' live view of the store's day; today's figures and every alert poll every REFRESH_EVERY_MS. */
 export function LivePage() {
   const { t, i18n } = useTranslation()
-  const today = useToday()
-  const { day, staleDrawers, alerts, alertsError, isFetching, refetch } = useLiveAlerts(today)
+  const { today, day, staleDrawers, alerts, alertsError, isFetching, refetch } = useSharedLiveAlerts()
   const cancellations = useDayCancellations(today, LIVE_QUERY_OPTIONS)
   // Neither polled nor asked again on every visit: a past day's sales no longer change.
   const lastWeekDay = addDays(today, -7)
