@@ -22,20 +22,23 @@ function stockStatus(t: TFunction, product: Product): string {
   return stock <= 0 ? t('inventory.status.out') : product.lowStock ? t('inventory.status.low') : t('inventory.status.ok')
 }
 
+/** The text as a string literal for an Excel formula, with inner quotes doubled. */
 function quote(text: string) {
   return `"${text.replace(/"/g, '""')}"`
 }
 
-// Summary rows grouped by a key, in first-seen order.
+/** Items grouped by a key, for the summary tables; groups keep first-seen order. */
 function groupBy<T>(items: T[], key: (item: T) => string) {
   const groups = new Map<string, T[]>()
   items.forEach((item) => groups.set(key(item), [...(groups.get(key(item)) ?? []), item]))
   return groups
 }
 
-// Stock of every product, its value at sale price and a dashboard by category and status. Shortage,
-// status, price with VAT and value are formulas, so changing a stock or price in Excel updates the
-// whole report.
+/**
+ * Stock of every product, its value at sale price and a dashboard by category and status. Shortage,
+ * status, price with VAT and value are formulas, so changing a stock or price in Excel updates the
+ * whole report.
+ */
 export function stockWorkbook({ t, products, truncated, info }: {
   t: TFunction
   products: Product[]
@@ -62,6 +65,7 @@ export function stockWorkbook({ t, products, truncated, info }: {
       price,
       vat: product.taxRate,
       priceWithVat: withTax(price, product.taxRate ?? 0),
+      // Negative stock adds no units or value, here and in the formulas.
       value: fromCents(Math.max(stock, 0) * toCents(price)),
       active: product.active ? 1 : 0,
     }
@@ -224,8 +228,10 @@ export function stockWorkbook({ t, products, truncated, info }: {
   ]
 }
 
-// What has to be restocked, most urgent first, with a dashboard by category and the products
-// furthest from their minimum.
+/**
+ * What has to be restocked, most urgent first, with a dashboard by category and the products
+ * furthest from their minimum.
+ */
 export function lowStockWorkbook({ t, products, info }: {
   t: TFunction
   products: LowStockProduct[]
@@ -244,6 +250,7 @@ export function lowStockWorkbook({ t, products, info }: {
       min,
       coverage: min > 0 ? stock / min : 0,
       shortage: Math.max(min - stock, 0),
+      // Keep in step with suggested() in LowStockPage and the column's formula below.
       suggested: Math.max(min - stock, 1),
     }
   })
@@ -349,8 +356,11 @@ export function lowStockWorkbook({ t, products, info }: {
   ]
 }
 
-// Classic kardex in date order with entries and exits apart, the stock after each movement, a
-// dashboard by movement type and the stock over time.
+/**
+ * Classic kardex in date order with entries and exits apart, the stock after each movement, a
+ * dashboard by movement type and the stock over time. Takes the movements newest first, as the
+ * API lists them.
+ */
 export function ledgerWorkbook({ t, product, movements, truncated, period, info, reference }: {
   t: TFunction
   product: Product
@@ -403,6 +413,7 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
           kind: 'kpis',
           title: t('excel.ledger.figures'),
           items: [
+            // From the product, with no formula: the rows may be filtered or cut short, so they can't give today's stock.
             { label: t('excel.ledger.currentStock'), value: product.stock, type: 'int', hint: t('excel.ledger.minimum', { count: product.minStock }) },
             { label: t('excel.ledger.movements'), value: rows.length, type: 'int', tone: 'muted', hint: period,
               formula: (ref) => `COUNTA(${ref('TKardex', 'type')})` },
@@ -437,6 +448,7 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
             series: [{ column: 'entries', color: '58B368' }, { column: 'exits', color: 'C2412D' }], height: 14,
           },
         },
+        // An area chart needs at least two points.
         ...(rows.length > 1 ? [{
           kind: 'chart' as const,
           chart: { type: 'area' as const, title: t('excel.ledger.stockOverTime'), table: 'TKardex', category: 'date', series: [{ column: 'stock' }] },
