@@ -55,10 +55,27 @@ export function formatDateTime(
   return formatInstant(zonedFormat(language, timeZone, { dateStyle: style, timeStyle: 'short' }), instant)
 }
 
+// Midnight UTC, formatted in UTC: the same convention days.ts uses for day arithmetic, so a day
+// prints as itself whatever zone the browser is in.
+function dayInstant(day: string): string {
+  return `${day}T00:00:00Z`
+}
+
+/** A calendar day ("2026-10-15") with the fields asked for: "15 oct", "jueves", "octubre de 2026". */
+export function formatDay(day: string, language: string, options: Intl.DateTimeFormatOptions): string {
+  return formatInstant(zonedFormat(language, 'UTC', options), dayInstant(day))
+}
+
 /** A calendar day ("2026-10-15") as it is, whatever zone the browser is in. */
 export function formatDate(day: string, language: string, style: DateStyle = 'medium'): string {
-  // Midnight UTC formatted in UTC: the same convention days.ts uses for day arithmetic.
-  return formatInstant(zonedFormat(language, 'UTC', { dateStyle: style }), `${day}T00:00:00Z`)
+  return formatDay(day, language, { dateStyle: style })
+}
+
+/** Two calendar days as one range, without repeating what they share: "13 – 19 oct 2026". */
+export function formatDayRange(from: string, to: string, language: string, style: DateStyle = 'medium'): string {
+  const start = validDate(dayInstant(from))
+  const end = validDate(dayInstant(to))
+  return start && end ? zonedFormat(language, 'UTC', { dateStyle: style }).formatRange(start, end) : '—'
 }
 
 /** The store day an instant falls on (a sale's, an account's creation), like formatDate; a dash when missing. */
