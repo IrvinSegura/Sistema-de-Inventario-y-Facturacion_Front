@@ -1,7 +1,7 @@
 import type { Schemas } from '@/api/client'
 import type { CashClosing, CashDrawer } from '@/features/cash-drawer/queries'
-import { STORE_TIME_ZONE, toDay } from '@/features/dashboard/days'
 import type { SaleSummary } from '@/features/sales/queries'
+import { STORE_TIME_ZONE, toDay } from '@/lib/days'
 
 type Ref = Schemas['Ref']
 type Amounts = Schemas['Amounts']
