@@ -1,6 +1,7 @@
-import { Ban, Eye } from 'lucide-react'
+import { Ban } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 
 import { errorMessage } from '@/api/errors'
 import { EmptyState } from '@/components/EmptyState'
@@ -11,8 +12,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { SaleDetailDialog } from '@/features/sales/SaleDetailDialog'
 import type { useDayCancellations } from '@/features/sales/queries'
+import { SaleDetailDialog } from '@/features/sales/SaleDetailDialog'
+import { salesLink } from '@/features/sales/sale-params'
+import { ViewTicketButton } from '@/features/sales/ViewTicketButton'
 import { formatDate, formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 
@@ -91,10 +94,7 @@ export function CancellationsCard({ cancellations, today }: {
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums text-destructive">{formatMoney(sale.total ?? 0)}</TableCell>
                   <TableCell className="pr-4 text-right" onClick={(event) => event.stopPropagation()}>
-                    <Button variant="ghost" size="icon" aria-label={t('drawer.viewTicket', { number: sale.saleNumber })}
-                      onClick={() => setViewing(sale.id!)}>
-                      <Eye />
-                    </Button>
+                    <ViewTicketButton saleNumber={sale.saleNumber} onClick={() => setViewing(sale.id!)} />
                   </TableCell>
                 </TableRow>
               )
@@ -102,9 +102,13 @@ export function CancellationsCard({ cancellations, today }: {
           </TableBody>
         </Table>
       )}
-      {count > sales.length && (
-        <CardFooter className="border-t py-3 text-sm text-muted-foreground">
-          {t('supervision.live.cancellations.more', { shown: sales.length, count })}
+      {count > 0 && (
+        <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t py-3 text-sm text-muted-foreground">
+          <span>{count > sales.length && t('supervision.live.cancellations.more', { shown: sales.length, count })}</span>
+          <Button size="sm" variant="outline" nativeButton={false}
+            render={<Link to={salesLink({ dateField: 'cancelledAt', range: { from: today, to: today } })} />}>
+            {t('supervision.live.cancellations.viewInSales')}
+          </Button>
         </CardFooter>
       )}
 
