@@ -33,6 +33,15 @@ export function useCustomers(filters: CustomerFilters, page: number, size = PAGE
   })
 }
 
+/** One customer by id, e.g. to name the one a link filters by; idle while id is null. */
+export function useCustomer(id: number | null) {
+  return useQuery({
+    queryKey: [...customerKeys.all, 'detail', id] as const,
+    enabled: id !== null,
+    queryFn: () => unwrap(api.GET('/api/v1/customers/{id}', { params: { path: { id: id! } } })),
+  })
+}
+
 export function useCreateCustomer() {
   const queryClient = useQueryClient()
   return useMutation({

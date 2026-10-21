@@ -94,7 +94,7 @@ export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PA
  * Drawers from the past STALE_LOOKBACK_DAYS days still open (managers only); nobody can sell from
  * them until they're closed. Reads every page of the window, newest day first.
  */
-export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions = {}) {
+export function useStaleDrawers(today: string, { refetchInterval, staleTime }: LiveOptions = {}) {
   const from = addDays(today, -STALE_LOOKBACK_DAYS)
   const to = addDays(today, -1)
   return useQuery({
@@ -111,6 +111,7 @@ export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions 
       }
     },
     refetchInterval,
+    staleTime,
   })
 }
 
@@ -118,11 +119,12 @@ export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions 
  * One day by payment method, plus that day's drawers. Without sellerId (managers only) it covers
  * the whole store; a seller gets their own only once their drawer is closed (409 before).
  */
-export function useDayClosing(date: string, { sellerId, refetchInterval }: LiveOptions & { sellerId?: number } = {}) {
+export function useDayClosing(date: string, { sellerId, refetchInterval, staleTime }: LiveOptions & { sellerId?: number } = {}) {
   return useQuery({
     queryKey: drawerKeys.dayClosing(date, sellerId),
     queryFn: () => unwrap(api.GET('/api/v1/sale-reports/cash-closing', { params: { query: { date, sellerId } } })),
     refetchInterval,
+    staleTime,
   })
 }
 
