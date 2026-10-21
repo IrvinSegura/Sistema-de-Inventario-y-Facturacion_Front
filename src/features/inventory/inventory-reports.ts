@@ -2,11 +2,11 @@ import type { TFunction } from 'i18next'
 
 import { categoryName } from '@/features/categories/category-labels'
 import type { Product } from '@/features/products/queries'
-import { excelDate, type Row, type SheetSpec } from '@/lib/excel'
+import { type Column, excelDate, type Kpi, type Row, type SheetSpec } from '@/lib/excel'
 import { fromCents, toCents, withTax } from '@/lib/money'
 
-import type { LowStockProduct, Movement } from './queries'
 import { MOVEMENT_TYPES } from './movement-params'
+import type { LowStockProduct, Movement, MovementType } from './queries'
 
 const STATUS_COLORS = { ok: '58B368', low: 'E0A030', out: 'C2412D', inactive: '9CA3AF' }
 
@@ -356,6 +356,54 @@ export function lowStockWorkbook({ t, products, info }: {
   ]
 }
 
+// The two movement workbooks share their rows, units in and out, and detail columns, so both
+// count a movement the same way.
+function movementRows(movements: Movement[], reference: (movement: Movement) => string, extra: (movement: Movement) => Row) {
+  // The API lists newest first; a ledger reads from the oldest.
+  return [...movements].reverse().map((movement): Row => {
+    const quantity = movement.quantity ?? 0
+    return {
+      date: excelDate(movement.movementDate!),
+      ...extra(movement),
+      reference: reference(movement),
+      entry: quantity > 0 ? quantity : null,
+      exit: quantity < 0 ? -quantity : null,
+      stock: movement.resultingStock,
+      recordedBy: movement.recordedBy?.name,
+    }
+  })
+}
+
+function unitsOf(rows: Row[], key: 'entry' | 'exit') {
+  return rows.reduce((sum, row) => sum + ((row[key] as number | null) ?? 0), 0)
+}
+
+function flowKpis(t: TFunction, table: string, rows: Row[]): Kpi[] {
+  const entries = unitsOf(rows, 'entry')
+  const exits = unitsOf(rows, 'exit')
+  return [
+    { label: t('excel.ledger.entries'), value: entries, type: 'int', tone: 'success', hint: t('excel.ledger.entriesHint'),
+      formula: (ref) => `SUM(${ref(table, 'entry')})` },
+    { label: t('excel.ledger.exits'), value: exits, type: 'int', tone: 'danger', hint: t('excel.ledger.exitsHint'),
+      formula: (ref) => `SUM(${ref(table, 'exit')})` },
+    { label: t('excel.ledger.net'), value: entries - exits, type: 'int', hint: t('excel.ledger.netHint'),
+      formula: (ref) => `SUM(${ref(table, 'entry')})-SUM(${ref(table, 'exit')})` },
+  ]
+}
+
+// The detail table's columns, with what tells the movements apart (type or product) second.
+function movementColumns(t: TFunction, second: Column): Column[] {
+  return [
+    { key: 'date', header: t('inventory.ledger.columns.date'), type: 'datetime' },
+    second,
+    { key: 'reference', header: t('inventory.ledger.columns.reference'), width: 34 },
+    { key: 'entry', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success' },
+    { key: 'exit', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger' },
+    { key: 'stock', header: t('inventory.ledger.columns.stock'), type: 'int', visual: 'bar' },
+    { key: 'recordedBy', header: t('inventory.ledger.columns.recordedBy'), width: 24 },
+  ]
+}
+
 /**
  * Classic kardex in date order with entries and exits apart, the stock after each movement, a
  * dashboard by movement type and the stock over time. Takes the movements newest first, as the
@@ -370,30 +418,11 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
   info: [string, string][]
   reference: (movement: Movement) => string
 }): SheetSpec[] {
-  // The API lists newest first; a kardex reads from the oldest.
-  const rows: Row[] = [...movements].reverse().map((movement) => {
-    const quantity = movement.quantity ?? 0
-    return {
-      date: excelDate(movement.movementDate!),
-      type: t(`inventory.types.${movement.type!}`),
-      reference: reference(movement),
-      entry: quantity > 0 ? quantity : null,
-      exit: quantity < 0 ? -quantity : null,
-      stock: movement.resultingStock,
-      recordedBy: movement.recordedBy?.name,
-    }
-  })
-  const entries = rows.reduce((sum, row) => sum + ((row.entry as number | null) ?? 0), 0)
-  const exits = rows.reduce((sum, row) => sum + ((row.exit as number | null) ?? 0), 0)
+  const rows = movementRows(movements, reference, (movement) => ({ type: t(`inventory.types.${movement.type!}`) }))
   const types = MOVEMENT_TYPES.map((type) => {
     const label = t(`inventory.types.${type}`)
     const list = rows.filter((row) => row.type === label)
-    return {
-      type: label,
-      movements: list.length,
-      entries: list.reduce((sum, row) => sum + ((row.entry as number | null) ?? 0), 0),
-      exits: list.reduce((sum, row) => sum + ((row.exit as number | null) ?? 0), 0),
-    }
+    return { type: label, movements: list.length, entries: unitsOf(list, 'entry'), exits: unitsOf(list, 'exit') }
   })
 
   return [
@@ -417,12 +446,7 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
             { label: t('excel.ledger.currentStock'), value: product.stock, type: 'int', hint: t('excel.ledger.minimum', { count: product.minStock }) },
             { label: t('excel.ledger.movements'), value: rows.length, type: 'int', tone: 'muted', hint: period,
               formula: (ref) => `COUNTA(${ref('TKardex', 'type')})` },
-            { label: t('excel.ledger.entries'), value: entries, type: 'int', tone: 'success', hint: t('excel.ledger.entriesHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'entry')})` },
-            { label: t('excel.ledger.exits'), value: exits, type: 'int', tone: 'danger', hint: t('excel.ledger.exitsHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'exit')})` },
-            { label: t('excel.ledger.net'), value: entries - exits, type: 'int', hint: t('excel.ledger.netHint'),
-              formula: (ref) => `SUM(${ref('TKardex', 'entry')})-SUM(${ref('TKardex', 'exit')})` },
+            ...flowKpis(t, 'TKardex', rows),
           ],
         },
         ...(truncated ? [{ kind: 'note' as const, text: t('inventory.ledger.exportTruncated', { count: movements.length }) }] : []),
@@ -466,15 +490,82 @@ export function ledgerWorkbook({ t, product, movements, truncated, period, info,
         kind: 'table',
         name: 'TKardex',
         main: true,
-        columns: [
-          { key: 'date', header: t('inventory.ledger.columns.date'), type: 'datetime' },
-          { key: 'type', header: t('inventory.ledger.columns.type'), width: 18 },
-          { key: 'reference', header: t('inventory.ledger.columns.reference'), width: 34 },
-          { key: 'entry', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success' },
-          { key: 'exit', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger' },
-          { key: 'stock', header: t('inventory.ledger.columns.stock'), type: 'int', visual: 'bar' },
-          { key: 'recordedBy', header: t('inventory.ledger.columns.recordedBy'), width: 24 },
-        ],
+        columns: movementColumns(t, { key: 'type', header: t('inventory.ledger.columns.type'), width: 18 }),
+        rows,
+      }],
+    },
+  ]
+}
+
+/**
+ * One type of movement across the store (e.g. a month's adjustments): the totals, the same by
+ * product (most movements first) and every movement in date order. Takes the movements newest
+ * first, as the API lists them.
+ */
+export function storeLedgerWorkbook({ t, type, movements, truncated, period, reference }: {
+  t: TFunction
+  type: MovementType
+  movements: Movement[]
+  truncated: boolean
+  period: string
+  reference: (movement: Movement) => string
+}): SheetSpec[] {
+  const typeLabel = t(`inventory.types.${type}`)
+  const title = t('excel.storeLedger.title', { type: typeLabel })
+  const rows = movementRows(movements, reference, (movement) => ({ product: movement.productName }))
+  const products = [...groupBy(rows, (row) => String(row.product ?? '')).entries()]
+    .map(([product, list]) => ({ product, movements: list.length, entries: unitsOf(list, 'entry'), exits: unitsOf(list, 'exit') }))
+    .sort((a, b) => b.movements - a.movements || a.product.localeCompare(b.product))
+  const info: [string, string][] = [[t('inventory.ledger.columns.type'), typeLabel]]
+
+  return [
+    {
+      name: t('excel.sheets.summary'),
+      title,
+      subtitle: period,
+      info,
+      sections: [
+        {
+          kind: 'kpis',
+          title: t('excel.ledger.figures'),
+          items: [
+            { label: t('excel.ledger.movements'), value: rows.length, type: 'int', tone: 'muted', hint: period,
+              formula: (ref) => `COUNTA(${ref('TMovimientos', 'product')})` },
+            { label: t('excel.storeLedger.products'), value: products.length, type: 'int', tone: 'muted',
+              formula: (ref) => `ROWS(${ref('TProductos', 'product')})` },
+            ...flowKpis(t, 'TMovimientos', rows),
+          ],
+        },
+        ...(truncated ? [{ kind: 'note' as const, text: t('inventory.ledger.exportTruncated', { count: movements.length }) }] : []),
+        {
+          kind: 'table',
+          name: 'TProductos',
+          title: t('excel.storeLedger.byProduct'),
+          columns: [
+            { key: 'product', header: t('inventory.ledger.columns.product'), width: 34 },
+            { key: 'movements', header: t('excel.ledger.movements'), type: 'int', total: 'sum',
+              formula: (cells, ref) => `COUNTIF(${ref('TMovimientos', 'product')},${cells.product})` },
+            { key: 'entries', header: t('excel.ledger.entry'), type: 'int', total: 'sum', color: 'success',
+              formula: (cells, ref) => `SUMIF(${ref('TMovimientos', 'product')},${cells.product},${ref('TMovimientos', 'entry')})` },
+            { key: 'exits', header: t('excel.ledger.exit'), type: 'int', total: 'sum', color: 'danger',
+              formula: (cells, ref) => `SUMIF(${ref('TMovimientos', 'product')},${cells.product},${ref('TMovimientos', 'exit')})` },
+          ],
+          rows: products,
+        },
+        { kind: 'links', label: t('excel.goTo'), sheets: [t('excel.sheets.movements')] },
+      ],
+    },
+    {
+      name: t('excel.sheets.movements'),
+      title,
+      subtitle: period,
+      info,
+      landscape: true,
+      sections: [{
+        kind: 'table',
+        name: 'TMovimientos',
+        main: true,
+        columns: movementColumns(t, { key: 'product', header: t('inventory.ledger.columns.product'), width: 30 }),
         rows,
       }],
     },

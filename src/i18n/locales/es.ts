@@ -616,8 +616,9 @@ export const es: Messages = {
       stock: 'Existencias',
       lowStock: 'Stock bajo',
       ledger: 'Kardex',
+      movements: 'Movimientos',
     },
-    files: { sales: 'ventas', purchases: 'compras', stock: 'existencias', lowStock: 'stock_bajo', ledger: 'kardex', salesReport: 'reporte_ventas', cashClosing: 'corte_caja', cashFlow: 'ingresos_egresos', productSales: 'ventas_por_producto', unsoldProducts: 'productos_sin_venta', customerSales: 'ventas_por_cliente' },
+    files: { sales: 'ventas', purchases: 'compras', stock: 'existencias', lowStock: 'stock_bajo', ledger: 'kardex', storeLedger: 'movimientos_tienda', salesReport: 'reporte_ventas', cashClosing: 'corte_caja', cashFlow: 'ingresos_egresos', productSales: 'ventas_por_producto', unsoldProducts: 'productos_sin_venta', customerSales: 'ventas_por_cliente' },
     sales: {
       completedOnly: 'Solo ventas completadas',
       ticketsHint: 'Tickets del periodo',
@@ -739,6 +740,11 @@ export const es: Messages = {
       detail: 'Movimientos',
       entry: 'Entrada',
       exit: 'Salida',
+    },
+    storeLedger: {
+      title: '{{type}} · toda la tienda',
+      products: 'Productos',
+      byProduct: 'Por producto',
     },
   },
   search: {

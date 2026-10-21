@@ -6,7 +6,7 @@ import { createInstance, type TFunction } from 'i18next'
 import JSZip from 'jszip'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { ledgerWorkbook, stockWorkbook } from '@/features/inventory/inventory-reports'
+import { ledgerWorkbook, stockWorkbook, storeLedgerWorkbook } from '@/features/inventory/inventory-reports'
 import { salesWorkbook } from '@/features/sales/sales-report'
 import { es } from '@/i18n/locales/es'
 
@@ -245,5 +245,27 @@ describe('inventory workbooks', () => {
     expect(sheet.getRow(header.row + 2).getCell(4).value).toBeNull()
     expect(sheet.getRow(header.row + 2).getCell(5).value).toBe(3)
     expect(Object.keys(zip.files).filter((name) => /^xl\/charts\/chart\d+\.xml$/.test(name))).toHaveLength(2)
+  })
+
+  it('lists a type across the store with each product, and totals by product', async () => {
+    const { workbook, zip } = await build(storeLedgerWorkbook({
+      t, type: 'ADJUSTMENT', truncated: false, period: 'Hoy',
+      reference: (movement) => movement.reason ?? '',
+      movements: [
+        { id: 3, productName: 'Frijol', type: 'ADJUSTMENT', quantity: 2, resultingStock: 9, reason: 'Conteo', movementDate: '2026-10-21T18:00:00Z' },
+        { id: 2, productName: 'Arroz', type: 'ADJUSTMENT', quantity: -1, resultingStock: 6, reason: 'Merma', movementDate: '2026-10-21T17:00:00Z' },
+        { id: 1, productName: 'Arroz', type: 'ADJUSTMENT', quantity: -2, resultingStock: 7, reason: 'Caducado', movementDate: '2026-10-21T16:00:00Z' },
+      ],
+    }))
+    await expectWellFormed(zip)
+    const detail = workbook.getWorksheet('Movimientos')!
+    const header = find(detail, 'Fecha')
+    // Oldest first, with the product next to the date.
+    expect(detail.getRow(header.row + 1).getCell(2).value).toBe('Arroz')
+    expect(detail.getRow(header.row + 1).getCell(5).value).toBe(2)
+    const summary = workbook.getWorksheet('Resumen')!
+    const rice = find(summary, 'Arroz')
+    expect(summary.getCell(rice.row, rice.col + 1).value).toMatchObject({ formula: expect.stringContaining('COUNTIF('), result: 2 })
+    expect(find(summary, 'Frijol').row).toBeGreaterThan(rice.row)
   })
 })
