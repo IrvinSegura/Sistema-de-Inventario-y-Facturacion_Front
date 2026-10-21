@@ -37,6 +37,10 @@ import {
 const periods = [7, 30, 90] as const
 type Period = (typeof periods)[number]
 
+/**
+ * The last 7, 30 or 90 days (charted per week for 90): sales, payment methods, top products, low
+ * stock and the latest movements. Managers also see purchases and the net flow; sellers the average ticket.
+ */
 export function DashboardPage() {
   const { t } = useTranslation()
   const { role } = useUser()
@@ -49,6 +53,7 @@ export function DashboardPage() {
   const recentPurchases = useRecentPurchases(range, isManager)
   const recentSales = useRecentSales(range)
   const lowStock = useLowStock()
+  // Low stock is left out: its card shows its own error.
   const error = report.error ?? purchases.error ?? recentSales.error ?? recentPurchases.error
 
   return (
@@ -133,6 +138,7 @@ export function DashboardPage() {
           <CardDescription>{t(isManager ? 'dashboard.recentHint' : 'dashboard.recentSalesHint')}</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Sellers pass [] because their disabled purchases query never loads and would keep the placeholder up. */}
           <RecentMovements sales={recentSales.data} purchases={isManager ? recentPurchases.data : []} />
         </CardContent>
       </Card>
@@ -210,7 +216,10 @@ function ChartPlaceholder() {
   return <div className="h-[260px] animate-pulse rounded-lg bg-muted/60" />
 }
 
-// Horizontal bars sharing one scale, with the value written next to each bar.
+/**
+ * Horizontal bars sharing one scale, with the value written next to each bar; a placeholder while
+ * rows is undefined.
+ */
 function BarList({ rows, emptyText }: {
   rows?: { key: string | number; label: string; value: number; display: string; detail?: string }[]
   emptyText: string
@@ -235,6 +244,7 @@ function BarList({ rows, emptyText }: {
             </span>
           </div>
           <div className="h-2 rounded-full bg-muted">
+            {/* At least 2% wide, so the smallest values still show a sliver. */}
             <div className="h-full rounded-full bg-chart-1"
               style={{ width: max > 0 ? `${Math.max((row.value / max) * 100, 2)}%` : 0 }} />
           </div>
@@ -328,6 +338,7 @@ interface Movement {
   cancelled?: boolean
 }
 
+/** Sales and purchases merged, newest first, eight at most; a placeholder until both lists arrive. */
 function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchases?: PurchaseSummary[] }) {
   const { t, i18n } = useTranslation()
 
@@ -335,6 +346,7 @@ function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchase
     return <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
   }
 
+  // 8 is RECENT_COUNT in queries.ts: each list brings only its newest 8, so showing more could leave gaps.
   const movements: Movement[] = [
     ...sales.map((sale): Movement => ({
       key: `sale-${sale.id}`,

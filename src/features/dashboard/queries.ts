@@ -16,10 +16,11 @@ export const dashboardKeys = {
   lowStock: ['stock-reports', 'low-stock'] as const,
 }
 
-// Totals, payment methods, top products and a daily breakdown; sellers only get their own sales.
+/** Totals, payment methods, top products and a daily breakdown; sellers only get their own sales. */
 export function useSaleReport(range: DayRange) {
   return useQuery({
     queryKey: dashboardKeys.report(range),
+    // Reports take calendar days as they are; the list endpoints below need instants.
     queryFn: () => unwrap(api.GET('/api/v1/sale-reports', { params: { query: range } })),
     placeholderData: keepPreviousData,
   })
@@ -27,7 +28,7 @@ export function useSaleReport(range: DayRange) {
 
 const RECENT_COUNT = 8
 
-// Newest sales of the period, cancelled ones included.
+/** The RECENT_COUNT newest sales of the period, cancelled ones included. */
 export function useRecentSales(range: DayRange) {
   return useQuery({
     queryKey: dashboardKeys.recentSales(range),
@@ -41,8 +42,10 @@ export function useRecentSales(range: DayRange) {
   })
 }
 
-// Newest purchases of the period, for the latest movements (admins and supervisors); the totals and
-// the chart come from the purchases summary.
+/**
+ * Newest purchases of the period, for the latest movements (admins and supervisors); the totals and
+ * the chart come from the purchases summary.
+ */
 export function useRecentPurchases(range: DayRange, enabled: boolean) {
   return useQuery({
     queryKey: dashboardKeys.recentPurchases(range),
@@ -59,7 +62,7 @@ export function useRecentPurchases(range: DayRange, enabled: boolean) {
 
 const LOW_STOCK_COUNT = 6
 
-// Products at or below their minimum stock, most urgent first.
+/** Products at or below their minimum stock, most urgent first; only the first LOW_STOCK_COUNT. */
 export function useLowStock() {
   return useQuery({
     queryKey: dashboardKeys.lowStock,

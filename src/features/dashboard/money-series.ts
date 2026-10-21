@@ -3,8 +3,9 @@ import { fromCents, toCents } from '@/lib/money'
 import { addDays, type DayRange } from './days'
 
 export interface MoneyBucket {
-  // First and last calendar day the bucket covers (the same day for daily buckets).
+  /** First calendar day the bucket covers. */
   start: string
+  /** Last calendar day the bucket covers, included; the same as start for daily buckets. */
   end: string
   sales: number
   purchases: number
@@ -25,8 +26,11 @@ function centsByDay(days: DailyTotal[]) {
   return cents
 }
 
-// Money in (sales) and out (purchases) per bucket of `bucketDays`, from the reports' daily totals,
-// covering every day of the range: days without movements show as zero instead of disappearing.
+/**
+ * Money in (sales) and out (purchases) per bucket of `bucketDays`, from the reports' daily totals,
+ * covering every day of the range: days without movements show as zero instead of disappearing.
+ * The last bucket ends at the range's end, so it may be shorter.
+ */
 export function moneySeries(range: DayRange, salesByDay: DailyTotal[], purchasesByDay: DailyTotal[],
   bucketDays: number): MoneyBucket[] {
   const salesCents = centsByDay(salesByDay)
