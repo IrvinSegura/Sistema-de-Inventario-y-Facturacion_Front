@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react'
 
 import { cn } from '@/lib/utils'
 
-// Multi-line text with the same look as <Input>.
+/** Multi-line text with the same look as <Input>. */
 export function Textarea({ className, rows = 2, ...props }: ComponentProps<'textarea'>) {
   return (
     <textarea rows={rows} {...props}

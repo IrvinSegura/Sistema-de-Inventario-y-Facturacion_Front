@@ -1,21 +1,26 @@
+/**
+ * Excel reports built like a small BI workbook: a dashboard sheet (title band, figure cards, summary
+ * tables next to native charts) and data sheets with real Excel tables (filters, banded rows that
+ * survive sorting, totals that follow the filters). Figures and computed columns are formulas over
+ * the data, so editing a cell updates the whole report; conditional formats and data bars react too.
+ * exceljs is loaded only when a report is downloaded.
+ */
+
 import type { Cell, Fill, Font, Workbook, Worksheet } from 'exceljs'
 
 import { addCharts, type ChartPart, type ChartType } from './excel-charts'
-
-// Excel reports built like a small BI workbook: a dashboard sheet (title band, figure cards, summary
-// tables next to native charts) and data sheets with real Excel tables (filters, banded rows that
-// survive sorting, totals that follow the filters). Figures and computed columns are formulas over
-// the data, so editing a cell updates the whole report; conditional formats and data bars react too.
-// exceljs is loaded only when a report is downloaded.
 
 export type ColumnType = 'text' | 'code' | 'money' | 'int' | 'percent' | 'date' | 'datetime'
 export type CellValue = string | number | Date | null | undefined
 export type Tone = 'brand' | 'danger' | 'warning' | 'success' | 'muted'
 export type Row = Record<string, CellValue>
 
-// Addresses of one row's cells by column key: "E12" for formulas, "$E12" for conditional formats.
+/** Addresses of one row's cells by column key: "E12" for formulas, "$E12" for conditional formats. */
 export type RowCells = Record<string, string>
-// Absolute range of a table column's data, e.g. 'Existencias'!$E$12:$E$40.
+/**
+ * Absolute range of a table column's data, e.g. 'Stock'!$E$12:$E$40, from the table's name and
+ * the column's key.
+ */
 export type TableRef = (table: string, column: string) => string
 
 export interface Column {
@@ -23,26 +28,28 @@ export interface Column {
   header: string
   type?: ColumnType
   width?: number
-  // Computed in Excel from the row's other cells or other tables (undefined keeps the row's value);
-  // the row's value is the cached result.
+  /**
+   * Computed in Excel from the row's other cells or other tables (undefined keeps the row's value);
+   * the row's value is the cached result.
+   */
   formula?: (cells: RowCells, ref: TableRef, row: Row) => string | undefined
-  // Text color of the data cells.
+  /** Text color of the data cells. */
   color?: Exclude<Tone, 'brand'>
-  // Totals row: sum, count or average of the visible rows, or a formula over table columns.
+  /** Totals row: sum, count or average of the visible rows, or a formula over table columns. */
   total?: 'sum' | 'count' | 'average' | { formula: (ref: TableRef) => string; result: CellValue }
-  // Data bar or a red-to-green color scale on the column.
+  /** Data bar or a red-to-green color scale on the column. */
   visual?: 'bar' | 'scale'
 }
 
 export interface Highlight {
   tone: Exclude<Tone, 'brand'>
-  // Condition on the first data row ("$E12<=0"); Excel applies it to every row.
+  /** Condition on the first data row ("$E12<=0"); Excel applies it to every row. */
   when: (cells: RowCells) => string
 }
 
 export interface TableSection {
   kind: 'table'
-  // Unique Excel table name (letters, digits and underscores).
+  /** Unique Excel table name (letters, digits and underscores); charts and TableRef find the table by it. */
   name: string
   title?: string
   note?: string
@@ -50,7 +57,7 @@ export interface TableSection {
   rows: Row[]
   totalsLabel?: string
   highlights?: Highlight[]
-  // The sheet's main table: its header repeats on every printed page.
+  /** The sheet's main table: its header repeats on every printed page. */
   main?: boolean
 }
 
@@ -60,20 +67,20 @@ export interface Kpi {
   type?: ColumnType
   tone?: Tone
   hint?: string
-  // Formula over table columns; value is its cached result.
+  /** Formula over table columns; value is its cached result. */
   formula?: (ref: TableRef) => string
 }
 
 export interface ChartSpec {
   type: ChartType
   title: string
-  // Data from a table of the workbook (any sheet).
+  /** Data from a table of the workbook (any sheet). */
   table: string
   category: string
   series: { column: string; color?: string }[]
-  // Slice colors of a pie or doughnut, in row order.
+  /** Slice colors of a pie or doughnut, in row order. */
   colors?: string[]
-  // Height in rows.
+  /** Height in rows. */
   height?: number
 }
 
@@ -89,14 +96,18 @@ export type Section =
   | { kind: 'links'; label: string; sheets: string[] }
 
 export interface SheetSpec {
+  /** Tab name, adapted to Excel's rules and made unique; links refer to the sheet by this name. */
   name: string
   title: string
   subtitle?: string
+  /** Label/value pairs under the title band, such as the filters applied. */
   info?: [string, string][]
   sections: Section[]
+  /** Prints in landscape; sheets with figure cards, charts or links always do. */
   landscape?: boolean
 }
 
+/** Labels and author every report shares, already translated; useReportMeta builds it. */
 export interface ReportMeta {
   storeName: string
   author: string
@@ -167,25 +178,28 @@ function font(extra: Partial<Font> = {}): Partial<Font> {
 
 const thin = { style: 'thin' as const, color: argb(COLORS.border) }
 
-// Excel keeps dates without a time zone: write the local wall-clock time as if it were UTC, so the
-// cell shows what the screen shows.
+/**
+ * Excel keeps dates without a time zone: write the local wall-clock time as if it were UTC, so the
+ * cell shows what the screen shows.
+ */
 export function excelDate(value: string | Date): Date {
   const date = typeof value === 'string' ? new Date(value) : value
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(),
     date.getHours(), date.getMinutes(), date.getSeconds()))
 }
 
-// A calendar day such as "2026-10-19".
+/** A calendar day such as "2026-10-19", at midnight UTC so no time zone shifts it to another day. */
 export function excelDay(day: string): Date {
   const [year, month, date] = day.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, date))
 }
 
-// Serial number Excel stores for a date (days since 1899-12-30).
+/** Serial number Excel stores for a date (days since 1899-12-30). */
 function serial(date: Date): number {
   return (date.getTime() - Date.UTC(1899, 11, 30)) / 86_400_000
 }
 
+/** Letters of a 1-based column number: 1 is "A", 26 is "Z", 27 is "AA". */
 export function columnLetter(index: number): string {
   let letter = ''
   for (let n = index; n > 0; n = Math.floor((n - 1) / 26)) {
@@ -194,11 +208,15 @@ export function columnLetter(index: number): string {
   return letter
 }
 
-// Sheet names: at most 31 characters and none of : \ / ? * [ ].
+/**
+ * Sheet names: at most 31 characters and none of : \ / ? * [ ]. A name already used (ignoring case)
+ * gets a number appended, and the result is added to `used`.
+ */
 function sheetName(name: string, used: Set<string>): string {
   const base = name.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31).trim() || 'Hoja'
   let unique = base
   for (let n = 2; used.has(unique.toLowerCase()); n++) {
+    // 28 leaves room for a space and a two-digit number within the 31-character limit.
     unique = `${base.slice(0, 28)} ${n}`
   }
   used.add(unique.toLowerCase())
@@ -209,7 +227,7 @@ function quoteSheet(name: string) {
   return `'${name.replace(/'/g, "''")}'`
 }
 
-// Structured reference to a table column, escaping the characters Excel reserves in names.
+/** Structured reference to a table column, escaping the characters Excel reserves in names. */
 function structured(table: string, header: string) {
   return `${table}[${header.replace(/(['[\]#])/g, "'$1")}]`
 }
@@ -222,7 +240,7 @@ interface TableInfo {
   sheet: string
   sheetId: number
   section: TableSection
-  // 1-based column of each key and the data rows.
+  /** 1-based column of each key; firstRow and lastRow are the data rows. */
   columns: Map<string, number>
   firstRow: number
   lastRow: number
@@ -258,7 +276,7 @@ class ReportBuilder {
     return `${quoteSheet(info.sheet)}!$${letter}$${info.firstRow}:$${letter}$${info.lastRow}`
   }
 
-  // Formulas and links that point at other sheets, once every sheet is in place.
+  /** Writes the formulas and links that point at other sheets, once every sheet is in place. */
   resolve() {
     for (const { cell, formula, result } of this.pendingFormulas) {
       const text = formula(this.ref)
@@ -375,7 +393,7 @@ class SheetWriter {
     }
   }
 
-  // Dark band with the store, the report and its period; who and when go on its right.
+  /** Dark band with the store, the report and its period; who and when go on its right. */
   private titleBand() {
     const sheet = this.sheet
     const white = argb(COLORS.white)
@@ -466,6 +484,7 @@ class SheetWriter {
     cell.value = text
     cell.font = font({ italic: true, size: 9, color: argb(COLORS.muted) })
     cell.alignment = { wrapText: true, vertical: 'top' }
+    // Excel doesn't auto-fit merged cells, so the height is estimated: about 11 characters per column, 14 points per line.
     this.sheet.getRow(this.row).height = Math.max(15, Math.ceil(text.length / (this.span * 11)) * 14)
     this.row++
   }
@@ -484,7 +503,7 @@ class SheetWriter {
     this.row++
   }
 
-  // Figure cards, two grid columns each: a colored edge, the label, the figure and a hint.
+  /** Figure cards, two grid columns each: a colored edge, the label, the figure and a hint. */
   private kpis(title: string | undefined, items: Kpi[]) {
     if (title) {
       this.sectionTitle(title)
@@ -547,7 +566,7 @@ class SheetWriter {
     })
   }
 
-  // One chart over the full width, or two side by side.
+  /** One chart over the full width, or two side by side. */
   private chartBlock(charts: ChartSpec[]) {
     const height = Math.max(...charts.map((chart) => chart.height ?? CHART_HEIGHT))
     const half = Math.floor(this.span / 2)
@@ -569,7 +588,7 @@ class SheetWriter {
     this.row = start + height
   }
 
-  // Writes a real Excel table; returns the row after it.
+  /** Writes a real Excel table; returns the row after it. */
   private table(section: TableSection, startCol: number): number {
     const sheet = this.sheet
     if (section.title) {
@@ -713,6 +732,7 @@ class SheetWriter {
       if (column.visual === 'bar') {
         sheet.addConditionalFormatting({
           ref,
+          // `as never`: exceljs writes the bar color, but its typings leave `color` out of data-bar rules.
           rules: [{
             type: 'dataBar',
             priority: 2,
@@ -759,6 +779,7 @@ class SheetWriter {
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.6, header: 0.3, footer: 0.3 },
       ...(this.mainHeaderRow !== null && { printTitlesRow: `${this.mainHeaderRow}:${this.mainHeaderRow}` }),
     }
+    // Footer codes: &L and &R are the left and right parts, &8 an 8-point font; pageLabel holds &P (page) and &N (pages).
     sheet.headerFooter.oddFooter = `&L&8${this.meta.storeName} · ${this.spec.title}&R&8${this.meta.pageLabel}`
   }
 }
@@ -787,6 +808,7 @@ export async function workbookBuffer(sheets: SheetSpec[], meta: ReportMeta): Pro
   return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' })
 }
 
+/** Builds the workbook and saves it as a download; ".xlsx" is appended to the file name when missing. */
 export async function downloadWorkbook(fileName: string, sheets: SheetSpec[], meta: ReportMeta) {
   const buffer = await workbookBuffer(sheets, meta)
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })

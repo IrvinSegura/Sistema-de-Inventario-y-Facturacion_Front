@@ -51,6 +51,7 @@ const DESCRIPTION_MAX_LENGTH = 500
 const PRICE_MAX = 9_999_999_999.99
 const MIN_STOCK_MAX = 2_147_483_647
 const BARCODE = /^\d{8,14}$/
+// With a tolerance, because value * 100 can miss the integer by a hair (0.07 * 100 is 7.000000000000001).
 const TWO_DECIMALS = (value: number) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6
 
 function text(t: TFunction, max: number, required?: string) {
@@ -88,7 +89,7 @@ function productSchema(t: TFunction) {
 
 type ProductValues = z.output<ReturnType<typeof productSchema>>
 
-// Fields shared by create and update; empty optional texts are left out. The photo has its own endpoint.
+/** Fields shared by create and update; empty optional texts are left out. The photo has its own endpoint. */
 function toRequest(values: ProductValues, imageUrl: string | undefined) {
   return {
     sku: values.sku,
@@ -103,15 +104,19 @@ function toRequest(values: ProductValues, imageUrl: string | undefined) {
   }
 }
 
+// API field names that have an input here; the form uses the same names, so they map one to one.
 const formFields = ['name', 'sku', 'barcode', 'categoryId', 'salePrice', 'taxRate', 'minStock', 'description']
 
-// Duplicates, an unusable category and 400 field messages go next to their inputs and return true;
-// anything else (e.g. someone else saved first) is left for the alert above the form.
+/**
+ * Duplicates, an unusable category and 400 field messages go next to their inputs and return true;
+ * anything else (e.g. someone else saved first) is left for the alert above the form.
+ */
 function applyServerErrors<T extends Record<string, unknown>>(error: unknown, setError: UseFormSetError<T>, t: TFunction): boolean {
   if (!(error instanceof ApiError)) {
     return false
   }
   const set = (field: string, message: string) => setError(field as Path<T>, { message })
+  // The API's exact messages; keep them in step with the server.
   if (error.message === 'Name already exists') {
     set('name', t('products.form.nameTaken'))
     return true
@@ -133,11 +138,11 @@ function applyServerErrors<T extends Record<string, unknown>>(error: unknown, se
   return known.length > 0
 }
 
-// barcode: a scanned code that isn't registered yet; the form starts with it.
 export function CreateProductDialog({ open, onOpenChange, categories, barcode }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   categories: LabeledCategory[]
+  /** A scanned code that isn't registered yet; the form starts with it. */
   barcode?: string
 }) {
   const { t } = useTranslation()
@@ -152,6 +157,7 @@ export function CreateProductDialog({ open, onOpenChange, categories, barcode }:
   )
 }
 
+/** Edits a product in two tabs, its details and its stock; each product opens on its details. */
 export function EditProductDialog({ product, categories, onOpenChange }: {
   product: Product | null
   categories: LabeledCategory[]
@@ -206,7 +212,7 @@ const editTabs: { value: EditTab; icon: typeof Package }[] = [
   { value: 'stock', icon: PackageOpen },
 ]
 
-// Wide on desktop; the header and the buttons stay put while the fields scroll.
+/** Wide on desktop; the header and the buttons stay put while the fields scroll. */
 function ProductDialogContent({ icon, title, description, children }: {
   icon: ReactNode
   title: string
@@ -229,8 +235,10 @@ function ProductDialogContent({ icon, title, description, children }: {
   )
 }
 
-// One form for both dialogs: without a product it creates one. Saves the fields first, then the
-// initial stock and the photo (their endpoints bump the version the fields' save needs).
+/**
+ * One form for both dialogs: without a product it creates one. Saves the fields first, then the
+ * initial stock and the photo (their endpoints bump the version the fields' save needs).
+ */
 function ProductForm({ product, categories, initialBarcode, onDone }: {
   product?: Product
   categories: LabeledCategory[]
@@ -262,6 +270,7 @@ function ProductForm({ product, categories, initialBarcode, onDone }: {
           minStock: String(product.minStock),
           description: product.description ?? '',
           active: product.active!,
+          // Not shown or sent when editing; only here because the schema requires it.
           initialStock: '0',
         }
       : {
@@ -471,7 +480,7 @@ function ProductForm({ product, categories, initialBarcode, onDone }: {
   )
 }
 
-// Whether a typed VAT (percent text) equals the category's default; empty never does.
+/** Whether a typed VAT (percent text) equals the category's default; empty never does. */
 function sameRate(percent: string, category: Category) {
   return percent.trim() !== '' && Number(percent) === toPercent(category.defaultTaxRate!)
 }
@@ -485,8 +494,10 @@ function Section({ title, columns = 2, children }: { title: string; columns?: 2 
   )
 }
 
-// What the customer pays per unit, with the checkout's rounding ($0.00 until a valid price is typed);
-// only a preview, the server has the final say.
+/**
+ * What the customer pays per unit, with the checkout's rounding ($0.00 until a valid price is typed);
+ * only a preview, the server has the final say.
+ */
 function PriceWithVat({ salePrice, taxRate }: { salePrice: string; taxRate: string }) {
   const { t } = useTranslation()
   const price = Number(salePrice)

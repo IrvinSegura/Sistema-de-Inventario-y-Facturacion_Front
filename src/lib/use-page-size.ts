@@ -7,7 +7,10 @@ function storageKey(table: string) {
   return `inventory.pageSize.${table}`
 }
 
-// Rows per page of one table, remembered per browser (the API pages at most 100).
+/**
+ * Rows per page of one table, remembered per browser (the API pages at most 100). `table` names the
+ * saved choice; DEFAULT_PAGE_SIZE when none is saved or it isn't one of PAGE_SIZES.
+ */
 export function usePageSize(table: string): [number, (size: number) => void] {
   const [size, setSize] = useState(() => {
     try {

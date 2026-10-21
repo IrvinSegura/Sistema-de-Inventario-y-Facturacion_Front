@@ -10,8 +10,10 @@ import { formatDate, formatTime } from './format'
 import { isAssigned, isShared, memberNames } from './members'
 import { type CashDrawer, useDrawerClosing } from './queries'
 
-// One drawer from the day's list or the history: its closing (or, for managers, the live figures
-// and the closing form while it is open) and its tickets.
+/**
+ * One drawer from the day's list or the history: its closing (or, for managers, the live figures
+ * and the closing form while it is open) and its tickets.
+ */
 export function DrawerDetailDialog({ drawer, onOpenChange }: {
   drawer: CashDrawer | null
   onOpenChange: (open: boolean) => void
@@ -76,7 +78,7 @@ export function DrawerDetailDialog({ drawer, onOpenChange }: {
   )
 }
 
-// Managers see the drawer so far; its members don't, to keep their count blind.
+/** Managers see the drawer so far; its members don't, to keep their count blind. */
 function SalesSoFar({ drawer }: { drawer: CashDrawer }) {
   const { t } = useTranslation()
   const closing = useDrawerClosing(drawer.id!)

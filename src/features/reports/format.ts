@@ -7,7 +7,7 @@ function date(day: string) {
   return new Date(`${day}T12:00:00`)
 }
 
-// Short label for a chart axis: "19 oct", the Monday of a week, or "oct 2026".
+/** Short label for a chart axis: "19 oct", the Monday of a week, or "oct 2026". */
 export function bucketLabel(bucket: Bucket, grouping: Grouping, language: string): string {
   const locale = dateLocale(language)
   if (grouping === 'month') {
@@ -16,9 +16,10 @@ export function bucketLabel(bucket: Bucket, grouping: Grouping, language: string
   return date(bucket.start).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
-// Full label for tables, tooltips and reports: "19 oct 2026", "13 – 19 oct 2026" or "octubre 2026".
+/** Full label for tables, tooltips and reports: "19 oct 2026", "13 – 19 oct 2026" or "octubre 2026". */
 export function bucketTitle(bucket: Bucket, grouping: Grouping, language: string): string {
   const locale = dateLocale(language)
+  // Only a whole calendar month gets its name; a month cut by the range shows its dates.
   if (grouping === 'month' && bucket.start.endsWith('-01') && bucket.end === lastDayOfMonth(bucket.start)) {
     return date(bucket.start).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
   }
@@ -28,7 +29,7 @@ export function bucketTitle(bucket: Bucket, grouping: Grouping, language: string
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).formatRange(date(bucket.start), date(bucket.end))
 }
 
-// "+12.5 %", "−3 %" or "0 %"; null (growth from zero) has no percentage.
+/** "+12.5 %", "−3 %" or "0 %"; null (growth from zero) has no percentage. */
 export function formatChange(value: number | null, language: string): string {
   if (value === null) {
     return '—'

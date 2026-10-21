@@ -21,8 +21,10 @@ import { type Product, useDeleteProduct, useUpdateProduct } from './queries'
 // Same message as the API's ProductService.IN_USE_MESSAGE.
 const IN_USE = 'Product has stock movements; deactivate it instead'
 
-// Deleting only works for products never purchased, sold or adjusted; for the rest the API says so
-// and the dialog offers to deactivate it instead, which keeps its history.
+/**
+ * Deleting only works for products never purchased, sold or adjusted; for the rest the API says so
+ * and the dialog offers to deactivate it instead, which keeps its history.
+ */
 export function DeleteProductDialog({ product, onOpenChange }: { product: Product | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
   const deleteProduct = useDeleteProduct()

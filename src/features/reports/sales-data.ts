@@ -9,15 +9,18 @@ export interface Metric {
   key: MetricKey
   type: 'money' | 'int'
   current: number
-  // Undefined when there is no previous period to compare with.
+  /** Undefined when there is no previous period to compare with. */
   previous?: number
+  /** As a fraction from change(): null when growing from zero, undefined without a previous period. */
   change?: number | null
-  // Less is better (cancellations).
+  /** Less is better (cancellations). */
   inverse?: boolean
 }
 
-// The period's figures next to the previous period's, in the order the report shows them. Gross
-// profit only comes for managers (the API leaves costs out for sellers).
+/**
+ * The period's figures next to the previous period's, in the order the report shows them. Gross
+ * profit only comes for managers (the API leaves costs out for sellers).
+ */
 export function salesMetrics(report: SaleReport, previous?: SaleReport): Metric[] {
   const metric = (key: MetricKey, type: Metric['type'], read: (report: SaleReport) => number | undefined,
     inverse?: boolean): Metric => {
@@ -43,12 +46,12 @@ export interface MethodRow {
   method: PaymentMethod
   tickets: number
   total: number
-  // Of the period's completed sales.
+  /** Of the period's completed sales. */
   share: number
   change?: number | null
 }
 
-// Every payment method with sales in either period.
+/** Every payment method with sales in either period. */
 export function methodRows(report: SaleReport, previous?: SaleReport): MethodRow[] {
   const total = report.completed?.total ?? 0
   const find = (from: SaleReport | undefined, method: PaymentMethod) =>
@@ -79,7 +82,7 @@ export interface SellerRow {
   change?: number | null
 }
 
-// Sellers of the period, best first, against what each one sold in the previous period.
+/** Sellers of the period, best first, against what each one sold in the previous period. */
 export function sellerRows(report: SaleReport, previous?: SaleReport): SellerRow[] {
   const total = report.completed?.total ?? 0
   return (report.bySeller ?? []).map((seller) => {

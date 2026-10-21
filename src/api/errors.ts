@@ -1,12 +1,16 @@
 import i18n, { type MessageKey } from '@/i18n'
 
-// The API answers every error with an RFC 9457 ProblemDetail; validation errors add field messages.
+/** The API answers every error with an RFC 9457 ProblemDetail; validation errors add field messages. */
 export interface Problem {
   status?: number
   detail?: string
   errors?: Record<string, string>
 }
 
+/**
+ * A failed API call. message keeps the API's English detail when there is one, to match against;
+ * show errorMessage(error) to the user. fieldErrors holds the validation messages by field.
+ */
 export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string>
@@ -81,6 +85,7 @@ const statusMessages: Partial<Record<number, MessageKey>> = {
   403: 'errors.forbidden',
   404: 'errors.notFound',
   409: 'errors.conflict',
+  // Today only the product image upload can get a 413, so it means the image is too large.
   413: 'apiErrors.imageTooLarge',
   429: 'errors.tooManyRequests',
 }
@@ -96,7 +101,7 @@ function translateApiMessage(message: string, status: number): string {
   return key ? i18n.t(key) : i18n.t('errors.requestFailed', { status })
 }
 
-// Message for a toast or form; network failures (API asleep or offline) get a friendly hint.
+/** Message for a toast or form; network failures (API asleep or offline) get a friendly hint. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.status === 503 ? i18n.t('errors.busy') : translateApiMessage(error.message, error.status)

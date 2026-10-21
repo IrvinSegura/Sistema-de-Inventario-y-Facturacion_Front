@@ -5,7 +5,7 @@ import { dateLocale } from '@/i18n'
 
 import type { ReportMeta } from './excel'
 
-// Labels and author every Excel report shares, in the current language.
+/** Labels and author every Excel report shares, in the current language; the author is the signed-in user. */
 export function useReportMeta(): ReportMeta {
   const { t, i18n } = useTranslation()
   const user = useUser()

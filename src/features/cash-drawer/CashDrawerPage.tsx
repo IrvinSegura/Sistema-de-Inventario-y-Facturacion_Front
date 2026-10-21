@@ -27,20 +27,23 @@ import { formatDate, formatTime } from './format'
 import { isAssigned, isResponsible, isShared } from './members'
 import { type CashDrawer, useCurrentDrawer, useLatestDrawer, useOpenDrawer } from './queries'
 
-// Managers have no drawer of their own: their cash drawer section starts at "Today's drawers".
+/** Managers have no drawer of their own: their cash drawer section starts at "Today's drawers". */
 export function CashDrawerPage() {
   const user = useUser()
   return managesStore(user.role) ? <Navigate to="/cash-drawer/today" replace /> : <MyDrawerPage />
 }
 
-// The drawer the seller sells from: their own, or one a manager assigned them (maybe shared).
-// They open their own; only the drawer's responsible counts and closes it.
+/**
+ * The drawer the seller sells from: their own, or one a manager assigned them (maybe shared).
+ * They open their own; only the drawer's responsible counts and closes it.
+ */
 function MyDrawerPage() {
   const user = useUser()
   const current = useCurrentDrawer()
   const latest = useLatestDrawer(current.data === null)
   const today = useToday()
 
+  // latest is disabled while a drawer is open, and a disabled query stays pending.
   if (current.isPending || (current.data === null && latest.isPending)) {
     return <LoadingBlock />
   }
@@ -68,6 +71,7 @@ function MyDrawerPage() {
   )
 }
 
+/** Opens the seller's own drawer; suggestedFloat (the last drawer's float) prefills the amount. */
 function OpenDrawerCard({ suggestedFloat }: { suggestedFloat: number }) {
   const { t } = useTranslation()
   const openDrawer = useOpenDrawer()
@@ -154,7 +158,7 @@ function CloseDrawerCard({ drawer }: { drawer: CashDrawer }) {
   )
 }
 
-// A member who isn't the responsible sells from it, but the responsible counts and closes it.
+/** A member who isn't the responsible sells from it, but the responsible counts and closes it. */
 function MemberDrawerCard({ drawer }: { drawer: CashDrawer }) {
   const { t, i18n } = useTranslation()
   return (

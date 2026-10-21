@@ -17,7 +17,7 @@ import { CategoryDialog } from './CategoryDialog'
 import { useCategories } from './queries'
 import { useLabeledCategories } from './use-labeled-categories'
 
-// Everyone can see the categories; only admins add or edit them (same rule as the API).
+/** Everyone can see the categories; only admins and supervisors add or edit them (same rule as the API). */
 export function CategoriesPage() {
   const { t, i18n } = useTranslation()
   const { role } = useUser()

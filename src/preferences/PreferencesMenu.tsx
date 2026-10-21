@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 
 import { LanguageToggle, ThemeToggle } from './PreferenceToggles'
 
-// Language and theme before signing in; once signed in they live in the account menu.
+/** Language and theme before signing in; once signed in they live in the account menu. */
 export function PreferencesMenu() {
   const { t } = useTranslation()
 

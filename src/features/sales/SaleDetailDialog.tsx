@@ -23,8 +23,10 @@ import { formatTaxRate } from '@/features/products/tax-rate'
 import { dateLocale } from '@/i18n'
 import { formatMoney } from '@/lib/money'
 
-// A sale as the server recorded it: price and VAT of every line, who sold it and, when cancelled,
-// who cancelled it and why. Managers can cancel it from here.
+/**
+ * A sale as the server recorded it: price and VAT of every line, who sold it and, when cancelled,
+ * who cancelled it and why. Managers can cancel it from here.
+ */
 export function SaleDetailDialog({ saleId, canCancel, onClose }: {
   saleId: number | null
   canCancel: boolean
@@ -140,7 +142,7 @@ export function SaleDetailDialog({ saleId, canCancel, onClose }: {
           )}
         </DialogContent>
       </Dialog>
-      {/* Back to the detail after cancelling (it then shows the cancellation) or keeping the sale. */}
+      {/* The detail hides while this is open and comes back after cancelling (showing the cancellation) or keeping the sale. */}
       <CancelSaleDialog sale={cancelling && data ? data : null} onOpenChange={(open) => !open && setCancelling(false)} />
     </>
   )

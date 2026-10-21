@@ -1,5 +1,7 @@
-// Parts of a text that match a search, ignoring case and accents ("cafe" finds "Café"), for bolding
-// them in results. Each part keeps the original characters.
+/**
+ * Parts of a text that match a search, ignoring case and accents ("cafe" finds "Café"), for bolding
+ * them in results. Each part keeps the original characters.
+ */
 export interface TextPart {
   text: string
   match: boolean
@@ -7,7 +9,7 @@ export interface TextPart {
 
 const MARKS = /\p{M}/gu
 
-// Each character folded (no accents, lower case), with the index of the original character it came from.
+/** Each character folded (no accents, lower case), with the index of the original character it came from. */
 function fold(text: string) {
   let folded = ''
   const origin: number[] = []
@@ -21,6 +23,10 @@ function fold(text: string) {
   return { folded, origin }
 }
 
+/**
+ * The whole text, in order, split into its matches and the rest between them; a single unmatched part
+ * when the search is blank or not found.
+ */
 export function highlightParts(text: string, query: string): TextPart[] {
   const needle = fold(query.trim()).folded
   if (needle === '' || text === '') {

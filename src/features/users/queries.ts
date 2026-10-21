@@ -18,7 +18,10 @@ export const userKeys = {
   list: ['users', 'list'] as const,
 }
 
-// Every account (sellers, supervisors and admins) comes from the users API (ADMIN only), sorted by name on the server.
+/**
+ * Every account (sellers, supervisors and admins) comes from the users API (ADMIN only), sorted by name
+ * on the server unless sort says otherwise.
+ */
 export function useUserAccounts(page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: userKeys.page(page, size, sort),
@@ -45,7 +48,7 @@ export function useUpdateUserAccount() {
   })
 }
 
-// Every account on one page, for filters elsewhere (the cash drawer history); ADMIN only.
+/** Every account on one page, for seller filters elsewhere (e.g. the cash drawer history); ADMIN only. */
 export function useAllUserAccounts(enabled: boolean) {
   return useQuery({
     queryKey: userKeys.list,

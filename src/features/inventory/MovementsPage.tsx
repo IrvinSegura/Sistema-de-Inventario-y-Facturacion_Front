@@ -63,8 +63,10 @@ const typeIcons: Record<MovementType, LucideIcon> = {
   ADJUSTMENT: SlidersHorizontal,
 }
 
-// Stock ledger (kardex) of one product: every purchase, sale, cancellation and adjustment, with the
-// stock it left and who recorded it. The product is in the URL, so a link opens its ledger.
+/**
+ * Stock ledger (kardex) of one product: every purchase, sale, cancellation and adjustment, with the
+ * stock it left and who recorded it. The product is in the URL, so a link opens its ledger.
+ */
 export function MovementsPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -233,6 +235,7 @@ export function MovementsPage() {
               )}
             </div>
             <div className="flex gap-2">
+              {/* A fresh asOf, not a refetch: the old bound would keep hiding newer movements. */}
               <Button variant="ghost" className="h-9" onClick={() => refilter(() => {})} aria-label={t('inventory.ledger.refresh')}>
                 <RefreshCw className={cn(movements.isFetching && 'animate-spin')} />
               </Button>

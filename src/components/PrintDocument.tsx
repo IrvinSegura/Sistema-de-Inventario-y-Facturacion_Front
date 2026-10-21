@@ -1,3 +1,8 @@
+/**
+ * Building blocks of the documents <PrintButton> prints (or saves as PDF). They use fixed colors,
+ * not theme tokens, so the dark theme never reaches the paper.
+ */
+
 import { Store } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,15 +11,12 @@ import { useUser } from '@/auth/auth-context'
 import { dateLocale } from '@/i18n'
 import { cn } from '@/lib/utils'
 
-// Building blocks of the documents <PrintButton> prints (or saves as PDF). They use fixed colors,
-// not theme tokens, so the dark theme never reaches the paper.
-
-// A sheet with the store and the document's kind, folio and date on top, and who printed it below.
+/** A sheet with the store and the document's kind, folio and date on top, and who printed it below. */
 export function PrintDocument({ kind, folio, date, notice, children }: {
   kind: string
   folio?: number
   date: string
-  // Shown right under the header, e.g. a cancelled sale.
+  /** Shown right under the header, e.g. a cancelled sale. */
   notice?: ReactNode
   children: ReactNode
 }) {
@@ -58,7 +60,7 @@ export function PrintDocument({ kind, folio, date, notice, children }: {
   )
 }
 
-// A red banner, e.g. for a cancelled document.
+/** A red banner, e.g. for a cancelled document. */
 export function PrintNotice({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-red-800">
@@ -77,7 +79,7 @@ export function PrintSection({ title, children }: { title: string; children: Rea
   )
 }
 
-// Label/value boxes: customer, seller, payment method...
+/** Label/value boxes: customer, seller, payment method... An empty value shows as a dash. */
 export function PrintFields({ fields, columns = 3 }: { fields: [string, ReactNode][]; columns?: 2 | 3 | 4 }) {
   return (
     <dl className={cn('grid gap-2', { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[columns])}>
@@ -94,16 +96,19 @@ export function PrintFields({ fields, columns = 3 }: { fields: [string, ReactNod
 export interface PrintColumn<T> {
   header: string
   cell: (row: T) => ReactNode
+  /** Right-aligned, with tabular figures. */
   numeric?: boolean
+  /** Extra classes for the body cells only, not the header. */
   className?: string
 }
 
-// Lines of the document; the header row repeats on every printed page.
+/** Lines of the document; the header row repeats on every printed page. */
 export function PrintTable<T>({ columns, rows, rowKey }: {
   columns: PrintColumn<T>[]
   rows: T[]
   rowKey: (row: T, index: number) => string | number
 }) {
+  // border-separate because collapsed borders would ignore the header cells' rounded corners.
   return (
     <table className="w-full border-separate border-spacing-0 text-[9pt]">
       <thead>
@@ -140,14 +145,14 @@ export function PrintTable<T>({ columns, rows, rowKey }: {
 export interface PrintTotal {
   label: string
   value: ReactNode
-  // The grand total, on a dark band.
+  /** The grand total, on a dark band. */
   grand?: boolean
-  // Bold, under a rule: a closing figure that isn't a grand total.
+  /** Bold, under a rule: a closing figure that isn't a grand total. */
   strong?: boolean
   tone?: 'danger' | 'warning'
 }
 
-// Right-aligned summary under the lines.
+/** Right-aligned summary under the lines; `aside` goes on its left, e.g. a note. */
 export function PrintTotals({ rows, aside }: { rows: PrintTotal[]; aside?: ReactNode }) {
   return (
     <div className="flex items-end justify-between gap-8 break-inside-avoid">
@@ -170,7 +175,7 @@ export function PrintTotals({ rows, aside }: { rows: PrintTotal[]; aside?: React
   )
 }
 
-// Lines to sign, with the expected signer's name under the line when known.
+/** Lines to sign, with the expected signer's name under the line when known. */
 export function PrintSignatures({ signers }: { signers: { label: string; name?: string }[] }) {
   return (
     <div className="grid grid-cols-2 gap-16 px-6 pt-14 break-inside-avoid">

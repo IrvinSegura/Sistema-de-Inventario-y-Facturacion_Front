@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 
-// Out of stock, at or below the minimum, or fine.
+/** Out of stock, at or below the minimum, or fine. */
 export function StockBadge({ stock, lowStock }: { stock: number; lowStock: boolean }) {
   const { t } = useTranslation()
   if (stock <= 0) {

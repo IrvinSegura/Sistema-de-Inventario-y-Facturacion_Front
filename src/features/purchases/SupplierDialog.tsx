@@ -39,6 +39,7 @@ const NAME_MAX_LENGTH = 150
 const EMAIL_MAX_LENGTH = 150
 const ADDRESS_MAX_LENGTH = 255
 
+// API field names that have an input here; the form uses the same names, so they map one to one.
 const fields = ['name', 'taxId', 'email', 'phone', 'address'] as const
 
 function supplierSchema(t: TFunction) {
@@ -58,7 +59,10 @@ function supplierSchema(t: TFunction) {
   })
 }
 
-// open: null closed, 'new' to create, a supplier to edit it. onCreated gets the new supplier.
+/**
+ * Creates or edits a supplier. open: null closed, 'new' to create, a supplier to edit it. onCreated
+ * gets the new supplier (edits don't call it).
+ */
 export function SupplierDialog({ open, onOpenChange, onCreated }: {
   open: Supplier | 'new' | null
   onOpenChange: (open: boolean) => void
@@ -118,6 +122,7 @@ function SupplierForm({ supplier, onCreated, onDone }: {
     if (!(error instanceof ApiError)) {
       return
     }
+    // The API's exact message; keep it in step with the server.
     if (error.message === 'Tax ID already exists') {
       setError('taxId', { message: t('suppliers.form.taxIdTaken') })
       mutation.reset()
@@ -179,6 +184,7 @@ function SupplierForm({ supplier, onCreated, onDone }: {
         <Textarea id="supplier-address" maxLength={ADDRESS_MAX_LENGTH}
           aria-invalid={!!errors.address} {...register('address')} />
       </Field>
+      {/* Edit only: the create request has no active flag, so new suppliers start active. */}
       {supplier && (
         <label className="flex items-start gap-3 rounded-lg border p-3">
           <input type="checkbox" className="mt-0.5 size-4 accent-primary" {...register('active')} />

@@ -5,7 +5,7 @@ import { Link, Outlet, useMatch } from 'react-router'
 import { SectionTabs } from '@/components/SectionTabs'
 import { buttonVariants } from '@/components/ui/button'
 
-// Admins and supervisors only (the route and the menu): purchases, a new one and the suppliers.
+/** Admins and supervisors only (the route and the menu): purchases, a new one and the suppliers. */
 export function PurchasesLayout() {
   const { t } = useTranslation()
   const creating = useMatch('/purchases/new')

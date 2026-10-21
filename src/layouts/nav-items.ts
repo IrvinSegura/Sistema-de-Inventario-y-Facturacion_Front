@@ -21,7 +21,7 @@ export interface NavItem {
   to: string
   label: MessageKey
   icon: LucideIcon
-  // Shown only to these roles; everyone when omitted.
+  /** Shown only to these roles; everyone when omitted. */
   roles?: Role[]
 }
 
@@ -35,7 +35,7 @@ export const navItems: NavItem[] = [
   { to: '/checkout', label: 'app.nav.checkout', icon: ShoppingCart, roles: ['SELLER'] },
   { to: '/cash-drawer', label: 'app.nav.cashDrawer', icon: Wallet },
   { to: '/sales', label: 'app.nav.sales', icon: Receipt, roles: MANAGERS },
-  // Everyone can look up prices and stock; only admins see the create and edit buttons.
+  // Everyone can look up prices and stock; only managers see the create and edit buttons.
   { to: '/products', label: 'app.nav.products', icon: Package },
   { to: '/categories', label: 'app.nav.categories', icon: Tags },
   { to: '/inventory', label: 'app.nav.inventory', icon: Warehouse, roles: MANAGERS },
@@ -43,6 +43,6 @@ export const navItems: NavItem[] = [
   { to: '/customers', label: 'app.nav.customers', icon: Contact, roles: MANAGERS },
   // Sellers get their own sales report; managers every report.
   { to: '/reports', label: 'app.nav.reports', icon: ChartColumn },
-  // Every account: sellers, supervisors and admins.
+  // Manages the accounts of every role: sellers, supervisors and admins.
   { to: '/users', label: 'app.nav.users', icon: Users, roles: ['ADMIN'] },
 ]

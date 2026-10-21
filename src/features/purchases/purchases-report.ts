@@ -5,19 +5,22 @@ import { fromCents, toCents } from '@/lib/money'
 
 import type { Purchase, PurchaseSummary } from './queries'
 
+/** The day (YYYY-MM-DD) of an instant in the browser's time zone. */
 function local(iso: string) {
   const day = new Date(iso)
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
 }
 
-// Dashboard (figures, suppliers, purchases by day and the products bought, each with its chart), the
-// purchases and, when their lines were loaded, every line. Figures, supplier totals, products and
-// line subtotals are formulas over the data sheets.
+/**
+ * Dashboard (figures, suppliers, purchases by day and the products bought, each with its chart), the
+ * purchases and, when their lines were loaded, every line. Figures, supplier totals, products and
+ * line subtotals are formulas over the data sheets.
+ */
 export function purchasesWorkbook({ t, purchases, truncated, details, period, info }: {
   t: TFunction
   purchases: PurchaseSummary[]
   truncated: boolean
-  // Null when there were too many purchases to load their lines.
+  /** The same purchases with their lines, in the same order; null when there were too many to load. */
   details: Purchase[] | null
   period: string
   info: [string, string][]
@@ -47,6 +50,7 @@ export function purchasesWorkbook({ t, purchases, truncated, details, period, in
   })))
   const units = lineRows.reduce((sum, row) => sum + ((row.quantity as number) ?? 0), 0)
 
+  // By name, not id: the TProveedores formulas match TCompras on the supplier name column.
   const suppliers: Row[] = [...purchases.reduce((groups, purchase) => {
     const name = purchase.supplier?.name ?? ''
     const entry = groups.get(name) ?? { count: 0, cents: 0, last: purchase.purchaseDate! }

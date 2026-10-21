@@ -8,19 +8,22 @@ export interface ClosingFigures {
   cancellations: number
   net: number
   floats: number
-  // Net cash of the day's sales and refunds.
+  /** Net cash of the day's sales and refunds. */
   cashNet: number
-  // Floats plus the net cash: what every drawer of the day should hold together.
+  /** Floats plus the net cash: what every drawer of the day should hold together. */
   expected: number
   drawerCount: number
   closedCount: number
-  // Of the closed drawers only, as recorded when each one was closed.
+  /**
+   * Of the closed drawers only, as recorded when each one was closed; counted and difference cover
+   * the same drawers.
+   */
   closedExpected: number
   counted: number
   difference: number
 }
 
-// A day's totals, and the counts of the drawers already closed.
+/** A day's totals, and the counts of the drawers already closed. */
 export function closingFigures(closing: CashClosing): ClosingFigures {
   const drawers = closing.drawers ?? []
   const closed = drawers.map((drawer) => drawer.closing).filter((figures) => figures !== undefined)

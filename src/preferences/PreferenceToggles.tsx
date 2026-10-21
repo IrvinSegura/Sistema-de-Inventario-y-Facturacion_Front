@@ -9,8 +9,10 @@ import { cn } from '@/lib/utils'
 
 import { type Theme, themes } from './themes'
 
-// Menu rows that switch language and theme in place: the menu stays open so the change is visible.
-// Both choices are remembered in this browser.
+/**
+ * Menu row that switches the language in place: the menu stays open so the change is visible.
+ * The choice is remembered in this browser.
+ */
 export function LanguageToggle() {
   const { t, i18n } = useTranslation()
   const language = currentLanguage()
@@ -26,6 +28,10 @@ export function LanguageToggle() {
   )
 }
 
+/**
+ * Menu row that switches between light and dark in place: the menu stays open so the change is visible.
+ * The choice is remembered in this browser.
+ */
 export function ThemeToggle() {
   const { t } = useTranslation()
   const { resolvedTheme, setTheme } = useTheme()
@@ -46,7 +52,7 @@ export function ThemeToggle() {
   )
 }
 
-// Two-state pill showing both options; the whole row is the control, so this is only visual.
+/** Two-state pill showing both options; the whole row is the control, so this is only visual. */
 function Segmented<T extends string>({ value, options }: {
   value: T
   options: { value: T; label: ReactNode; title?: string }[]

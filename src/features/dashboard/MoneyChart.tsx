@@ -11,11 +11,12 @@ const series = [
   { key: 'purchases', label: 'dashboard.series.purchases', color: 'var(--chart-2)' },
 ] as const
 
-// Money in (sales) next to money out (purchases), per day or week; one axis, both in MXN.
+/** Money in (sales) next to money out (purchases), per day or week; one axis, both in MXN. */
 export function MoneyChart({ data, showPurchases }: { data: MoneyBucket[]; showPurchases: boolean }) {
   const { t, i18n } = useTranslation()
   const visible = showPurchases ? series : series.slice(0, 1)
   const day = new Intl.DateTimeFormat(dateLocale(i18n.language), { day: 'numeric', month: 'short' })
+  // Local midnight (no Z), so formatting in the browser's zone keeps the same calendar day.
   const label = (bucket: MoneyBucket) => day.format(new Date(`${bucket.start}T00:00:00`))
 
   return (

@@ -4,20 +4,22 @@ import { fromCents, toCents } from '@/lib/money'
 export type Grouping = 'day' | 'week' | 'month'
 export const groupings: Grouping[] = ['day', 'week', 'month']
 
-// First and last calendar day a bucket covers, both inclusive.
+/** First and last calendar day a bucket covers, both inclusive. */
 export interface Bucket {
   start: string
   end: string
 }
 
-// The period of the same length that ends the day before `range` starts.
+/** The period of the same length that ends the day before `range` starts. */
 export function previousRange(range: DayRange): DayRange {
   const days = daysInRange(range)
   return { from: addDays(range.from, -days), to: addDays(range.from, -1) }
 }
 
-// Change from `previous` to `current` as a fraction (0.25 = +25 %); null when the previous value is
-// zero and the current one isn't, since no percentage describes growing from nothing.
+/**
+ * Change from `previous` to `current` as a fraction (0.25 = +25 %); null when the previous value is
+ * zero and the current one isn't, since no percentage describes growing from nothing.
+ */
 export function change(current: number, previous: number): number | null {
   if (previous === 0) {
     return current === 0 ? 0 : null
@@ -25,14 +27,16 @@ export function change(current: number, previous: number): number | null {
   return (current - previous) / Math.abs(previous)
 }
 
-// Days for up to a month, weeks for up to four months, months beyond.
+/** Days for up to a month, weeks for up to four months, months beyond. */
 export function defaultGrouping(range: DayRange): Grouping {
   const days = daysInRange(range)
   return days <= 31 ? 'day' : days <= 120 ? 'week' : 'month'
 }
 
-// Last day of the bucket that starts on `day`: the same day, the Sunday of its week (weeks start on
-// Monday) or the last day of its month.
+/**
+ * Last day of the bucket that starts on `day`: the same day, the Sunday of its week (weeks start on
+ * Monday) or the last day of its month.
+ */
 function bucketEnd(day: string, grouping: Grouping): string {
   switch (grouping) {
     case 'day':
@@ -44,7 +48,7 @@ function bucketEnd(day: string, grouping: Grouping): string {
   }
 }
 
-// Calendar buckets covering the whole range; the first and last ones are cut to the range.
+/** Calendar buckets covering the whole range; the first and last ones are cut to the range. */
 export function buckets(range: DayRange, grouping: Grouping): Bucket[] {
   const result: Bucket[] = []
   for (let start = range.from; start <= range.to;) {
@@ -56,7 +60,7 @@ export function buckets(range: DayRange, grouping: Grouping): Bucket[] {
   return result
 }
 
-// Integer cents per calendar day, adding up entries of the same day.
+/** Integer cents per calendar day, adding up entries of the same day; entries without a day are skipped. */
 export function centsByDay<T>(items: T[], day: (item: T) => string | undefined, amount: (item: T) => number | undefined) {
   const cents = new Map<string, number>()
   for (const item of items) {
@@ -68,7 +72,10 @@ export function centsByDay<T>(items: T[], day: (item: T) => string | undefined, 
   return cents
 }
 
-// Total of a bucket's days, `shift` days away (to read the same days of another period).
+/**
+ * Total of a bucket's days, `shift` days away (to read the same days of another period). Reads the
+ * cents from centsByDay and returns pesos.
+ */
 export function sumBucket(bucket: Bucket, cents: Map<string, number>, shift = 0): number {
   let total = 0
   for (let day = bucket.start; day <= bucket.end; day = addDays(day, 1)) {
@@ -82,8 +89,10 @@ export interface ComparisonPoint extends Bucket {
   previous: number
 }
 
-// Sales of each bucket next to the same days of the previous period, which is `range` shifted back
-// by its own length.
+/**
+ * Sales of each bucket next to the same days of the previous period, which is `range` shifted back
+ * by its own length.
+ */
 export function comparisonSeries(range: DayRange, grouping: Grouping, current: Map<string, number>,
   previous: Map<string, number>): ComparisonPoint[] {
   const shift = -daysInRange(range)
@@ -98,11 +107,11 @@ export interface FlowPoint extends Bucket {
   sales: number
   purchases: number
   net: number
-  // Net flow from the start of the range to the end of this bucket.
+  /** Net flow from the start of the range to the end of this bucket. */
   cumulative: number
 }
 
-// Money in (sales) and out (purchases) per bucket, with every bucket present even without movements.
+/** Money in (sales) and out (purchases) per bucket, with every bucket present even without movements. */
 export function flowSeries(range: DayRange, grouping: Grouping, sales: Map<string, number>,
   purchases: Map<string, number>): FlowPoint[] {
   let cumulative = 0
@@ -115,7 +124,7 @@ export function flowSeries(range: DayRange, grouping: Grouping, sales: Map<strin
   })
 }
 
-// The whole range's money in and out.
+/** The whole range's money in and out. */
 export function flowTotals(series: FlowPoint[]) {
   const sales = series.reduce((total, point) => total + toCents(point.sales), 0)
   const purchases = series.reduce((total, point) => total + toCents(point.purchases), 0)

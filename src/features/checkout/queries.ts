@@ -7,15 +7,17 @@ export type Product = Schemas['ProductResponse']
 export type Sale = Schemas['SaleResponse']
 export type PaymentMethod = Schemas['CreateSaleRequest']['paymentMethod']
 
-// How many matches the customer search shows; a longer list means the search needs more letters.
+/** How many matches the customer search shows; a longer list means the search needs more letters. */
 export const CUSTOMER_MATCHES = 5
 
 export function findProductByBarcode(barcode: string): Promise<Product> {
   return unwrap(api.GET('/api/v1/products/barcode/{barcode}', { params: { path: { barcode } } }))
 }
 
-// Active customers by name or tax ID; nothing is requested until something is typed. Kept under
-// customerKeys.all so creating or editing a customer refreshes the matches.
+/**
+ * Active customers by name or tax ID; nothing is requested until something is typed. Kept under
+ * customerKeys.all so creating or editing a customer refreshes the matches.
+ */
 export function useCustomerSearch(search: string) {
   return useQuery({
     queryKey: [...customerKeys.all, 'checkout-search', search] as const,
@@ -30,14 +32,16 @@ export function useCustomerSearch(search: string) {
 
 export interface SaleInput {
   idempotencyKey: string
-  // Missing: the API sells to the walk-in customer.
+  /** Missing: the API sells to the walk-in customer. */
   customerId?: number
   paymentMethod: PaymentMethod
   items: { productId: number; quantity: number }[]
 }
 
-// The key is generated once per checkout and reused on retries, so a double click or a lost
-// response never charges twice: the API returns the sale it already recorded.
+/**
+ * The key is generated once per checkout and reused on retries, so a double click or a lost
+ * response never charges twice: the API returns the sale it already recorded.
+ */
 export function useRecordSale() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 
-// One figure of a summary row; value undefined shows a placeholder while it loads.
+/** One figure of a summary row; value undefined shows a placeholder while it loads. */
 export function StatTile({ label, value, hint, className }: {
   label: string
   value?: ReactNode

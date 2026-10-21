@@ -6,13 +6,15 @@ import { TableHead } from '@/components/ui/table'
 import { nextSort, type SortDirection, type SortState } from '@/lib/sort'
 import { cn } from '@/lib/utils'
 
-// Table header that orders the list by its field: click for its first direction, again for the
-// other, a third time for the list's default order. The arrow shows the current one.
+/**
+ * Table header that orders the list by its field: click for its first direction, again for the
+ * other, a third time for the list's default order. The arrow shows the current one.
+ */
 export function SortableHead({ field, sort, onSort, first = 'asc', align = 'left', className, children }: {
   field: string
   sort: SortState | null
   onSort: (sort: SortState | null) => void
-  // asc for text; desc for amounts, quantities and dates (largest or newest first).
+  /** asc for text; desc for amounts, quantities and dates (largest or newest first). */
   first?: SortDirection
   align?: 'left' | 'right'
   className?: string

@@ -13,14 +13,17 @@ export const MOVEMENT_TYPES: MovementType[] = ['PURCHASE', 'SALE', 'SALE_CANCELL
 export const PAGE_SIZE = 20
 // The API pages at most 100 items.
 const MAX_PAGE_SIZE = 100
+/** Most rows the fetchAll helpers read, for the Excel exports and restocking everything at once. */
 export const MAX_EXPORT_ROWS = 2_000
 
 export interface MovementFilters {
   productId: number
   type: MovementType | null
   range: DayRange | null
-  // Upper bound fixed when the filters were set, so new movements don't shift the pages (the API
-  // asks for it when paging a busy product).
+  /**
+   * Upper bound fixed when the filters were set, so new movements don't shift the pages (the API
+   * asks for it when paging a busy product).
+   */
   asOf: string
 }
 
@@ -42,11 +45,12 @@ function movementQuery(filters: MovementFilters) {
     productId: filters.productId,
     type: filters.type ?? undefined,
     from: filters.range ? startOfDay(filters.range.from) : undefined,
+    // The earlier of the range's end and asOf; both are UTC ISO strings, so they compare as text.
     to: rangeEnd && rangeEnd < filters.asOf ? rangeEnd : filters.asOf,
   }
 }
 
-// One product's stock ledger, newest first.
+/** One product's stock ledger, newest first; idle while filters is null. */
 export function useMovements(filters: MovementFilters | null, page: number, size = PAGE_SIZE) {
   return useQuery({
     queryKey: movementKeys.page(filters!, page, size),
@@ -58,6 +62,7 @@ export function useMovements(filters: MovementFilters | null, page: number, size
   })
 }
 
+/** The whole filtered ledger, newest first, up to MAX_EXPORT_ROWS; `truncated` tells if there were more. */
 export async function fetchAllMovements(filters: MovementFilters) {
   const movements: Movement[] = []
   let total = 0
@@ -74,7 +79,7 @@ export async function fetchAllMovements(filters: MovementFilters) {
   return { movements, truncated: total > movements.length }
 }
 
-// Active products at or below their minimum, most urgent first.
+/** Active products at or below their minimum, most urgent first. */
 export function useLowStockPage(categoryId: number | null, page: number, size = PAGE_SIZE) {
   return useQuery({
     queryKey: lowStockKeys.page(categoryId, page, size),
@@ -85,7 +90,7 @@ export function useLowStockPage(categoryId: number | null, page: number, size = 
   })
 }
 
-// Just the count, for the stock overview's tiles and the supervision alerts (which poll it).
+/** Just the count, for the stock overview's tiles and the supervision alerts (which poll it). */
 export function useLowStockCount({ refetchInterval }: { refetchInterval?: number } = {}) {
   return useQuery({
     queryKey: ['stock-reports', 'low-stock', 'count'] as const,
@@ -97,7 +102,10 @@ export function useLowStockCount({ refetchInterval }: { refetchInterval?: number
   })
 }
 
-// Every low-stock product of a category (or all), to restock them in one purchase.
+/**
+ * Every low-stock product of a category (or all), up to MAX_EXPORT_ROWS, to restock or export them
+ * at once.
+ */
 export async function fetchAllLowStock(categoryId: number | null) {
   const products: LowStockProduct[] = []
   for (let page = 0; products.length < MAX_EXPORT_ROWS; page++) {
@@ -112,7 +120,7 @@ export async function fetchAllLowStock(categoryId: number | null) {
   return products
 }
 
-// How many active products the store has.
+/** How many active products the store has. */
 export function useStockCounts() {
   return useQuery({
     queryKey: ['products', 'stock-counts'] as const,
@@ -123,7 +131,10 @@ export function useStockCounts() {
   })
 }
 
-// Every product of the stock filters (up to MAX_EXPORT_ROWS), for the Excel report.
+/**
+ * Every product of the stock filters (up to MAX_EXPORT_ROWS), for the Excel report; `truncated`
+ * tells if there were more.
+ */
 export async function fetchAllProducts(
   filters: { search: string; categoryId: number | null; active: boolean; lowStock: boolean },
   sort: SortState | null = null,

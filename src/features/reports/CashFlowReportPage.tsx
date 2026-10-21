@@ -29,8 +29,10 @@ import { cashFlowWorkbook } from './reports-excel'
 
 const DEFAULT_RANGE_DAYS = 30
 
-// Money that came in from sales against what went out to suppliers, per day, week or month. It is
-// cash flow, not profit: purchases buy stock that is sold later.
+/**
+ * Money that came in from sales against what went out to suppliers, per day, week or month. It is
+ * cash flow, not profit: purchases buy stock that is sold later.
+ */
 export function CashFlowReportPage() {
   const { t, i18n } = useTranslation()
   const [range, setRange] = useState<DayRange>(() => lastDaysRange(DEFAULT_RANGE_DAYS))

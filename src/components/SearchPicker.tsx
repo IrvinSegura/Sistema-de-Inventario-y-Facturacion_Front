@@ -11,8 +11,10 @@ const SEARCH_DELAY_MS = 300
 const LIST_ROOM = 320
 const GAP = 4
 
-// Where the floating list goes: under the input (or above it near the bottom of the window), as wide
-// as the input. Fixed to the window, so no card or scroll container clips it.
+/**
+ * Where the floating list goes: under the input (or above it near the bottom of the window), as wide
+ * as the input. Fixed to the window, so no card or scroll container clips it.
+ */
 function listPosition(anchor: DOMRect): CSSProperties {
   const below = window.innerHeight - anchor.bottom
   const above = below < LIST_ROOM && anchor.top > below
@@ -27,15 +29,17 @@ function listPosition(anchor: DOMRect): CSSProperties {
 
 export interface SearchResults<T> {
   items: T[]
-  // Matches on the server; more than items means the search needs more letters.
+  /** Matches on the server; more than items means the search needs more letters. */
   total: number
   isFetching: boolean
   isError: boolean
 }
 
-// Search box with a list of matches under it: arrows move, Enter or a click picks one, Escape clears.
-// useResults is a query hook called with the debounced text ('' while nothing is typed).
-// onEnter runs first on Enter with the raw text (e.g. an exact barcode); returning true handles it.
+/**
+ * Search box with a list of matches under it: arrows move, Enter or a click picks one, Escape clears.
+ * useResults is a query hook called with the debounced text ('' while nothing is typed).
+ * onEnter runs first on Enter with the raw text (e.g. an exact barcode); returning true handles it.
+ */
 export function SearchPicker<T>({
   id, placeholder, useResults, getKey, renderOption, onPick, onEnter, disabled, autoFocus, ariaLabel, inputRef,
   className, emptyText,
@@ -44,8 +48,9 @@ export function SearchPicker<T>({
   placeholder: string
   useResults: (search: string) => SearchResults<T>
   getKey: (item: T) => string | number
-  // query: the search the list answers, to highlight what matches.
+  /** query: the search the list answers, to highlight what matches. */
   renderOption: (item: T, query: string) => ReactNode
+  /** The box is cleared after each pick, ready for the next search. */
   onPick: (item: T) => void
   onEnter?: (text: string) => boolean | Promise<boolean>
   disabled?: boolean
@@ -79,7 +84,8 @@ export function SearchPicker<T>({
 
   const showList = open && text.trim() !== '' && search !== ''
 
-  // Follows the input while the list is open: scrolling anywhere or resizing moves it.
+  // Follows the input while the list is open: scrolling anywhere (captured, since scroll doesn't
+  // bubble) or resizing moves it.
   useLayoutEffect(() => {
     if (!showList) {
       return

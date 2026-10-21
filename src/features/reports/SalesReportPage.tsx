@@ -35,9 +35,11 @@ import { SalesReportDocument } from './SalesReportDocument'
 const DEFAULT_RANGE_DAYS = 30
 const ALL = 'all'
 
-// Sales of a period against the period of the same length right before it: figures, sales over
-// time, payment methods, sellers and best sellers; printable and as an Excel workbook. Sellers get
-// their own sales (the API scopes them) without the seller filter or costs.
+/**
+ * Sales of a period against the period of the same length right before it: figures, sales over
+ * time, payment methods, sellers and best sellers; printable and as an Excel workbook. Sellers get
+ * their own sales (the API scopes them) without the seller filter or costs.
+ */
 export function SalesReportPage() {
   const { t, i18n } = useTranslation()
   const user = useUser()
@@ -165,7 +167,7 @@ export function SalesReportPage() {
 function MetricTiles({ metrics, profit, subtotal, isManager }: {
   metrics?: Metric[]
   profit?: SaleReport['profit']
-  // Completed sales before VAT, to say how much of them the profit covers.
+  /** Completed sales before VAT, to say how much of them the profit covers. */
   subtotal: number
   isManager: boolean
 }) {
@@ -173,6 +175,7 @@ function MetricTiles({ metrics, profit, subtotal, isManager }: {
   const shown: MetricKey[] = isManager
     ? ['sales', 'tickets', 'averageTicket', 'grossProfit', 'cancelled']
     : ['sales', 'tickets', 'averageTicket', 'cancelled']
+  // Profit only counts sales with a recorded cost; their share is shown when some sales lack one.
   const coverage = profit && subtotal > 0 ? (profit.costedSubtotal ?? 0) / subtotal : undefined
   return (
     <div className={cn('grid gap-4 sm:grid-cols-2', isManager ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4')}>

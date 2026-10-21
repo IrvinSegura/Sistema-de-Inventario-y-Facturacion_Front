@@ -53,8 +53,10 @@ const DEFAULT_RANGE_DAYS = 7
 const ALL = 'all'
 const statuses: SaleStatus[] = ['COMPLETED', 'CANCELLED']
 
-// Every sale of the store (admins and supervisors): the period's totals, filters by ticket, seller,
-// customer and status, and each ticket to see, reprint or cancel.
+/**
+ * Every sale of the store (admins and supervisors): the period's totals, filters by ticket, seller,
+ * customer and status, and each ticket to see, reprint or cancel.
+ */
 export function SalesPage() {
   const { t, i18n } = useTranslation()
   const [filters, setFilters] = useState<SaleFilters>(() => ({
@@ -103,6 +105,7 @@ export function SalesPage() {
     try {
       const [{ sales: all, truncated }, report] = await Promise.all([
         fetchAllSales(filters, sort),
+        // A ticket number search spans every date, so the period's report wouldn't match it.
         reportable && !byNumber ? fetchSalesReport(filters.range, filters.sellerId) : Promise.resolve(undefined),
       ])
       if (truncated) {
@@ -260,8 +263,10 @@ export function SalesPage() {
   )
 }
 
-// The period's figures (and the chosen seller's), from the sales report: completed sales only,
-// cancellations apart.
+/**
+ * The period's figures (and the chosen seller's), from the sales report: completed sales only,
+ * cancellations apart.
+ */
 function SummaryTiles({ report }: { report?: SaleReport }) {
   const { t } = useTranslation()
   const methods = report?.byPaymentMethod ?? []
@@ -305,4 +310,5 @@ function SummaryTiles({ report }: { report?: SaleReport }) {
   )
 }
 
+// One shade per payment method (cash, card, transfer); add one if the API adds a method.
 const methodColors = ['bg-primary', 'bg-primary/60', 'bg-primary/30']

@@ -21,7 +21,7 @@ export const customerKeys = {
     ['customers', 'page', filters, page, size, sort] as const,
 }
 
-// Sorted by name on the server; the search matches the name or the tax ID, blank means "all".
+/** Sorted by name on the server; the search matches the name or the tax ID, blank means "all". */
 export function useCustomers(filters: CustomerFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: customerKeys.page(filters, page, size, sort),
@@ -56,7 +56,7 @@ export function useUpdateCustomer() {
   })
 }
 
-// Only customers without sales can be deleted; others answer 409 (deactivate them).
+/** Only customers without sales can be deleted; others answer 409 (deactivate them). */
 export function useDeleteCustomer() {
   const queryClient = useQueryClient()
   return useMutation({

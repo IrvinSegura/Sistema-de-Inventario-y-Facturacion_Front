@@ -1,6 +1,6 @@
 import { highlightParts } from '@/lib/highlight'
 
-// Text with the parts that match the search in bold (case and accents ignored).
+/** Text with the parts that match the search in bold (case and accents ignored). */
 export function Highlight({ text, query }: { text: string | undefined; query: string }) {
   if (!text) {
     return null

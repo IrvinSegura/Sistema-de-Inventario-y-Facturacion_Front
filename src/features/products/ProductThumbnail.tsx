@@ -3,7 +3,10 @@ import { useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
-// The product's photo, or a box icon when it has none or the link is broken.
+/**
+ * The product's photo, or a box icon when it has none or the link is broken. A failed load sticks
+ * until the component remounts, so key it by URL to retry a changed link.
+ */
 export function ProductThumbnail({ url, className }: { url?: string; className?: string }) {
   const [broken, setBroken] = useState(false)
 

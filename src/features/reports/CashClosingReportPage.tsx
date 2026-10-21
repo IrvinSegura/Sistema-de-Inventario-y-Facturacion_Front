@@ -33,8 +33,10 @@ import { cashClosingWorkbook } from './reports-excel'
 
 const ALL = 'all'
 
-// The store's closing for any day (or one seller's): sales and cancellations by payment method and
-// seller, the cash the drawers should hold and what was counted in each one.
+/**
+ * The store's closing for any day (or one seller's): sales and cancellations by payment method and
+ * seller, the cash the drawers should hold and what was counted in each one.
+ */
 export function CashClosingReportPage() {
   const { t, i18n } = useTranslation()
   const today = useToday()
@@ -294,6 +296,7 @@ function DrawersCard({ closing, onView }: { closing?: CashClosing; onView: (draw
               <TableRow>
                 <TableCell className="pl-4" colSpan={2}>{t('excel.total')}</TableCell>
                 <TableCell className="hidden text-right tabular-nums sm:table-cell">{formatMoney(figures.floats)}</TableCell>
+                {/* Closed drawers only, like counted and difference; the day's whole expected cash is in the tiles. */}
                 <TableCell className="hidden text-right tabular-nums md:table-cell">{formatMoney(figures.closedExpected)}</TableCell>
                 <TableCell className="hidden text-right tabular-nums md:table-cell">{formatMoney(figures.counted)}</TableCell>
                 <TableCell className={cn('text-right', differenceClass(figures.difference))}>{formatMoney(figures.difference)}</TableCell>

@@ -3,7 +3,7 @@ import { Outlet } from 'react-router'
 
 import { SectionTabs } from '@/components/SectionTabs'
 
-// Admins and supervisors only (the route and the menu): stock, products low on it and the ledger.
+/** Admins and supervisors only (the route and the menu): stock, products low on it and the ledger. */
 export function InventoryLayout() {
   const { t } = useTranslation()
   return (

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-// Password field with a button to show what was typed (handy on touch screens at the counter).
+/** Password field with a button to show what was typed (handy on touch screens at the counter). */
 export function PasswordInput({ className, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
   const { t } = useTranslation()
   const [visible, setVisible] = useState(false)

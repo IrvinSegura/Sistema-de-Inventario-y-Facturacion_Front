@@ -21,18 +21,21 @@ function presetRange(preset: Preset, today: string): DayRange {
     case 'last30':
       return { from: addDays(today, -29), to: today }
     case 'thisMonth':
+      // Days are YYYY-MM-DD, so the first 8 characters plus 01 are the 1st of today's month.
       return { from: `${today.slice(0, 8)}01`, to: today }
   }
 }
 
-// Two calendar days (both inclusive) and shortcuts for the usual periods. A range always runs
-// forward and stays within what the API accepts (from FIRST_DAY to today, and at most maxDays long):
-// moving one end past a limit drags the other along. A day typed out of bounds stays in the input,
-// marked invalid, until it is fixed or the input loses focus.
+/**
+ * Two calendar days (both inclusive) and shortcuts for the usual periods. A range always runs
+ * forward and stays within what the API accepts (from FIRST_DAY to today, and at most maxDays long):
+ * moving one end past a limit drags the other along. A day typed out of bounds stays in the input,
+ * marked invalid, until it is fixed or the input loses focus.
+ */
 export function DateRangeFilter({ value, onChange, maxDays, disabled, className }: {
   value: DayRange
   onChange: (range: DayRange) => void
-  // Longest range allowed, e.g. the reports' 366 days.
+  /** Longest range allowed, e.g. the reports' 366 days. */
   maxDays?: number
   disabled?: boolean
   className?: string
@@ -43,6 +46,7 @@ export function DateRangeFilter({ value, onChange, maxDays, disabled, className 
   // What is typed in each input while it isn't a valid day.
   const [drafts, setDrafts] = useState<Partial<DayRange>>({})
 
+  // A date input reports '' while its day is incomplete or impossible; ISO days compare as strings.
   const valid = (day: string) => day !== '' && day >= FIRST_DAY && day <= today
 
   function change(end: keyof DayRange, day: string) {

@@ -10,6 +10,7 @@ export type CashClosing = Schemas['CashClosingResponse']
 export type SaleSummary = Schemas['SaleSummaryResponse']
 export type AssignableSeller = Schemas['AssignableSellerResponse']
 
+/** A drawer a manager opens for sellers: memberIds sell from it, responsibleId counts and closes it. */
 export interface AssignedDrawer {
   openingFloat: number
   memberIds: number[]
@@ -19,13 +20,13 @@ export interface AssignedDrawer {
 export const HISTORY_PAGE_SIZE = 20
 // The API pages at most 100 items: enough for one drawer's tickets.
 const MAX_PAGE_SIZE = 100
-// How far back to look for drawers someone forgot to close.
+/** How far back to look for drawers someone forgot to close. */
 const STALE_LOOKBACK_DAYS = 7
 
 export interface DrawerSearch {
   from?: string
   to?: string
-  // Drawers this seller was in.
+  /** Drawers this seller was in. */
   sellerId?: number
 }
 
@@ -44,8 +45,10 @@ export const drawerKeys = {
   sale: (id: number) => ['sales', 'detail', id] as const,
 }
 
-// The open drawer the user is in (their own or one a manager assigned), or null when none is open
-// (the API answers 404).
+/**
+ * The open drawer the user is in (their own or one a manager assigned), or null when none is open
+ * (the API answers 404).
+ */
 export function useCurrentDrawer() {
   return useQuery({
     queryKey: drawerKeys.current,
@@ -62,7 +65,10 @@ export function useCurrentDrawer() {
   })
 }
 
-// The most recent drawer the user was in (newest business day first), to show the last closing.
+/**
+ * The most recent drawer the user was in (newest business day first), to show the last closing;
+ * null if none.
+ */
 export function useLatestDrawer(enabled: boolean) {
   return useQuery({
     queryKey: drawerKeys.latest,
@@ -74,7 +80,7 @@ export function useLatestDrawer(enabled: boolean) {
   })
 }
 
-// Drawers by business day, newest first; sellers only get the ones they were in.
+/** Drawers by business day, newest first; sellers only get the ones they were in. */
 export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: drawerKeys.search(search, page, size, sort),
@@ -83,13 +89,15 @@ export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PA
   })
 }
 
-// For screens that follow the day as it happens.
+/** For screens that follow the day as it happens. */
 export interface LiveOptions {
   refetchInterval?: number
 }
 
-// Drawers from the past STALE_LOOKBACK_DAYS days still open (managers only); nobody can sell from
-// them until they're closed. Reads every page of the window, newest day first.
+/**
+ * Drawers from the past STALE_LOOKBACK_DAYS days still open (managers only); nobody can sell from
+ * them until they're closed. Reads every page of the window, newest day first.
+ */
 export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions = {}) {
   const from = addDays(today, -STALE_LOOKBACK_DAYS)
   const to = addDays(today, -1)
@@ -99,6 +107,7 @@ export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions 
       const stale: CashDrawer[] = []
       for (let page = 0; ; page++) {
         const result = await unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { from, to, page, size: MAX_PAGE_SIZE } } }))
+        // The API can't filter by open or closed, so closed ones are dropped here.
         stale.push(...(result.content ?? []).filter((drawer) => !drawer.closing))
         if (page + 1 >= (result.page?.totalPages ?? 0)) {
           return stale
@@ -109,8 +118,10 @@ export function useStaleDrawers(today: string, { refetchInterval }: LiveOptions 
   })
 }
 
-// One day by payment method, plus that day's drawers. Without sellerId (managers only) it covers
-// the whole store; a seller gets their own only once their drawer is closed (409 before).
+/**
+ * One day by payment method, plus that day's drawers. Without sellerId (managers only) it covers
+ * the whole store; a seller gets their own only once their drawer is closed (409 before).
+ */
 export function useDayClosing(date: string, { sellerId, refetchInterval }: LiveOptions & { sellerId?: number } = {}) {
   return useQuery({
     queryKey: drawerKeys.dayClosing(date, sellerId),
@@ -119,8 +130,10 @@ export function useDayClosing(date: string, { sellerId, refetchInterval }: LiveO
   })
 }
 
-// One drawer by payment method and by seller: its sales and the refunds that came out of it.
-// Members get it only once the drawer is closed (409 before); managers any time.
+/**
+ * One drawer by payment method and by seller: its sales and the refunds that came out of it.
+ * Members get it only once the drawer is closed (409 before); managers any time.
+ */
 export function useDrawerClosing(drawerId: number) {
   return useQuery({
     queryKey: drawerKeys.drawerClosing(drawerId),
@@ -128,7 +141,10 @@ export function useDrawerClosing(drawerId: number) {
   })
 }
 
-// The tickets recorded in a drawer, newest first, cancelled ones included; a seller only gets their own.
+/**
+ * The tickets recorded in a drawer, newest first, cancelled ones included; a seller only gets their own.
+ * Only the first MAX_PAGE_SIZE are fetched.
+ */
 export function useDrawerSales(drawerId: number) {
   return useQuery({
     queryKey: drawerKeys.drawerSales(drawerId),
@@ -141,7 +157,7 @@ export function useDrawerSales(drawerId: number) {
   })
 }
 
-// Active sellers without a drawer today (nor one left open), for managers to assign one.
+/** Active sellers without a drawer today (nor one left open), for managers to assign one. */
 export function useAssignableSellers() {
   return useQuery({
     queryKey: drawerKeys.assignable,
@@ -149,6 +165,7 @@ export function useAssignableSellers() {
   })
 }
 
+/** One sale in full, to show its receipt again; idle while id is null. */
 export function useSale(id: number | null) {
   return useQuery({
     queryKey: drawerKeys.sale(id ?? 0),
@@ -157,6 +174,7 @@ export function useSale(id: number | null) {
   })
 }
 
+/** Opens the user's own drawer with the given float; it becomes their current drawer at once. */
 export function useOpenDrawer() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -170,7 +188,7 @@ export function useOpenDrawer() {
   })
 }
 
-// Managers open a drawer for one seller or a shared one for several, and hand over the float.
+/** Managers open a drawer for one seller or a shared one for several, and hand over the float. */
 export function useOpenAssignedDrawer() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -182,7 +200,10 @@ export function useOpenAssignedDrawer() {
   })
 }
 
-// The drawer's responsible closes it; admins and supervisors can close anyone's.
+/**
+ * The drawer's responsible closes it; admins and supervisors can close anyone's. Closing the user's
+ * current drawer clears it and makes it their latest one.
+ */
 export function useCloseDrawer() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -202,7 +223,7 @@ export function useCloseDrawer() {
   })
 }
 
-// Admins and supervisors only; the sale's stock goes back and the refund counts in today's closing.
+/** Admins and supervisors only; the sale's stock goes back and the refund counts in today's closing. */
 export function useCancelSale() {
   const queryClient = useQueryClient()
   return useMutation({

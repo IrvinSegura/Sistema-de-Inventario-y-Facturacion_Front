@@ -26,7 +26,7 @@ import { lowStockWorkbook } from './inventory-reports'
 import { fetchAllLowStock, type LowStockProduct, useLowStockPage } from './queries'
 import { StockBadge } from './StockBadge'
 
-// Units to order: enough to get back to the minimum, at least one.
+/** Units to order: enough to get back to the minimum, at least one. */
 function suggested(product: LowStockProduct) {
   return Math.max(product.shortage ?? 0, 1)
 }
@@ -40,14 +40,17 @@ function toDraft(products: LowStockProduct[]): DraftState {
   }
 }
 
-// Active products at or below their minimum, most urgent first; pick some (or all) to restock them
-// in one purchase.
+/**
+ * Active products at or below their minimum, most urgent first; pick some (or all) to restock them
+ * in one purchase.
+ */
 export function LowStockPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = usePageSize('low-stock')
+  // Whole products, not just ids: the selection survives paging and filtering and goes straight into the purchase draft.
   const [selected, setSelected] = useState<Map<number, LowStockProduct>>(new Map())
   const [loadingAll, setLoadingAll] = useState(false)
   const products = useLowStockPage(categoryId, page, pageSize)

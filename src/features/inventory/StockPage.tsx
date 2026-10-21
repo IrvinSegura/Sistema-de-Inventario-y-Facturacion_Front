@@ -38,8 +38,10 @@ const SEARCH_DELAY_MS = 300
 
 type Status = 'all' | 'low' | 'inactive'
 
-// Stock of every product with its minimum, a quick adjustment and its ledger. Inactive products
-// can still be adjusted, to write off what is left.
+/**
+ * Stock of every product with its minimum, a quick adjustment and its ledger. Inactive products
+ * can still be adjusted, to write off what is left.
+ */
 export function StockPage() {
   const { t } = useTranslation()
   const [searchText, setSearchText] = useState('')

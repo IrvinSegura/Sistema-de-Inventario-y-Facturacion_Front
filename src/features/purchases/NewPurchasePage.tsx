@@ -39,8 +39,10 @@ import { SupplierPicker } from './SupplierPicker'
 
 const percent = new Intl.NumberFormat('es-MX', { style: 'percent', maximumFractionDigits: 1 })
 
-// Stock in from a supplier: pick the supplier, scan or search the products, and type how many
-// arrived and what each unit cost. Recording it raises the stock of every line at once.
+/**
+ * Stock in from a supplier: pick the supplier, scan or search the products, and type how many
+ * arrived and what each unit cost. Recording it raises the stock of every line at once.
+ */
 export function NewPurchasePage() {
   const { t } = useTranslation()
   const location = useLocation()
@@ -49,6 +51,7 @@ export function NewPurchasePage() {
   // Prefilled from a supplier, a repeated purchase or the low-stock report (router state).
   const [initial] = useState(() => (location.state ?? {}) as DraftState)
   const [supplier, setSupplier] = useState<SupplierRef | null>(initial.supplier ?? null)
+  // The prefill goes through the reducer, so repeated products merge and MAX_LINES applies as when adding by hand.
   const [lines, dispatch] = useReducer(draftReducer, initial.lines ?? [],
     (prefill) => prefill.reduce<DraftLine[]>((draft, line) => draftReducer(draft, { type: 'add', line }), []))
   const [submitted, setSubmitted] = useState(false)
@@ -83,6 +86,7 @@ export function NewPurchasePage() {
   }
 
   function addProduct(product: Product) {
+    // Warn here: the reducer silently drops new products past MAX_LINES, while one already listed just gets another unit.
     if (lines.length >= MAX_LINES && !lines.some((line) => line.productId === product.id)) {
       toast.error(t('purchases.form.tooManyLines', { count: MAX_LINES }))
       return
@@ -226,6 +230,7 @@ function DraftRow({ line, showErrors, disabled, onChange }: {
   const cost = parseUnitCost(line.unitCost)
   const subtotal = lineSubtotal(line)
   const lineMargin = margin(line)
+  // Typed values are checked right away; blank ones only after a record attempt.
   const quantityInvalid = (showErrors || line.quantity !== '') && quantity === null
   const costInvalid = (showErrors || line.unitCost !== '') && cost === null
 

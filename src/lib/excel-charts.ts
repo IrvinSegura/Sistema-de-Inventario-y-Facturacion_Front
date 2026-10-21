@@ -7,30 +7,33 @@ export type ChartType = 'column' | 'bar' | 'line' | 'area' | 'pie' | 'doughnut'
 
 export interface ChartSeries {
   name: string
-  // Absolute reference to the values, e.g. 'Resumen'!$C$12:$C$15.
+  /** Absolute reference to the values, e.g. 'Summary'!$C$12:$C$15. */
   ref: string
+  /** Cached values, in category order; null leaves a gap. */
   values: (number | null)[]
   color?: string
 }
 
 export interface ChartPart {
-  // exceljs worksheet id: its XML is xl/worksheets/sheet{id}.xml.
+  /** exceljs worksheet id: its XML is xl/worksheets/sheet{id}.xml. */
   sheetId: number
   type: ChartType
   title: string
   categoriesRef: string
   categories: (string | number)[]
-  // Format of numeric categories (dates as serial numbers); text categories when absent.
+  /** Format of numeric categories (dates as serial numbers); text categories when absent. */
   categoryFormat?: string
   series: ChartSeries[]
-  // Slice colors of a pie or doughnut; the palette otherwise.
+  /** Slice colors of a pie or doughnut; the palette otherwise. */
   pointColors?: string[]
   valueFormat: string
-  // Zero-based cell corners of the chart.
+  /** Zero-based cell at the chart's top-left corner. */
   from: { col: number; row: number }
+  /** Zero-based cell whose top-left corner is the chart's bottom-right one, so the chart doesn't cover it. */
   to: { col: number; row: number }
 }
 
+/** Hex RGB colors (no '#') for series and slices, in order; the first six also become the theme's accents. */
 export const CHART_PALETTE = ['1E3A5F', '2F80C2', '1C9A8A', 'E0A030', 'C2412D', '7B61B0', '5B6B82', '58B368']
 
 const NS = {
@@ -84,9 +87,11 @@ function seriesName(series: ChartSeries) {
   return `<c:tx><c:v>${escape(series.name)}</c:v></c:tx>`
 }
 
+// Must match the catAx and valAx ids written by axes().
 const AXIS_IDS = '<c:axId val="500100"/><c:axId val="500200"/>'
 
 function axes(part: ChartPart) {
+  // Horizontal bars list categories top-down (maxMin), so the value axis crosses at max to stay at the bottom.
   const horizontal = part.type === 'bar'
   const gridLine = '<c:majorGridlines><c:spPr><a:ln w="6350">' + fill('E5E9F0') + '</a:ln></c:spPr></c:majorGridlines>'
   const noLine = '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr>'
@@ -209,8 +214,7 @@ function relsXml(rels: { id: string; type: string; target: string }[]): string {
 }
 
 // Where <drawing> goes in a worksheet (CT_Worksheet order): right after the page footer, or before
-// the table parts. Nested <extLst> elements (inside conditional formats) must not be mistaken for
-// the sheet's own.
+// the table parts. Don't anchor on <extLst>: conditional formats nest <extLst> elements of their own.
 function drawingPosition(sheetXml: string): number {
   const footer = sheetXml.indexOf('</headerFooter>')
   if (footer >= 0) {
@@ -243,9 +247,11 @@ interface ZipEntries {
   files: Record<string, unknown>
 }
 
-// Finishes an xlsx built by exceljs: adds the charts, turns links to other sheets into internal ones
-// and gives the theme the report colors, which the tables' built-in style (TableStyleMedium2,
-// accent 1) uses.
+/**
+ * Finishes an xlsx built by exceljs: adds the charts, turns links to other sheets into internal ones
+ * and gives the theme the report colors, which the tables' built-in style (TableStyleMedium2,
+ * accent 1) uses.
+ */
 export async function addCharts(zip: Zip & ZipEntries, parts: ChartPart[]) {
   for (const path of Object.keys(zip.files).filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/.test(name))) {
     const relsPath = path.replace('worksheets/', 'worksheets/_rels/').replace(/\.xml$/, '.xml.rels')

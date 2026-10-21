@@ -6,7 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import type { Product } from '@/features/products/queries'
 import { StockForm } from '@/features/products/StockForm'
 
-// The same adjustment as the product's Stock tab, straight from the inventory lists.
+/**
+ * The same adjustment as the product's Stock tab, straight from the inventory lists; open while
+ * product is set.
+ */
 export function AdjustStockDialog({ product, onOpenChange }: { product: Product | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
   // Keeps the last product on screen while the dialog animates out; every opening gets its own

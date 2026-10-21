@@ -8,8 +8,10 @@ import { bucketTitle, formatChange, formatCount, formatPercent } from './format'
 import { change, type ComparisonPoint, type Grouping } from './periods'
 import { type Metric, type MethodRow, methodRows, salesMetrics, type SellerRow, sellerRows } from './sales-data'
 
-// The sales report on paper: the figures against the previous period, sales over time, payment
-// methods, sellers and best sellers.
+/**
+ * The sales report on paper: the figures against the previous period, sales over time, payment
+ * methods, sellers and best sellers.
+ */
 export function SalesReportDocument({ report, previous, series, grouping, period, previousPeriod, seller, showSellers }: {
   report: SaleReport
   previous?: SaleReport
@@ -18,7 +20,7 @@ export function SalesReportDocument({ report, previous, series, grouping, period
   period: string
   previousPeriod?: string
   seller: string
-  // A seller's own report leaves the sellers table out: they are its only row.
+  /** A seller's own report leaves the sellers table out: they are its only row. */
   showSellers: boolean
 }) {
   const { t, i18n } = useTranslation()

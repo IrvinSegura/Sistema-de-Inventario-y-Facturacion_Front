@@ -33,7 +33,7 @@ void i18n
     },
   })
 
-// Screen readers and the browser's spell checker follow <html lang>; the tab title is translated too.
+/** Screen readers and the browser's spell checker follow <html lang>; the tab title is translated too. */
 function syncDocument() {
   document.documentElement.lang = i18n.resolvedLanguage ?? 'en'
   document.title = i18n.t('app.name')
@@ -41,14 +41,15 @@ function syncDocument() {
 i18n.on('languageChanged', syncDocument)
 syncDocument()
 
-// Any translation key, for keys kept in data (menus, tables) instead of written inline.
+/** Any translation key, for keys kept in data (menus, tables) instead of written inline. */
 export type MessageKey = ParseKeys
 
+/** The language the screens are shown in; English for anything but Spanish. */
 export function currentLanguage(): Language {
   return i18n.resolvedLanguage === 'es' ? 'es' : 'en'
 }
 
-// Dates and times follow the language; money always uses the store's currency format (MXN).
+/** Dates and times follow the language; money always uses the store's currency format (MXN). */
 export function dateLocale(language: string): string {
   return language.startsWith('es') ? 'es-MX' : 'en-US'
 }

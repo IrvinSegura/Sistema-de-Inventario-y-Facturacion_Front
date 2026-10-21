@@ -6,7 +6,7 @@ import { formatMoney } from '@/lib/money'
 import { bucketTitle, formatPercent } from './format'
 import { type FlowPoint, flowTotals, type Grouping } from './periods'
 
-// Money in and out on paper, per day, week or month, with the period's totals.
+/** Money in and out on paper, per day, week or month, with the period's totals. */
 export function CashFlowDocument({ series, grouping, period }: {
   series: FlowPoint[]
   grouping: Grouping

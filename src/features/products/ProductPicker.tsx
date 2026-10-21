@@ -11,13 +11,14 @@ import { cn } from '@/lib/utils'
 import { ProductThumbnail } from './ProductThumbnail'
 import { type Product, useProductSearch } from './queries'
 
+// Same rule as the barcode field in ProductDialogs.
 const BARCODE = /^\d{8,14}$/
 
-// Search by name or SKU, or type/scan a whole barcode and press Enter to take that product at once.
-// active: which products the list shows; a scanned barcode is checked against it too.
+/** Search by name or SKU, or type/scan a whole barcode and press Enter to take that product at once. */
 export function ProductPicker({ id, onPick, active = true, placeholder, disabled, autoFocus, inputRef, className }: {
   id?: string
   onPick: (product: Product) => void
+  /** Which products the list shows; a scanned barcode is checked against it too. */
   active?: boolean
   placeholder?: string
   disabled?: boolean
@@ -27,6 +28,7 @@ export function ProductPicker({ id, onPick, active = true, placeholder, disabled
 }) {
   const { t } = useTranslation()
 
+  // A hook SearchPicker calls on every render; declared here so it can read `active`.
   function useResults(search: string) {
     const query = useProductSearch(search, active)
     return {

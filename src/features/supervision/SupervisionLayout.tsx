@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Outlet } from 'react-router'
 
-// Supervision shell; managers only (route guard and menu).
+/** Supervision shell; managers only (route guard and menu). */
 export function SupervisionLayout() {
   const { t } = useTranslation()
   return (

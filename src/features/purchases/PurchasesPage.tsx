@@ -45,6 +45,7 @@ import {
 const ALL_SUPPLIERS = 'all'
 const DEFAULT_RANGE_DAYS = 30
 
+/** Purchases by period and supplier, with the period's figures (up to MAX_REPORT_DAYS) and the Excel export. */
 export function PurchasesPage() {
   const { t, i18n } = useTranslation()
   const [filters, setFilters] = useState<PurchaseFilters>(() => ({ range: lastDaysRange(DEFAULT_RANGE_DAYS), supplierId: null }))
@@ -109,6 +110,7 @@ export function PurchasesPage() {
               onValueChange={(value) => changeFilters({ supplierId: !value || value === ALL_SUPPLIERS ? null : Number(value) })}
               options={[
                 { value: ALL_SUPPLIERS, label: t('purchases.allSuppliers') },
+                // Inactive suppliers stay (labelled) so their past purchases can still be filtered.
                 ...(suppliers.data ?? []).map((supplier) => ({
                   value: String(supplier.id),
                   label: supplier.active ? supplier.name : t('purchases.inactiveSupplier', { name: supplier.name }),
@@ -193,7 +195,7 @@ export function PurchasesPage() {
   )
 }
 
-// The tiles' figures from the API's summary of the period.
+/** The tiles' figures from the API's summary of the period. */
 function summarize(report: PurchaseReport) {
   const count = report.purchaseCount ?? 0
   const total = report.total ?? 0

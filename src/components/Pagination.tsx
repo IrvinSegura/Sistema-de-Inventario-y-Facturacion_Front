@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { PAGE_SIZES } from '@/lib/use-page-size'
 
-// Footer of a paged table: "21–40 of 75", rows per page (when the page offers the choice), "Page 2
-// of 4" and first/previous/next/last (disabled while a page loads).
+/**
+ * Footer of a paged table: "21–40 of 75", rows per page (when the page offers the choice), "Page 2
+ * of 4" and first/previous/next/last (disabled while a page loads).
+ */
 export function Pagination({ page, pageSize, total, loading, onPageChange, onPageSizeChange }: {
+  /** Zero-based, like the API's pages; shown one-based. */
   page: number
   pageSize: number
   total: number

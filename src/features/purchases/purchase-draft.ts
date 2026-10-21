@@ -6,14 +6,17 @@ export const MAX_QUANTITY = 100_000
 export const MAX_UNIT_COST = 99_999.99
 export const MAX_TOTAL = 9_999_999_999.99
 
-// One product of a purchase being written. Quantity and cost are kept as typed, so a half-written
-// number ("12.") doesn't jump while editing.
+/**
+ * One product of a purchase being written. Quantity and cost are kept as typed, so a half-written
+ * number ("12.") doesn't jump while editing.
+ */
 export interface DraftLine {
   productId: number
   sku: string
   name: string
-  // Unknown when the line comes from a repeated purchase or a report without prices.
+  /** Unknown when the line comes from a repeated purchase. */
   stock?: number
+  /** Unknown when the line comes from a repeated purchase or a report without prices (the low-stock one). */
   salePrice?: number
   quantity: string
   unitCost: string
@@ -25,7 +28,10 @@ export type DraftAction =
   | { type: 'remove'; productId: number }
   | { type: 'clear' }
 
-// A product appears once per purchase (the API rejects duplicates): adding it again adds a unit.
+/**
+ * A product appears once per purchase (the API rejects duplicates): adding it again adds a unit, up to
+ * MAX_QUANTITY. New products past MAX_LINES are ignored.
+ */
 export function draftReducer(lines: DraftLine[], action: DraftAction): DraftLine[] {
   switch (action.type) {
     case 'add': {
@@ -50,7 +56,7 @@ export function draftReducer(lines: DraftLine[], action: DraftAction): DraftLine
   }
 }
 
-// Whole units from 1 to MAX_QUANTITY, or null.
+/** Whole units from 1 to MAX_QUANTITY, or null. */
 export function parseQuantity(value: string): number | null {
   const text = value.trim()
   if (!/^\d+$/.test(text)) {
@@ -60,7 +66,7 @@ export function parseQuantity(value: string): number | null {
   return quantity >= 1 && quantity <= MAX_QUANTITY ? quantity : null
 }
 
-// Pesos with up to 2 decimals from 0 to MAX_UNIT_COST, or null.
+/** Pesos with up to 2 decimals from 0 to MAX_UNIT_COST, or null. */
 export function parseUnitCost(value: string): number | null {
   const text = value.trim()
   if (!/^\d+(\.\d{1,2})?$/.test(text)) {
@@ -71,13 +77,16 @@ export function parseUnitCost(value: string): number | null {
 }
 
 export interface DraftTotals {
-  // Lines with a valid quantity and cost.
+  /** Lines with a valid quantity and cost. */
   validLines: number
   units: number
   total: number
 }
 
-// Works in integer cents, like the API: the total is the sum of quantity * unit cost.
+/**
+ * Works in integer cents, like the API: the total is the sum of quantity * unit cost. Lines with an
+ * invalid quantity or cost are left out of every figure.
+ */
 export function draftTotals(lines: DraftLine[]): DraftTotals {
   let cents = 0
   let units = 0
@@ -94,13 +103,14 @@ export function draftTotals(lines: DraftLine[]): DraftTotals {
   return { validLines, units, total: fromCents(cents) }
 }
 
+/** Null while the quantity or the cost is invalid. */
 export function lineSubtotal(line: DraftLine): number | null {
   const quantity = parseQuantity(line.quantity)
   const cost = parseUnitCost(line.unitCost)
   return quantity === null || cost === null ? null : fromCents(quantity * toCents(cost))
 }
 
-// Share of the sale price left after the cost (both without VAT); null without a price.
+/** Share of the sale price left after the cost (both without VAT); null without a price. */
 export function margin(line: DraftLine): number | null {
   const cost = parseUnitCost(line.unitCost)
   if (cost === null || !line.salePrice) {
@@ -115,10 +125,13 @@ export interface SupplierRef {
   taxId?: string
 }
 
+/** A line to add; quantity defaults to 1 and the cost to blank. */
 export type NewDraftLine = Extract<DraftAction, { type: 'add' }>['line']
 
-// Router state that opens the new purchase prefilled: from a supplier, a repeated purchase or the
-// low-stock report.
+/**
+ * Router state that opens the new purchase prefilled: from a supplier, a repeated purchase or the
+ * low-stock report.
+ */
 export interface DraftState {
   supplier?: SupplierRef
   lines?: NewDraftLine[]

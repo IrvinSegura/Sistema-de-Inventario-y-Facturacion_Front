@@ -24,7 +24,7 @@ import { showSuccess } from '@/lib/success-popup'
 
 import { type AssignableSeller, useOpenAssignedDrawer } from './queries'
 
-// Managers open today's drawer for one seller, or a shared one for several, and hand over the float.
+/** Managers open today's drawer for one seller, or a shared one for several, and hand over the float. */
 export function OpenAssignedDrawerDialog({ open, onOpenChange, sellers }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -51,6 +51,7 @@ function AssignForm({ sellers, onDone }: { sellers: AssignableSeller[]; onDone: 
   const schema = useMemo(() => z.object({
     openingFloat: amountField(t, 999_999.99),
     memberIds: z.array(z.number()).min(1, t('drawer.assign.membersRequired')),
+    // Kept as the Select's string ('' for none); turned into a number on submit.
     responsibleId: z.string().min(1, t('drawer.assign.responsibleRequired')),
   }), [t])
   const { register, handleSubmit, setValue, control, formState: { errors, isSubmitted } } = useForm({
@@ -60,7 +61,7 @@ function AssignForm({ sellers, onDone }: { sellers: AssignableSeller[]; onDone: 
   const [memberIds, responsibleId] = useWatch({ control, name: ['memberIds', 'responsibleId'] })
   const members = sellers.filter((seller) => memberIds.includes(seller.id!))
 
-  // One member is also the responsible; a responsible who is unticked stops being one.
+  // A sole member becomes the responsible; unticking the chosen responsible clears the choice.
   function toggle(id: number, checked: boolean) {
     const next = checked ? [...memberIds, id] : memberIds.filter((memberId) => memberId !== id)
     setValue('memberIds', next, { shouldValidate: isSubmitted })

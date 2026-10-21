@@ -21,14 +21,16 @@ import { memberNames } from './members'
 import { OpenAssignedDrawerDialog } from './OpenAssignedDrawerDialog'
 import { type CashDrawer, useAssignableSellers, useDayClosing, useStaleDrawers } from './queries'
 
-// Admins and supervisors: every drawer of today, the store's day so far and forgotten drawers; they
-// also open drawers for sellers, alone or shared.
+/**
+ * Admins and supervisors: every drawer of today, the store's day so far and forgotten drawers; they
+ * also open drawers for sellers, alone or shared.
+ */
 export function TodayDrawersPage() {
   const { t, i18n } = useTranslation()
   const today = useToday()
   const day = useDayClosing(today)
   const staleDrawers = useStaleDrawers(today)
-  // Sellers with no drawer today (nor one left open): the ones a manager can still assign.
+  // Feeds the assign dialog and the table's "not opened" rows.
   const assignable = useAssignableSellers()
   const [selected, setSelected] = useState<CashDrawer | null>(null)
   const [assigning, setAssigning] = useState(false)
@@ -111,6 +113,7 @@ export function TodayDrawersPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Keys prefixed: an account id can equal a drawer id in the same body. */}
                 {notOpened.map((account) => (
                   <TableRow key={`user-${account.id}`} className="text-muted-foreground">
                     <TableCell className="pl-4">{account.name}</TableCell>

@@ -6,8 +6,10 @@ import { cn } from '@/lib/utils'
 // Widths of the placeholder bars, so the rows don't look like a block.
 const WIDTHS = ['w-3/4', 'w-1/2', 'w-2/3', 'w-5/6', 'w-2/5']
 
-// Gray rows in the shape of a table while its first page loads, instead of a spinner that pushes the
-// page down and back.
+/**
+ * Gray rows in the shape of a table while its first page loads, instead of a spinner that pushes the
+ * page down and back.
+ */
 export function TableSkeleton({ rows = 8, columns = 5 }: { rows?: number; columns?: number }) {
   const { t } = useTranslation()
   return (

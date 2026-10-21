@@ -1,7 +1,7 @@
 import { LoaderCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-// Spinner for a section of a page (the full-screen one is for the app's first load).
+/** Spinner for a section of a page (the full-screen one is for the app's first load). */
 export function LoadingBlock() {
   const { t } = useTranslation()
   return (

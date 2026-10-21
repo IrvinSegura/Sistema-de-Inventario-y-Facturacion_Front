@@ -35,8 +35,10 @@ import { productSalesWorkbook } from './reports-excel'
 const DEFAULT_RANGE_DAYS = 30
 const ALL = 'all'
 
-// What each product sold in the period, with its cost and gross profit, or the products in stock that
-// didn't sell at all (money waiting on the shelf). Managers only.
+/**
+ * What each product sold in the period, with its cost and gross profit, or the products in stock that
+ * didn't sell at all (money waiting on the shelf). Managers only.
+ */
 export function ProductSalesReportPage() {
   const { t, i18n } = useTranslation()
   const [filters, setFilters] = useState<ProductSalesFilters>(() => ({

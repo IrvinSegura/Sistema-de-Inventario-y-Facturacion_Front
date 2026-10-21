@@ -42,7 +42,7 @@ function nameField(t: TFunction) {
     .regex(PERSON_NAME, t('validation.personName'))
 }
 
-// Optional: empty clears it. "+52 (55) 1234-5678" is sent as +525512345678.
+/** Optional: empty clears it. "+52 (55) 1234-5678" is sent as +525512345678. */
 function phoneField(t: TFunction) {
   return z.string()
     .transform((value) => value.replace(/[\s().-]/g, ''))
@@ -63,18 +63,22 @@ function editSchema(t: TFunction) {
   return z.object({ name: nameField(t), role: z.enum(roles), active: z.boolean(), phone: phoneField(t) })
 }
 
-// Server-side field errors (400 with field messages, or a taken email) go next to their inputs and
-// return true; anything else is left for the alert above the form.
+/**
+ * Server-side field errors (400 with field messages, or a taken email) go next to their inputs and
+ * return true; anything else is left for the alert above the form.
+ */
 function applyServerErrors<T extends Record<string, unknown>>(
   error: unknown, fields: Path<T>[], setError: UseFormSetError<T>, t: TFunction,
 ): boolean {
   if (!(error instanceof ApiError)) {
     return false
   }
+  // The 409 carries no error code, only the API's English message (the one api/errors.ts translates).
   if (error.status === 409 && error.message === 'Email is already registered' && fields.includes('email' as Path<T>)) {
     setError('email' as Path<T>, { message: t('users.form.emailTaken') })
     return true
   }
+  // The API's field messages are in English, so the fields get a generic translated one instead.
   const known = Object.entries(error.fieldErrors).filter(([field]) => fields.includes(field as Path<T>))
   known.forEach(([field]) => setError(field as Path<T>, { message: t('validation.invalidValue') }))
   return known.length > 0
@@ -119,6 +123,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
       },
       onError: (error) => {
         if (applyServerErrors(error, ['name', 'email', 'password', 'role', 'phone'], setError, t)) {
+          // Clears the mutation error so the alert doesn't repeat what the fields already show.
           createUserAccount.reset()
         }
       },
@@ -159,6 +164,10 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   )
 }
 
+/**
+ * On the user's own account (currentUserId) the role and active status are locked; another admin has
+ * to change them.
+ */
 export function EditUserDialog({ account, currentUserId, onOpenChange }: {
   account: UserAccount | null
   currentUserId: number

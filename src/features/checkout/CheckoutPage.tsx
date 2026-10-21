@@ -26,6 +26,10 @@ import { ReceiptDialog } from './ReceiptDialog'
 
 const paymentMethods: PaymentMethod[] = ['CASH', 'CARD', 'TRANSFER']
 
+/**
+ * Point of sale: scan products into a cart, pick the customer and payment method, and charge. Selling
+ * needs the user's current drawer, opened today.
+ */
 export function CheckoutPage() {
   const { t, i18n } = useTranslation()
   const drawer = useCurrentDrawer()
@@ -48,6 +52,7 @@ export function CheckoutPage() {
   // The API rejects sales on a drawer left open from a previous day.
   const staleDrawerDay = drawer.data && isFromPastDay(drawer.data.businessDate) ? drawer.data.businessDate! : null
   const drawerOpen = !!drawer.data && !staleDrawerDay
+  // Cash received is optional (it only works out the change), but once typed it must cover the total.
   const canCharge = drawerOpen && lines.length > 0 && !recordSale.isPending
     && (paymentMethod !== 'CASH' || cashReceived === '' || received >= totals.total)
 

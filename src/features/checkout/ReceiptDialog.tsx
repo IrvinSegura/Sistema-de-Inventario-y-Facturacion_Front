@@ -16,7 +16,7 @@ import { formatMoney } from '@/lib/money'
 
 import type { Sale } from './queries'
 
-// Shows the sale as the server recorded it (prices and VAT snapshots, server-side totals).
+/** Shows the sale as the server recorded it (prices and VAT snapshots, server-side totals). */
 export function ReceiptDialog({ sale, onClose, closeLabel }: {
   sale: Sale | null
   onClose: () => void
@@ -85,8 +85,10 @@ function ReceiptBody({ sale }: { sale: Sale }) {
   )
 }
 
-// Printed receipt: who bought, who sold and how it was paid, the lines with their prices and VAT,
-// and the same server-side totals as on screen.
+/**
+ * Printed receipt: who bought, who sold and how it was paid, the lines with their prices and VAT,
+ * and the same server-side totals as on screen.
+ */
 export function ReceiptSlip({ sale }: { sale: Sale }) {
   const { t, i18n } = useTranslation()
   const when = (instant: string) => new Date(instant).toLocaleString(dateLocale(i18n.language),

@@ -8,8 +8,10 @@ import { formatMoney } from '@/lib/money'
 
 import { closingFigures, PAYMENT_METHODS } from './closing-data'
 
-// A day's closing on paper: sales by payment method and seller, every drawer's count and the
-// totals, with lines to sign.
+/**
+ * A day's closing on paper: sales by payment method and seller, every drawer's count and the
+ * totals, with lines to sign.
+ */
 export function CashClosingDocument({ closing, date, seller, status }: {
   closing: CashClosing
   date: string
@@ -83,6 +85,7 @@ export function CashClosingDocument({ closing, date, seller, status }: {
       )}
 
       <PrintSection title={t('print.closing.cash')}>
+        {/* Expected covers every drawer of the day, counted and difference only the closed ones; the aside says how many. */}
         <PrintTotals
           aside={t('reports.closing.closedDrawers', { count: figures.closedCount, total: figures.drawerCount })}
           rows={[

@@ -29,7 +29,7 @@ type Step =
   | { name: 'verify'; email: string; channel: ResetChannel; sentAt: number }
   | { name: 'done'; email: string }
 
-// Forgotten password in three steps: where to send the code, the code plus a new password, done.
+/** Forgotten password in three steps: where to send the code, the code plus a new password, done. */
 export function ForgotPasswordPage() {
   const { state } = useAuth()
   const initialEmail = (useLocation().state as { email?: string } | null)?.email ?? ''
@@ -194,6 +194,7 @@ function VerifyStep({ email, channel, sentAt, onResent, onChangeMethod, onDone }
 
   return (
     <>
+      {/* The API's codes last 10 minutes; keep `minutes` in step with it. */}
       <AuthHeading icon={<ShieldCheck className="size-5" />} title={t(`passwordReset.checkTitle.${channel}`)}
         description={
           <Trans i18nKey={`passwordReset.checkDescription.${channel}`} values={{ email, minutes: 10 }}
@@ -278,7 +279,7 @@ function BackToLogin({ email }: { email: string }) {
   )
 }
 
-// Seconds left until `seconds` after `since`, ticking once a second until it reaches zero.
+/** Seconds left until `seconds` after `since`, ticking once a second until it reaches zero. */
 function useCountdown(since: number, seconds: number): number {
   const [now, setNow] = useState(() => Date.now())
   const left = Math.min(seconds, Math.max(0, Math.ceil((since + seconds * 1000 - now) / 1000)))

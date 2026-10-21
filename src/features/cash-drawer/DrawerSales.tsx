@@ -30,8 +30,10 @@ import { type SaleSummary, useCancelSale, useDrawerSales, useSale } from './quer
 
 const REASON_MAX_LENGTH = 255
 
-// The tickets recorded in a drawer (a seller only gets their own): tap one to see or print it again;
-// managers can cancel. No sum is shown, so a seller can't read the expected cash before the blind count.
+/**
+ * The tickets recorded in a drawer (a seller only gets their own): tap one to see or print it again;
+ * managers can cancel. No sum is shown, so a seller can't read the expected cash before the blind count.
+ */
 export function DrawerSales({ drawerId, canCancel, showSeller = false }: {
   drawerId: number
   canCancel: boolean
@@ -94,7 +96,7 @@ export function DrawerSales({ drawerId, canCancel, showSeller = false }: {
   )
 }
 
-// Asks for the reason and cancels: the sale's stock goes back and its total is refunded.
+/** Asks for the reason and cancels: the sale's stock goes back and its total is refunded. */
 export function CancelSaleDialog({ sale, onOpenChange, onCancelled }: {
   sale: Pick<SaleSummary, 'id' | 'saleNumber' | 'total'> | null
   onOpenChange: (open: boolean) => void
@@ -112,6 +114,7 @@ export function CancelSaleDialog({ sale, onOpenChange, onCancelled }: {
     defaultValues: { reason: '' },
   })
 
+  // The form and mutation outlive each ticket, so clear the reason and the last error for the next one.
   function close() {
     reset()
     cancelSale.reset()
