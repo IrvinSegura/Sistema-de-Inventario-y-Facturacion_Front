@@ -1,4 +1,4 @@
-import { addDays, type DayRange, daysInRange, lastDayOfMonth, weekday } from '@/features/dashboard/days'
+import { addDays, type DayRange, daysInRange, lastDayOfMonth, weekday } from '@/lib/days'
 import { fromCents, toCents } from '@/lib/money'
 
 export type Grouping = 'day' | 'week' | 'month'

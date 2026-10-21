@@ -1,7 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
-import { dayAfter, type DayRange, startOfDay } from '@/features/dashboard/days'
+import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
+import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type Movement = Schemas['InventoryMovementResponse']
@@ -91,7 +92,7 @@ export function useLowStockPage(categoryId: number | null, page: number, size = 
 }
 
 /** Just the count, for the stock overview's tiles and the supervision alerts (which poll it). */
-export function useLowStockCount({ refetchInterval }: { refetchInterval?: number } = {}) {
+export function useLowStockCount({ refetchInterval }: LiveOptions = {}) {
   return useQuery({
     queryKey: ['stock-reports', 'low-stock', 'count'] as const,
     queryFn: async () => {

@@ -1,7 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
-import { dayAfter, type DayRange, startOfDay } from '@/features/dashboard/days'
+import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
+import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type SaleSummary = Schemas['SaleSummaryResponse']
@@ -25,13 +26,17 @@ export interface SaleFilters {
   status: SaleStatus | null
 }
 
-// page is under 'sales' (like the drawer's tickets) and sellers under 'sale-reports'; a sale or
-// cancellation anywhere invalidates both prefixes.
+// page and cancelledOn are under 'sales' (like the drawer's tickets) and sellers under
+// 'sale-reports'; a sale or cancellation anywhere invalidates both prefixes.
 export const saleKeys = {
   page: (filters: SaleFilters, page: number, size: number, sort: SortState | null) =>
     ['sales', 'page', filters, page, size, sort] as const,
   sellers: (range: DayRange) => ['sale-reports', 'sellers', range] as const,
+  cancelledOn: (day: string) => ['sales', 'cancelled', day] as const,
 }
+
+/** How many of a day's cancellations one request brings; the rest are only counted. */
+const DAY_CANCELLATIONS_SHOWN = 50
 
 function saleQuery(filters: SaleFilters) {
   return {
@@ -50,6 +55,25 @@ export function useSales(filters: SaleFilters, page: number, size = PAGE_SIZE, s
     queryKey: saleKeys.page(filters, page, size, sort),
     queryFn: () => unwrap(api.GET('/api/v1/sales', { params: { query: { ...saleQuery(filters), page, size, sort: sortParam(sort) } } })),
     placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Sales cancelled on a store day (whenever they were sold), last cancelled first, up to
+ * DAY_CANCELLATIONS_SHOWN; the page's totalElements counts them all.
+ */
+export function useDayCancellations(day: string, { refetchInterval }: LiveOptions = {}) {
+  return useQuery({
+    queryKey: saleKeys.cancelledOn(day),
+    queryFn: () => unwrap(api.GET('/api/v1/sales', {
+      params: {
+        query: {
+          status: 'CANCELLED', cancelledFrom: startOfDay(day), cancelledTo: dayAfter(day),
+          size: DAY_CANCELLATIONS_SHOWN, sort: sortParam({ field: 'cancelledAt', direction: 'desc' }),
+        },
+      },
+    })),
+    refetchInterval,
   })
 }
 

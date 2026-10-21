@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
 import { formatMoney } from '@/lib/money'
 
 import type { Sale } from './queries'
@@ -55,7 +55,7 @@ function ReceiptMeta({ sale }: { sale: Sale }) {
   const { t, i18n } = useTranslation()
   return (
     <>
-      {new Date(sale.saleDate!).toLocaleString(dateLocale(i18n.language))} · {sale.customer?.name}
+      {new Date(sale.saleDate!).toLocaleString(intlLocale(i18n.language))} · {sale.customer?.name}
       {' · '}{t(`checkout.paymentMethods.${sale.paymentMethod!}`)}
     </>
   )
@@ -91,7 +91,7 @@ function ReceiptBody({ sale }: { sale: Sale }) {
  */
 export function ReceiptSlip({ sale }: { sale: Sale }) {
   const { t, i18n } = useTranslation()
-  const when = (instant: string) => new Date(instant).toLocaleString(dateLocale(i18n.language),
+  const when = (instant: string) => new Date(instant).toLocaleString(intlLocale(i18n.language),
     { dateStyle: 'long', timeStyle: 'short' })
   const items = sale.items ?? []
   const units = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0)

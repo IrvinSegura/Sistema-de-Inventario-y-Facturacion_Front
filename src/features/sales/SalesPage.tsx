@@ -19,9 +19,9 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CancelSaleDialog } from '@/features/cash-drawer/DrawerSales'
-import { formatDate } from '@/features/cash-drawer/format'
-import { daysInRange, lastDaysRange } from '@/features/dashboard/days'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
+import { formatDate } from '@/lib/date-format'
+import { daysInRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
@@ -79,7 +79,7 @@ export function SalesPage() {
   const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
   const summary = useSalesSummary(filters.range, filters.sellerId, reportable)
   const sellers = useSellerOptions(filters.range, reportable)
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const reportMeta = useReportMeta()
   const byNumber = filters.saleNumber !== null
 

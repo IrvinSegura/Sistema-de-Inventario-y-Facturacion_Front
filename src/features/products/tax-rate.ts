@@ -3,7 +3,7 @@
  * with up to 2 (16, 8, 0).
  */
 
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
 
 // toFixed drops floating-point noise from the conversion (0.07 * 100 is 7.000000000000001).
 export function toPercent(rate: number): number {
@@ -16,5 +16,5 @@ export function fromPercent(percent: number): number {
 
 /** "16 %", "8 %", "0 %" in the current language. */
 export function formatTaxRate(rate: number, language: string): string {
-  return new Intl.NumberFormat(dateLocale(language), { style: 'percent', maximumFractionDigits: 2 }).format(rate)
+  return new Intl.NumberFormat(intlLocale(language), { style: 'percent', maximumFractionDigits: 2 }).format(rate)
 }

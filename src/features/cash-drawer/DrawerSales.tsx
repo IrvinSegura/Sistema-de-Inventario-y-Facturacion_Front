@@ -21,11 +21,11 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { ReceiptDialog } from '@/features/checkout/ReceiptDialog'
+import { formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 import { cn } from '@/lib/utils'
 
-import { formatTime } from './format'
 import { type SaleSummary, useCancelSale, useDrawerSales, useSale } from './queries'
 
 const REASON_MAX_LENGTH = 255

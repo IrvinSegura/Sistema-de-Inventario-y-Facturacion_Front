@@ -12,10 +12,10 @@ import { TableSkeleton } from '@/components/TableSkeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/features/cash-drawer/format'
-import { type DayRange, lastDaysRange } from '@/features/dashboard/days'
 import { MAX_REPORT_DAYS } from '@/features/sales/queries'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
+import { formatDate } from '@/lib/date-format'
+import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
@@ -40,7 +40,7 @@ export function CustomerSalesReportPage() {
   const customers = useCustomerSales(range, page, pageSize)
   const reportMeta = useReportMeta()
   const rows = customers.data?.content ?? []
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' })
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium' })
 
   async function exportExcel() {
     setExporting(true)

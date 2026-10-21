@@ -15,14 +15,17 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DrawerDetailDialog } from '@/features/cash-drawer/DrawerDetailDialog'
 import { DrawerStatus, SharedBadge } from '@/features/cash-drawer/DrawerParts'
-import { differenceClass, differenceLabel, formatTime } from '@/features/cash-drawer/format'
+import { differenceClass, differenceLabel } from '@/features/cash-drawer/format'
 import { memberNames } from '@/features/cash-drawer/members'
 import { type CashDrawer, useDayClosing, useStaleDrawers } from '@/features/cash-drawer/queries'
 import { useLowStockCount } from '@/features/inventory/queries'
+import { useDayCancellations } from '@/features/sales/queries'
+import { formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
+import { CancellationsCard } from './CancellationsCard'
 import { averageTicket, type SellerDay, sellerDays, type UnbalancedDrawer, unbalancedDrawers } from './live-day'
 
 // Keep in step with supervision.live.updatedAt, which tells the user how often it refreshes.
@@ -36,6 +39,7 @@ export function LivePage() {
   const day = useDayClosing(today, live)
   const staleDrawers = useStaleDrawers(today, live)
   const lowStock = useLowStockCount(live)
+  const cancellations = useDayCancellations(today, live)
   // By id, so the dialog follows the refreshed drawer (e.g. one someone else just closed).
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
@@ -52,13 +56,13 @@ export function LivePage() {
   const sellers = sellerDays(day.data)
   // Stale ones too: past midnight a drawer left open moves from today's list to the stale one.
   const selected = [...drawers, ...(staleDrawers.data ?? [])].find((drawer) => drawer.id === selectedId) ?? null
-  const fetching = day.isFetching || staleDrawers.isFetching || lowStock.isFetching
-  const updatedAt = formatTime(new Date(day.dataUpdatedAt).toISOString(), i18n.language)
+  const fetching = day.isFetching || staleDrawers.isFetching || lowStock.isFetching || cancellations.isFetching
+  const updatedAt = formatTime(day.dataUpdatedAt, i18n.language)
   const alertsError = staleDrawers.error ?? lowStock.error
   const view = (drawer: CashDrawer) => setSelectedId(drawer.id ?? null)
 
   function refresh() {
-    void Promise.all([day.refetch(), staleDrawers.refetch(), lowStock.refetch()])
+    void Promise.all([day.refetch(), staleDrawers.refetch(), lowStock.refetch(), cancellations.refetch()])
   }
 
   return (
@@ -112,6 +116,8 @@ export function LivePage() {
           <SellersTable sellers={sellers} onView={view} />
         )}
       </Card>
+
+      <CancellationsCard cancellations={cancellations} today={today} />
 
       <DrawerDetailDialog drawer={selected} onOpenChange={(open) => !open && setSelectedId(null)} />
     </div>

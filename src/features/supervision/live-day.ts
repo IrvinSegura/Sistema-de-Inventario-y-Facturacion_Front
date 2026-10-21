@@ -1,5 +1,7 @@
 import type { Schemas } from '@/api/client'
 import type { CashClosing, CashDrawer } from '@/features/cash-drawer/queries'
+import type { SaleSummary } from '@/features/sales/queries'
+import { STORE_TIME_ZONE, toDay } from '@/lib/days'
 
 type Ref = Schemas['Ref']
 type Amounts = Schemas['Amounts']
@@ -61,4 +63,13 @@ export function unbalancedDrawers(drawers: CashDrawer[]): UnbalancedDrawer[] {
     .map((drawer) => ({ drawer, difference: drawer.closing?.difference ?? 0 }))
     .filter(({ difference }) => Math.abs(difference) >= ALERT_MIN_DIFFERENCE)
     .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference))
+}
+
+/**
+ * The store day a sale cancelled on `day` was sold on, when earlier than `day` (its refund still
+ * counts on `day`); undefined when sold that same day.
+ */
+export function earlierSaleDay(sale: SaleSummary, day: string, timeZone = STORE_TIME_ZONE): string | undefined {
+  const soldOn = sale.saleDate === undefined ? undefined : toDay(new Date(sale.saleDate), timeZone)
+  return soldOn !== undefined && soldOn < day ? soldOn : undefined
 }

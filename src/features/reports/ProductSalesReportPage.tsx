@@ -15,13 +15,13 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/features/cash-drawer/format'
 import { categoryName } from '@/features/categories/category-labels'
 import { useCategories } from '@/features/categories/queries'
 import { useLabeledCategories } from '@/features/categories/use-labeled-categories'
-import { type DayRange, lastDaysRange } from '@/features/dashboard/days'
 import { MAX_REPORT_DAYS } from '@/features/sales/queries'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
+import { formatDate } from '@/lib/date-format'
+import { type DayRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
@@ -51,7 +51,7 @@ export function ProductSalesReportPage() {
   const categories = useLabeledCategories(useCategories().data)
   const reportMeta = useReportMeta()
   const rows = products.data?.content ?? []
-  const lastSale = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' })
+  const lastSale = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium' })
 
   const changeFilters = (change: Partial<ProductSalesFilters>) => {
     setFilters((current) => ({ ...current, ...change }))

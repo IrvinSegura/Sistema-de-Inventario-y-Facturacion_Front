@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { addDays, type DayRange, daysInRange, FIRST_DAY } from '@/features/dashboard/days'
+import { addDays, type DayRange, daysInRange, FIRST_DAY } from '@/lib/days'
 import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
