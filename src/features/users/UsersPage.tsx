@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { intlLocale } from '@/i18n/intl-locale'
+import { formatStoreDate } from '@/lib/date-format'
 import { initials } from '@/lib/initials'
 import { type SortState } from '@/lib/sort'
 import { usePageSize } from '@/lib/use-page-size'
@@ -135,7 +135,7 @@ function UsersTable({ accounts, currentUserId, onEdit, onCreate, sort, onSort }:
               </span>
             </TableCell>
             <TableCell className="hidden tabular-nums md:table-cell">
-              {new Date(account.createdAt!).toLocaleDateString(intlLocale(i18n.language), { dateStyle: 'medium' })}
+              {formatStoreDate(account.createdAt, i18n.language)}
             </TableCell>
             <TableCell className="pr-4 text-right">
               <Button variant="ghost" size="icon" aria-label={t('users.edit', { name: account.name })}
