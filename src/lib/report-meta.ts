@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { useUser } from '@/auth/auth-context'
+import { intlLocale } from '@/i18n/intl-locale'
 
 import type { ReportMeta } from './excel'
 
@@ -16,6 +17,6 @@ export function useReportMeta(): ReportMeta {
     pageLabel: t('excel.page'),
     emptyLabel: t('excel.empty'),
     totalLabel: t('excel.total'),
-    language: i18n.language,
+    locale: intlLocale(i18n.language),
   }
 }
