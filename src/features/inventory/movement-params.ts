@@ -5,9 +5,7 @@ import type { MovementType } from './queries'
 
 export const MOVEMENT_TYPES: MovementType[] = ['PURCHASE', 'SALE', 'SALE_CANCELLATION', 'ADJUSTMENT']
 /** Without a product the API lists one type of movement across the store, over at most this many days. */
-// One under the API's 366: it measures the span in hours, and a year across the end of daylight
-// saving time is an hour longer.
-export const MAX_STORE_WIDE_DAYS = 365
+export const MAX_STORE_WIDE_DAYS = 366
 /** Days the ledger shows when it needs dates and the URL has none. */
 export const DEFAULT_RANGE_DAYS = 30
 
