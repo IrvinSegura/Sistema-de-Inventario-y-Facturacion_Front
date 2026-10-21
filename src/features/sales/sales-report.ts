@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next'
 
+import { toDay } from '@/lib/days'
 import { excelDate, excelDay, type Kpi, type Row, type SheetSpec } from '@/lib/excel'
 import { fromCents, toCents } from '@/lib/money'
 
@@ -8,11 +9,6 @@ import type { SaleReport, SaleSummary } from './queries'
 /** The text as a string literal for an Excel formula, with inner quotes doubled. */
 function quote(text: string) {
   return `"${text.replace(/"/g, '""')}"`
-}
-
-/** The day as YYYY-MM-DD in the browser's time zone. */
-function local(day: Date) {
-  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
 }
 
 /**
@@ -75,7 +71,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
   const byDay: Row[] = report?.byDay
     ? report.byDay.map((day) => ({ date: excelDay(day.date!), tickets: day.saleCount, total: day.total }))
     : [...done.reduce((days, sale) => {
-      const day = local(new Date(sale.saleDate!))
+      const day = toDay(sale.saleDate!)
       const entry = days.get(day) ?? { tickets: 0, cents: 0 }
       entry.tickets++
       entry.cents += toCents(sale.total ?? 0)

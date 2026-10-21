@@ -10,7 +10,7 @@ import { ledgerWorkbook, stockWorkbook } from '@/features/inventory/inventory-re
 import { salesWorkbook } from '@/features/sales/sales-report'
 import { es } from '@/i18n/locales/es'
 
-import { excelDate, excelDay, type ReportMeta, type SheetSpec, workbookBuffer } from './excel'
+import { excelDate, excelDay, excelStoreDay, type ReportMeta, type SheetSpec, workbookBuffer } from './excel'
 
 const meta: ReportMeta = {
   storeName: 'Inventario y Facturación',
@@ -20,7 +20,7 @@ const meta: ReportMeta = {
   pageLabel: 'Página &P de &N',
   emptyLabel: 'No hay datos con estos filtros.',
   totalLabel: 'Total',
-  locale: 'es-MX',
+  language: 'es',
 }
 
 let t: TFunction
@@ -67,6 +67,26 @@ function find(sheet: ExcelJS.Worksheet, text: string) {
   return found as { row: number; col: number }
 }
 
+// Every Date under a "date" key in the sheets' rows, as ISO strings.
+function dateCells(specs: SheetSpec[]): string[] {
+  const found: string[] = []
+  const walk = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(walk)
+    } else if (value && typeof value === 'object' && !(value instanceof Date)) {
+      for (const [key, inner] of Object.entries(value)) {
+        if (key === 'date' && inner instanceof Date) {
+          found.push(inner.toISOString())
+        } else {
+          walk(inner)
+        }
+      }
+    }
+  }
+  walk(specs)
+  return found
+}
+
 function sale(number: number, status: 'COMPLETED' | 'CANCELLED', total: number, paymentMethod: 'CASH' | 'CARD' = 'CASH') {
   return {
     id: number, saleNumber: number, saleDate: `2026-10-18T1${number % 10}:00:00Z`, customer: { name: 'Público en general' },
@@ -75,10 +95,23 @@ function sale(number: number, status: 'COMPLETED' | 'CANCELLED', total: number, 
 }
 
 describe('excel dates', () => {
-  it('keeps the local wall-clock time', () => {
-    const local = new Date(2026, 9, 19, 13, 45)
-    expect(excelDate(local).toISOString()).toBe('2026-10-19T13:45:00.000Z')
+  it("keeps the store's wall-clock time, not the machine's", () => {
+    // 19:45 UTC is 13:45 in Mexico City (UTC−6).
+    expect(excelDate('2026-10-19T19:45:00Z', 'America/Mexico_City')?.toISOString()).toBe('2026-10-19T13:45:00.000Z')
+    expect(excelDate(new Date('2026-10-19T19:45:00Z'), 'UTC')?.toISOString()).toBe('2026-10-19T19:45:00.000Z')
     expect(excelDay('2026-10-01').toISOString()).toBe('2026-10-01T00:00:00.000Z')
+  })
+
+  it('writes the store day an instant falls on for day columns', () => {
+    // 05:30 UTC is still the previous evening in Mexico City.
+    expect(excelStoreDay('2026-10-19T05:30:00Z', 'America/Mexico_City')?.toISOString()).toBe('2026-10-18T00:00:00.000Z')
+  })
+
+  it('leaves the cell empty for a missing or malformed instant instead of failing the export', () => {
+    expect(excelDate(undefined)).toBeUndefined()
+    expect(excelDate(null)).toBeUndefined()
+    expect(excelDate('not a date')).toBeUndefined()
+    expect(excelStoreDay('not a date')).toBeUndefined()
   })
 })
 
@@ -148,6 +181,16 @@ describe('sales workbook', () => {
     const summary = workbook.getWorksheet('Resumen')!
     const sales0 = find(summary, 'VENTAS')
     expect(summary.getCell(sales0.row + 1, sales0.col).value).toBe(174)
+  })
+
+  it("groups the tickets by the store's day when there is no report", () => {
+    // 23:30 on Oct 18 in the store (the default America/Mexico_City), already Oct 19 in UTC.
+    const late = { ...sale(1, 'COMPLETED', 100), saleDate: '2026-10-19T05:30:00Z' }
+
+    const days = dateCells(salesWorkbook({ t, sales: [late], truncated: false, live: false, period: '', info: [] }))
+
+    expect(days.length).toBeGreaterThan(0)
+    expect(days.every((day) => day.startsWith('2026-10-18'))).toBe(true)
   })
 
   it('shows an empty tickets sheet without a table', async () => {
