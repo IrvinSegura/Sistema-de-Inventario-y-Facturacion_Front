@@ -12,9 +12,11 @@ const tabs: SectionTab[] = [
   { to: '/reports/cash-flow', label: 'reports.tabs.flow' },
 ]
 
-// Every user gets their sales against the previous period (sellers only their own); managers also
-// get sales by product and customer, a day's cash closing and money in and out. Each one prints or
-// exports to Excel.
+/**
+ * Every user gets their sales against the previous period (sellers only their own); managers also
+ * get sales by product and customer, a day's cash closing and money in and out. Each one prints or
+ * exports to Excel.
+ */
 export function ReportsLayout() {
   const { t } = useTranslation()
   const user = useUser()

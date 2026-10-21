@@ -6,9 +6,12 @@ import { cn } from '@/lib/utils'
 import { formatChange } from './format'
 import { type Grouping, groupings } from './periods'
 
-// Change against the previous period: green when it went the right way, red otherwise. `inverse`
-// is for figures where less is better, such as cancellations.
+/**
+ * Change against the previous period: green when it went the right way, red otherwise. `inverse`
+ * is for figures where less is better, such as cancellations.
+ */
 export function ChangeBadge({ value, inverse, className }: {
+  /** A fraction (0.25 = +25 %); null (growth from zero) shows as new, undefined renders nothing. */
   value: number | null | undefined
   inverse?: boolean
   className?: string
@@ -34,7 +37,7 @@ export function ChangeBadge({ value, inverse, className }: {
   )
 }
 
-// Day, week or month, for the charts and tables of a period.
+/** Day, week or month, for the charts and tables of a period. */
 export function GroupingToggle({ value, onChange }: { value: Grouping; onChange: (grouping: Grouping) => void }) {
   const { t } = useTranslation()
   return (
@@ -53,7 +56,7 @@ export function GroupingToggle({ value, onChange }: { value: Grouping; onChange:
   )
 }
 
-// A bar showing a share of the whole, under a figure in a table.
+/** A bar showing a share of the whole (a fraction, clamped to 0–1), under a figure in a table. */
 export function ShareBar({ value }: { value: number }) {
   return (
     <div className="h-1.5 rounded-full bg-muted" aria-hidden>

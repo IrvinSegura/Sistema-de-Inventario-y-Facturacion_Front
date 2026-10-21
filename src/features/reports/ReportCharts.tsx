@@ -28,11 +28,11 @@ const flow: Series[] = [
   { key: 'cumulative', label: 'reports.series.cumulative', color: 'var(--foreground)', kind: 'line' },
 ]
 
-// Sales of each bucket as bars, with the same days of the previous period as a dashed line.
+/** Sales of each bucket as bars, with the same days of the previous period as a dashed line. */
 export function ComparisonChart({ data, grouping, previousShift }: {
   data: ComparisonPoint[]
   grouping: Grouping
-  // Days between a bucket and the same days of the previous period, to name them in the tooltip.
+  /** Days between a bucket and the same days of the previous period, to name them in the tooltip. */
   previousShift: number
 }) {
   return (
@@ -41,7 +41,7 @@ export function ComparisonChart({ data, grouping, previousShift }: {
   )
 }
 
-// Money in and out per bucket, and the net flow accumulated since the start of the period.
+/** Money in and out per bucket, and the net flow accumulated since the start of the period. */
 export function FlowChart({ data, grouping }: { data: FlowPoint[]; grouping: Grouping }) {
   return <MoneyComposedChart data={data} grouping={grouping} series={flow} />
 }
@@ -54,7 +54,7 @@ function MoneyComposedChart<T extends Bucket>({ data, grouping, series, subtitle
   data: T[]
   grouping: Grouping
   series: Series[]
-  // Second line of the tooltip for the dashed series, e.g. the previous period's dates.
+  /** Second line of the tooltip for the dashed series, e.g. the previous period's dates. */
   subtitle?: (point: T, language: string) => string
 }) {
   const { t, i18n } = useTranslation()
