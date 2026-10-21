@@ -33,27 +33,27 @@ import { PurchaseDetailDialog } from '@/features/purchases/PurchaseDetailDialog'
 import type { DraftState } from '@/features/purchases/purchase-draft'
 import { SaleDetailDialog } from '@/features/sales/SaleDetailDialog'
 import { formatDate, formatDateTime } from '@/lib/date-format'
-import { type DayRange, lastDaysRange } from '@/lib/days'
+import { lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { useReportMeta } from '@/lib/report-meta'
 import { usePageSize } from '@/lib/use-page-size'
+import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
 import { AdjustStockDialog } from './AdjustStockDialog'
 import { ledgerWorkbook } from './inventory-reports'
 import {
-  fetchAllMovements,
-  MAX_EXPORT_ROWS,
-  type Movement,
-  type MovementFilters,
-  type MovementType,
+  DEFAULT_RANGE_DAYS,
+  MAX_STORE_WIDE_DAYS,
   MOVEMENT_TYPES,
-  useMovements,
-} from './queries'
+  movementParams,
+  type MovementParams,
+  readMovementParams,
+} from './movement-params'
+import { fetchAllMovements, MAX_EXPORT_ROWS, type Movement, type MovementFilters, type MovementType, useMovements } from './queries'
 import { StockBadge } from './StockBadge'
 
 const ALL_TYPES = 'all'
-const DEFAULT_RANGE_DAYS = 30
 
 const typeIcons: Record<MovementType, LucideIcon> = {
   PURCHASE: ArrowDownLeft,
@@ -64,18 +64,28 @@ const typeIcons: Record<MovementType, LucideIcon> = {
 
 /**
  * Stock ledger (kardex) of one product: every purchase, sale, cancellation and adjustment, with the
- * stock it left and who recorded it. The product is in the URL, so a link opens its ledger.
+ * stock it left and who recorded it. Without a product, one type of movement across the store (e.g.
+ * today's adjustments). The filters are in the URL, so a link opens the ledger already filtered.
  */
 export function MovementsPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const today = useToday()
   const [params, setParams] = useSearchParams()
-  const productId = Number(params.get('productId')) || null
+  const { productId, type, storeWide, range, chosen } = readMovementParams(params, today)
   const product = useProduct(productId)
-  const [type, setType] = useState<MovementType | null>(null)
-  const [range, setRange] = useState<DayRange | null>(null)
-  const [asOf, setAsOf] = useState(() => new Date().toISOString())
+  const paramsKey = params.toString()
+  // The upper bound for the URL's filters: taken again for every new set (and on refresh) so newer
+  // movements show up, kept in between so the pages don't shift. When the browser's history or the
+  // section's tabs change the URL, no handler takes one: no bound (the newest) until the next action.
+  const [snapshot, setSnapshot] = useState(() => ({ paramsKey, asOf: new Date().toISOString() }))
+  const asOf = snapshot.paramsKey === paramsKey ? snapshot.asOf : null
   const [page, setPage] = useState(0)
+  const [shownParams, setShownParams] = useState(paramsKey)
+  if (paramsKey !== shownParams) {
+    setShownParams(paramsKey)
+    setPage(0)
+  }
   const [pageSize, setPageSize] = usePageSize('ledger')
   const [includeInactive, setIncludeInactive] = useState(false)
   const [adjusting, setAdjusting] = useState<Product | null>(null)
@@ -84,18 +94,25 @@ export function MovementsPage() {
   const [exporting, setExporting] = useState(false)
   const reportMeta = useReportMeta()
 
-  const filters: MovementFilters | null = productId === null ? null : { productId, type, range, asOf }
+  const filters: MovementFilters | null =
+    productId !== null || storeWide ? { productId, type, range, asOf } : null
   const movements = useMovements(filters, page, pageSize)
 
-  // Any filter change starts again from the newest movement.
-  function refilter(change: () => void) {
-    change()
-    setAsOf(new Date().toISOString())
+  // A new URL starts again from the newest movement, on the first page.
+  function refilter(change: Partial<MovementParams>) {
+    const next = movementParams({ ...chosen, ...change })
+    setSnapshot({ paramsKey: next.toString(), asOf: new Date().toISOString() })
+    setParams(next)
+  }
+
+  // A fresh asOf, not a refetch: the old bound would keep hiding newer movements.
+  function showNewest() {
+    setSnapshot({ paramsKey, asOf: new Date().toISOString() })
     setPage(0)
   }
 
   function pickProduct(next: Product | null) {
-    refilter(() => setParams(next ? { productId: String(next.id) } : {}))
+    refilter({ productId: next?.id ?? null })
   }
 
   function reference(movement: Movement): string {
@@ -187,13 +204,18 @@ export function MovementsPage() {
               </div>
             </div>
           ) : product.isError ? (
-            <ErrorAlert message={errorMessage(product.error)} />
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1"><ErrorAlert message={errorMessage(product.error)} /></div>
+              <Button variant="ghost" size="icon" aria-label={t('inventory.ledger.changeProduct')} onClick={() => pickProduct(null)}>
+                <X />
+              </Button>
+            </div>
           ) : productId !== null ? (
             <div className="h-14 animate-pulse rounded-lg bg-muted/60" />
           ) : (
             <div className="grid gap-2">
-              <Label htmlFor="ledger-product">{t('inventory.ledger.chooseProduct')}</Label>
-              <ProductPicker id="ledger-product" active={!includeInactive} autoFocus onPick={pickProduct} />
+              <Label htmlFor="ledger-product">{t(storeWide ? 'inventory.ledger.narrowToProduct' : 'inventory.ledger.chooseProduct')}</Label>
+              <ProductPicker id="ledger-product" active={!includeInactive} autoFocus={!storeWide} onPick={pickProduct} />
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input type="checkbox" className="size-3.5 accent-primary" checked={includeInactive}
                   onChange={(event) => setIncludeInactive(event.target.checked)} />
@@ -204,43 +226,56 @@ export function MovementsPage() {
         </CardContent>
       </Card>
 
-      {productId === null ? (
-        <Card><EmptyState icon={History} text={t('inventory.ledger.intro')} /></Card>
+      {filters === null ? (
+        <Card>
+          <EmptyState icon={History} text={t('inventory.ledger.intro')}>
+            <Select aria-label={t('inventory.ledger.storeWide')} className="h-9 w-64" value=""
+              placeholder={t('inventory.ledger.storeWide')}
+              onValueChange={(value) => value && refilter({ type: value as MovementType })}
+              options={MOVEMENT_TYPES.map((option) => ({ value: option, label: t(`inventory.types.${option}`) }))} />
+          </EmptyState>
+        </Card>
       ) : (
         <>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="ledger-type">{t('inventory.ledger.columns.type')}</Label>
+                {/* Store-wide needs a type: "all" only exists for a product's ledger. */}
                 <Select id="ledger-type" className="h-9 w-52" value={type ?? ALL_TYPES}
-                  onValueChange={(value) => refilter(() => setType(!value || value === ALL_TYPES ? null : value as MovementType))}
+                  onValueChange={(value) => refilter({ type: !value || value === ALL_TYPES ? null : value as MovementType })}
                   options={[
-                    { value: ALL_TYPES, label: t('inventory.ledger.allTypes') },
+                    ...(storeWide ? [] : [{ value: ALL_TYPES, label: t('inventory.ledger.allTypes') }]),
                     ...MOVEMENT_TYPES.map((option) => ({ value: option, label: t(`inventory.types.${option}`) })),
                   ]} />
               </div>
               {range ? (
                 <>
-                  <DateRangeFilter value={range} onChange={(next) => refilter(() => setRange(next))} />
-                  <Button variant="ghost" className="h-9" onClick={() => refilter(() => setRange(null))}>
-                    {t('inventory.ledger.allDates')}
-                  </Button>
+                  <DateRangeFilter value={range} maxDays={storeWide ? MAX_STORE_WIDE_DAYS : undefined}
+                    onChange={(next) => refilter({ range: next })} />
+                  {!storeWide && (
+                    <Button variant="ghost" className="h-9" onClick={() => refilter({ range: null })}>
+                      {t('inventory.ledger.allDates')}
+                    </Button>
+                  )}
                 </>
               ) : (
-                <Button variant="outline" className="h-9" onClick={() => refilter(() => setRange(lastDaysRange(DEFAULT_RANGE_DAYS)))}>
+                <Button variant="outline" className="h-9" onClick={() => refilter({ range: lastDaysRange(DEFAULT_RANGE_DAYS) })}>
                   {t('inventory.ledger.filterDates')}
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
-              {/* A fresh asOf, not a refetch: the old bound would keep hiding newer movements. */}
-              <Button variant="ghost" className="h-9" onClick={() => refilter(() => {})} aria-label={t('inventory.ledger.refresh')}>
+              <Button variant="ghost" className="h-9" onClick={showNewest} aria-label={t('inventory.ledger.refresh')}>
                 <RefreshCw className={cn(movements.isFetching && 'animate-spin')} />
               </Button>
-              <Button variant="outline" className="h-9" disabled={exporting || rows.length === 0} onClick={() => void exportExcel()}>
-                <FileSpreadsheet />
-                {t('inventory.ledger.export')}
-              </Button>
+              {/* The ledger workbook covers one product; the store-wide list isn't exported. */}
+              {!storeWide && (
+                <Button variant="outline" className="h-9" disabled={exporting || rows.length === 0} onClick={() => void exportExcel()}>
+                  <FileSpreadsheet />
+                  {t('inventory.ledger.export')}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -257,6 +292,7 @@ export function MovementsPage() {
                   <TableHeader className="bg-muted/50">
                     <TableRow>
                       <TableHead className="pl-4">{t('inventory.ledger.columns.date')}</TableHead>
+                      {storeWide && <TableHead>{t('inventory.ledger.columns.product')}</TableHead>}
                       <TableHead>{t('inventory.ledger.columns.type')}</TableHead>
                       <TableHead className="hidden md:table-cell">{t('inventory.ledger.columns.reference')}</TableHead>
                       <TableHead className="text-right">{t('inventory.ledger.columns.quantity')}</TableHead>
@@ -274,6 +310,15 @@ export function MovementsPage() {
                       return (
                         <TableRow key={movement.id}>
                           <TableCell className="pl-4 whitespace-nowrap">{formatDateTime(movement.movementDate, i18n.language)}</TableCell>
+                          {storeWide && (
+                            <TableCell className="max-w-56">
+                              <button type="button" onClick={() => refilter({ productId: movement.productId ?? null })}
+                                className="block max-w-full truncate text-left font-medium underline-offset-4 hover:underline"
+                                title={t('inventory.ledger.openFor', { name: movement.productName })}>
+                                {movement.productName}
+                              </button>
+                            </TableCell>
+                          )}
                           <TableCell>
                             <span className="flex items-center gap-2">
                               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -310,10 +355,10 @@ export function MovementsPage() {
               {movements.data && (
                 <Pagination page={page} pageSize={pageSize} total={movements.data.page?.totalElements ?? 0}
                   loading={movements.isPlaceholderData} onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size)
-              setPage(0)
-            }} />
+                  onPageSizeChange={(size) => {
+                    setPageSize(size)
+                    setPage(0)
+                  }} />
               )}
             </Card>
           )}
@@ -324,8 +369,7 @@ export function MovementsPage() {
         if (!open) {
           setAdjusting(null)
           // The new adjustment goes on top.
-          setAsOf(new Date().toISOString())
-          setPage(0)
+          showNewest()
         }
       }} />
       <PurchaseDetailDialog purchaseId={purchaseId} onClose={() => setPurchaseId(null)} />
