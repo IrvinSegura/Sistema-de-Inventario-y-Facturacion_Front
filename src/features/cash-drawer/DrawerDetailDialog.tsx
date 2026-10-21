@@ -2,11 +2,11 @@ import { useTranslation } from 'react-i18next'
 
 import { managesStore, useUser } from '@/auth/auth-context'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { formatDate, formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 
 import { BySellerSection, ClosingDetails, CloseDrawerForm, DrawerMembers, PaymentMethodSection } from './DrawerParts'
 import { DrawerSales } from './DrawerSales'
-import { formatDate, formatTime } from './format'
 import { isAssigned, isShared, memberNames } from './members'
 import { type CashDrawer, useDrawerClosing } from './queries'
 

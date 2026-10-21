@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { amountField } from '@/lib/amount-field'
+import { formatDate, formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
 import { cn } from '@/lib/utils'
@@ -29,7 +30,7 @@ import {
   MAX_PIECES_DIGITS,
 } from './denominations'
 import { isFromPastDay } from './drawer-day'
-import { differenceClass, differenceLabel, formatDate, formatDenomination, formatTime } from './format'
+import { differenceClass, differenceLabel, formatDenomination } from './format'
 import { isShared, memberNames } from './members'
 import { type CashClosing, type CashDrawer, useDayClosing, useCloseDrawer, useDrawerClosing } from './queries'
 
