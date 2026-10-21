@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-// Round icon, a line of text and an optional action, for lists without rows.
+/** Round icon, a line of text and an optional action, for lists without rows. */
 export function EmptyState({ icon: Icon, text, children }: { icon: LucideIcon; text: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
