@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-// Search field of the app: magnifier on the left and, on the right, a spinner while results load
-// or our own clear button (the browser's blue one is hidden, it didn't match either theme).
+/**
+ * Search field of the app: magnifier on the left and, on the right, a spinner while results load
+ * or our own clear button (the browser's blue one is hidden, it didn't match either theme).
+ */
 export function SearchInput({ value, onValueChange, loading = false, inputRef, className, wrapperClassName, ...props }:
   Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'ref'> & {
     value: string

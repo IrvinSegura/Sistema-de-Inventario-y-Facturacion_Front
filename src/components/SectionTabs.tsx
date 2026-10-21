@@ -9,11 +9,11 @@ export interface SectionTab {
   label: MessageKey
 }
 
-// Underlined links between the pages of one section (cash drawer, purchases, inventory). The base
-// line is an inset shadow, so the active underline covers it without overflowing the nav (an
-// overflow made Windows show a vertical scrollbar next to the tabs).
+/** Underlined links between the pages of one section, such as cash drawer or purchases. */
 export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[] }) {
   const { t } = useTranslation()
+  // The base line is an inset shadow, so the active underline covers it without overflowing the nav
+  // (an overflow made Windows show a vertical scrollbar next to the tabs).
   return (
     <nav aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--border)]">
       {tabs.map((tab) => (
