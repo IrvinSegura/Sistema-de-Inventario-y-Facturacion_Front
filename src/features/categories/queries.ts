@@ -10,8 +10,10 @@ const categoryKeys = {
   all: ['categories'] as const,
 }
 
-// Sorted by name on the server. Inactive ones too: the list shows them, and a product can still
-// belong to one (it shows as inactive in the product form).
+/**
+ * Sorted by name on the server. Inactive ones too: the list shows them, and a product can still
+ * belong to one (it shows as inactive in the product form).
+ */
 export function useCategories() {
   return useQuery({
     queryKey: [...categoryKeys.all, 'with-inactive'],
@@ -33,7 +35,7 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: ({ id, ...body }: UpdateCategory & { id: number }) =>
       unwrap(api.PUT('/api/v1/categories/{id}', { params: { path: { id } }, body })),
-    // Products show their category's name, so they reload too.
+    // Also on failure, to reload a stale version; products show their category's name, so they reload too.
     onSettled: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
       queryClient.invalidateQueries({ queryKey: ['products'] }),

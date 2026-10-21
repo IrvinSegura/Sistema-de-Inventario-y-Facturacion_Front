@@ -31,6 +31,7 @@ import { type Category, useCreateCategory, useUpdateCategory } from './queries'
 // Same limits as the API (CreateCategoryRequest / UpdateCategoryRequest).
 const NAME_MAX_LENGTH = 100
 const DESCRIPTION_MAX_LENGTH = 255
+// With a tolerance, because value * 100 can miss the integer by a hair (0.07 * 100 is 7.000000000000001).
 const TWO_DECIMALS = (value: number) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6
 
 function categorySchema(t: TFunction) {
@@ -49,7 +50,7 @@ function categorySchema(t: TFunction) {
   })
 }
 
-// open: null closed, 'new' to create, a category to edit it.
+/** Creates or edits a category. open: null closed, 'new' to create, a category to edit it. */
 export function CategoryDialog({ open, onOpenChange }: { open: LabeledCategory | 'new' | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
   // Keeps the last content on screen while the dialog animates out.

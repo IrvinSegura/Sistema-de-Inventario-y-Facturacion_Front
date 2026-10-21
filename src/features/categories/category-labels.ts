@@ -2,9 +2,12 @@ import type { TFunction } from 'i18next'
 
 import type { Category } from './queries'
 
-// The categories the API seeds (V2 migration) are stored in English. They're shown in the chosen
-// language while they keep their original name; categories people create show as typed.
+/**
+ * The categories the API seeds (V2 migration) are stored in English. They're shown in the chosen
+ * language while they keep their original name; categories people create show as typed.
+ */
 const defaults = {
+  // Must match the API's seed exactly: a name or description that differs shows as stored, untranslated.
   Pantry: { key: 'pantry', description: 'Rice, beans, sugar, oil, pasta, canned food' },
   Dairy: { key: 'dairy', description: 'Milk, cheese, yogurt, eggs' },
   Bakery: { key: 'bakery', description: 'Bread, tortillas' },
@@ -25,15 +28,16 @@ export function categoryName(name: string | undefined, t: TFunction): string {
   return seed ? t(`categories.defaults.${seed.key}.name`) : name ?? ''
 }
 
-// Translated only while it is still the seeded text; an edited description shows as typed.
+/** Translated only while it is still the seeded text; an edited description shows as typed. */
 export function categoryDescription(name: string | undefined, description: string | undefined, t: TFunction) {
   const seed = seeded(name)
   return seed && description === seed.description ? t(`categories.defaults.${seed.key}.description`) : description
 }
 
+/** A category with the name and description to show in the current language. */
 export type LabeledCategory = Category & { label: string; descriptionLabel?: string }
 
-// Shown names, sorted by them in the current language (the API sorts by the stored English name).
+/** Shown names, sorted by them in the current language (the API sorts by the stored English name). */
 export function labelCategories(categories: Category[], t: TFunction, locale: string): LabeledCategory[] {
   return categories
     .map((category) => ({
