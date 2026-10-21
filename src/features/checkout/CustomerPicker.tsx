@@ -13,7 +13,10 @@ import { CUSTOMER_MATCHES, useCustomerSearch } from './queries'
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
 
-// No customer means the sale goes to the walk-in customer (público en general).
+/**
+ * Finds the sale's customer by name or tax ID, or creates one on the spot. No customer means the sale
+ * goes to the walk-in customer (público en general).
+ */
 export function CustomerPicker({ value, onChange, disabled }: {
   value: Customer | null
   onChange: (customer: Customer | null) => void
@@ -37,6 +40,7 @@ export function CustomerPicker({ value, onChange, disabled }: {
 
   const content = matches.data?.content ?? []
   const options = content.filter((customer) => !customer.walkIn).slice(0, CUSTOMER_MATCHES)
+  // Minus the walk-in customer, which the API counts but the picker never offers.
   const total = (matches.data?.page?.totalElements ?? 0) - (content.some((customer) => customer.walkIn) ? 1 : 0)
   const showResults = searchText.trim() !== '' && search !== ''
 

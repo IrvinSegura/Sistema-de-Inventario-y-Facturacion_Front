@@ -7,7 +7,7 @@ export interface CartLine {
   unitPrice: number
   taxRate: number
   quantity: number
-  // Stock when the product was scanned; the server has the final word.
+  /** Stock when the product was scanned; the server has the final word. */
   stock: number
 }
 
@@ -17,8 +17,10 @@ export type CartAction =
   | { type: 'remove'; productId: number }
   | { type: 'clear' }
 
-// Scanning a product already in the cart adds one unit instead of a second line: the API rejects
-// a sale with the same product twice.
+/**
+ * Scanning a product already in the cart adds one unit instead of a second line: the API rejects
+ * a sale with the same product twice. Setting a quantity below 1 removes the line.
+ */
 export function cartReducer(lines: CartLine[], action: CartAction): CartLine[] {
   switch (action.type) {
     case 'add': {
@@ -46,7 +48,7 @@ export interface CartTotals {
   total: number
 }
 
-// Preview with the API's rule (tax per line, HALF_UP); the receipt shows the server's totals.
+/** Preview with the API's rule (tax per line, HALF_UP); the receipt shows the server's totals. */
 export function cartTotals(lines: CartLine[]): CartTotals {
   let subtotalCents = 0
   let taxCents = 0
