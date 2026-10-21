@@ -22,7 +22,7 @@ import { formatMoney } from '@/lib/money'
 import type { DraftState } from './purchase-draft'
 import { type Purchase, usePurchase } from './queries'
 
-// A recorded purchase with its lines as the server stored them; it can be printed or repeated.
+/** A recorded purchase with its lines as the server stored them; it can be printed or repeated. */
 export function PurchaseDetailDialog({ purchaseId, onClose }: { purchaseId: number | null; onClose: () => void }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -56,6 +56,7 @@ export function PurchaseDetailDialog({ purchaseId, onClose }: { purchaseId: numb
           </span>
         </DialogHeader>
         {purchase.isError && <ErrorAlert message={errorMessage(purchase.error)} />}
+        {/* A disabled query is pending too, so no skeleton once the id is cleared and the dialog closes. */}
         {purchase.isPending && purchaseId !== null && <div className="h-40 animate-pulse rounded-lg bg-muted/60" />}
         {purchase.data && (
           <>
@@ -129,8 +130,10 @@ function PurchaseLines({ purchase }: { purchase: Purchase }) {
   )
 }
 
-// Printed receipt of the stock in: supplier, lines and totals, with lines to sign for who delivered
-// and who received it.
+/**
+ * Printed receipt of the stock in: supplier, lines and totals, with lines to sign for who delivered
+ * and who received it.
+ */
 function PurchaseSlip({ purchase }: { purchase: Purchase }) {
   const { t, i18n } = useTranslation()
   const items = purchase.items ?? []
