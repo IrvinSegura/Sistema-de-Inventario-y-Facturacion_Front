@@ -9,9 +9,16 @@ import { cn } from '@/lib/utils'
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
-// What the product's photo will be after saving: unchanged, a new file (with a data: URL to preview it), or none.
+/**
+ * What the product's photo will be after saving: unchanged, a new file (with a data: URL to preview
+ * it), or none.
+ */
 export type ImageChoice = { kind: 'current'; url: string } | { kind: 'new'; file: File; preview: string } | { kind: 'none' }
 
+/**
+ * Drop zone and file picker for the product's photo; a file of another type or over IMAGE_MAX_BYTES shows an
+ * error and never reaches onChange.
+ */
 export function ImagePicker({ value, onChange }: { value: ImageChoice; onChange: (value: ImageChoice) => void }) {
   const { t } = useTranslation()
   const inputId = useId()
