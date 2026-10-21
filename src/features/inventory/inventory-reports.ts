@@ -6,7 +6,7 @@ import { excelDate, type Row, type SheetSpec } from '@/lib/excel'
 import { fromCents, toCents, withTax } from '@/lib/money'
 
 import type { LowStockProduct, Movement } from './queries'
-import { MOVEMENT_TYPES } from './queries'
+import { MOVEMENT_TYPES } from './movement-params'
 
 const STATUS_COLORS = { ok: '58B368', low: 'E0A030', out: 'C2412D', inactive: '9CA3AF' }
 

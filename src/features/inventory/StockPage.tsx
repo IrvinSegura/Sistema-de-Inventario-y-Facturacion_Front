@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 
 import { AdjustStockDialog } from './AdjustStockDialog'
 import { stockWorkbook } from './inventory-reports'
+import { movementsLink } from './movement-params'
 import { fetchAllProducts, useLowStockCount, useStockCounts } from './queries'
 import { StockBadge } from './StockBadge'
 
@@ -197,7 +198,7 @@ export function StockPage() {
                         {/* A link rendered as the same button, so both look alike. */}
                         <Button variant="outline" size="sm" nativeButton={false} title={t('inventory.ledger.hint')}
                           aria-label={t('inventory.ledger.openFor', { name: product.name })}
-                          render={<Link to={`/inventory/movements?productId=${product.id}`} />}>
+                          render={<Link to={movementsLink({ productId: product.id })} />}>
                           <History />
                           <span className="hidden sm:inline">{t('inventory.ledger.button')}</span>
                         </Button>
