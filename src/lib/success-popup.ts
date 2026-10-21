@@ -19,6 +19,7 @@ export function showSuccess(title: string, description?: string) {
   emit()
 }
 
+/** Closes the message only if it's still the one on screen, so closing an old one never hides a newer one. */
 export function dismissSuccess(id: number) {
   if (current?.id === id) {
     current = null
@@ -26,6 +27,7 @@ export function dismissSuccess(id: number) {
   }
 }
 
+/** For useSyncExternalStore, with currentSuccess; returns the unsubscribe function. */
 export function subscribeSuccess(listener: () => void) {
   listeners.add(listener)
   return () => {
