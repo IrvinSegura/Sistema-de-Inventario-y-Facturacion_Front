@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useCustomerSearch } from '@/features/checkout/queries'
 import type { Customer } from '@/features/customers/queries'
 
+// Checkout's search, but the walk-in customer stays listed: picking it finds the sales made without a customer.
 function useResults(search: string) {
   const query = useCustomerSearch(search)
   return {
@@ -22,7 +23,7 @@ export interface CustomerRef {
   name: string
 }
 
-// One customer to filter sales by, the walk-in customer included; cleared with the X.
+/** One customer to filter sales by, the walk-in customer included; cleared with the X. */
 export function CustomerFilter({ id, value, onChange }: {
   id: string
   value: CustomerRef | null
