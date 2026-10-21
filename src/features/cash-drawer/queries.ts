@@ -102,8 +102,11 @@ export function useStaleDrawers(today: string, { refetchInterval, staleTime }: L
     queryFn: async () => {
       const stale: CashDrawer[] = []
       for (let page = 0; ; page++) {
-        const result = await unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { from, to, page, size: MAX_PAGE_SIZE } } }))
-        // The API can't filter by open or closed, so closed ones are dropped here.
+        const result = await unwrap(api.GET('/api/v1/cash-drawers', {
+          params: { query: { from, to, open: true, page, size: MAX_PAGE_SIZE } },
+        }))
+        // An API without the open filter ignores it and sends closed ones too; remove once every
+        // deployed API has it.
         stale.push(...(result.content ?? []).filter((drawer) => !drawer.closing))
         if (page + 1 >= (result.page?.totalPages ?? 0)) {
           return stale

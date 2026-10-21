@@ -2211,6 +2211,8 @@ export interface operations {
                 from?: string;
                 /** @description Last business day (inclusive), e.g. 2026-10-31 */
                 to?: string;
+                /** @description true: only drawers still open; false: only closed ones; all when omitted */
+                open?: boolean;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
