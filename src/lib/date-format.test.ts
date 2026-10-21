@@ -1,10 +1,7 @@
-// @vitest-environment jsdom
-// jsdom: format.ts loads i18n, which touches document.
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { STORE_TIME_ZONE } from '@/features/dashboard/days'
-
-import { formatTime } from './format'
+import { formatTime } from './date-format'
+import { STORE_TIME_ZONE } from './days'
 
 // Intl separates "p.m." with a narrow no-break space; plain spaces keep the expectations readable.
 const time = (...args: Parameters<typeof formatTime>) => formatTime(...args).replace(/\s/g, ' ')
