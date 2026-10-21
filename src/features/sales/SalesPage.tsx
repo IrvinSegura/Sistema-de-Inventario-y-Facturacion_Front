@@ -19,8 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CancelSaleDialog } from '@/features/cash-drawer/DrawerSales'
-import { intlLocale } from '@/i18n/intl-locale'
-import { formatDate } from '@/lib/date-format'
+import { formatDate, formatDateTime } from '@/lib/date-format'
 import { daysInRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney } from '@/lib/money'
@@ -79,7 +78,6 @@ export function SalesPage() {
   const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
   const summary = useSalesSummary(filters.range, filters.sellerId, reportable)
   const sellers = useSellerOptions(filters.range, reportable)
-  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const reportMeta = useReportMeta()
   const byNumber = filters.saleNumber !== null
 
@@ -223,7 +221,7 @@ export function SalesPage() {
                           {cancelled && <Badge variant="destructive">{t('sales.status.CANCELLED')}</Badge>}
                         </span>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{when.format(new Date(sale.saleDate!))}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDateTime(sale.saleDate, i18n.language)}</TableCell>
                       <TableCell className="hidden max-w-48 truncate md:table-cell">{sale.customer?.name}</TableCell>
                       <TableCell className="hidden text-muted-foreground lg:table-cell">{sale.seller?.name}</TableCell>
                       <TableCell className="hidden sm:table-cell">{t(`checkout.paymentMethods.${sale.paymentMethod!}`)}</TableCell>
