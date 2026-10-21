@@ -208,6 +208,20 @@ function serial(date: Date): number {
   return (date.getTime() - Date.UTC(1899, 11, 30)) / 86_400_000
 }
 
+// COUNTIF and SUMIF read "0100" and "100" as the same number and * ? ~ as wildcards, and ignore case;
+// EXACT compares the text as it is, like the JS grouping that builds the rows. For criteria that
+// come from the data (names, SKUs), not from our own labels.
+/** How many cells of `range` hold exactly `value`. */
+export function countExact(range: string, value: string): string {
+  return `SUMPRODUCT(--EXACT(${range},${value}))`
+}
+
+/** The sum of `sumRange` over the rows whose `range` holds exactly `value` (and meet `condition`, if given). */
+export function sumExact(range: string, value: string, sumRange: string, condition?: string): string {
+  // Comma-separated arrays: no product array, and text or blanks in sumRange count as 0, as in SUMIF.
+  return `SUMPRODUCT(--EXACT(${range},${value}),${condition ? `--(${condition}),` : ''}${sumRange})`
+}
+
 /** Letters of a 1-based column number: 1 is "A", 26 is "Z", 27 is "AA". */
 export function columnLetter(index: number): string {
   let letter = ''
