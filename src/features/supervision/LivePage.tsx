@@ -17,29 +17,29 @@ import { DrawerDetailDialog } from '@/features/cash-drawer/DrawerDetailDialog'
 import { DrawerStatus, SharedBadge } from '@/features/cash-drawer/DrawerParts'
 import { differenceClass, differenceLabel } from '@/features/cash-drawer/format'
 import { memberNames } from '@/features/cash-drawer/members'
-import { type CashDrawer, useDayClosing, useStaleDrawers } from '@/features/cash-drawer/queries'
-import { useLowStockCount } from '@/features/inventory/queries'
+import { type CashDrawer, useDayClosing } from '@/features/cash-drawer/queries'
+import { movementsLink } from '@/features/inventory/movement-params'
+import { formatPercent } from '@/features/reports/format'
 import { useDayCancellations } from '@/features/sales/queries'
-import { formatTime } from '@/lib/date-format'
+import { formatDay, formatTime } from '@/lib/date-format'
+import { addDays } from '@/lib/days'
 import { formatMoney } from '@/lib/money'
 import { useToday } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 
 import { CancellationsCard } from './CancellationsCard'
-import { averageTicket, type SellerDay, sellerDays, type UnbalancedDrawer, unbalancedDrawers } from './live-day'
+import { LIVE_QUERY_OPTIONS, useLiveAlerts } from './live-alerts'
+import { alertCount, averageTicket, type LiveAlerts, salesShare, type SellerDay, sellerDays } from './live-day'
 
-// Keep in step with supervision.live.updatedAt, which tells the user how often it refreshes.
-const REFRESH_EVERY_MS = 60_000
-const live = { refetchInterval: REFRESH_EVERY_MS }
-
-/** Managers' live view of the store's day; every figure and alert polls every REFRESH_EVERY_MS. */
+/** Managers' live view of the store's day; today's figures and every alert poll every REFRESH_EVERY_MS. */
 export function LivePage() {
   const { t, i18n } = useTranslation()
   const today = useToday()
-  const day = useDayClosing(today, live)
-  const staleDrawers = useStaleDrawers(today, live)
-  const lowStock = useLowStockCount(live)
-  const cancellations = useDayCancellations(today, live)
+  const { day, staleDrawers, alerts, alertsError, isFetching, refetch } = useLiveAlerts(today)
+  const cancellations = useDayCancellations(today, LIVE_QUERY_OPTIONS)
+  // Neither polled nor asked again on every visit: a past day's sales no longer change.
+  const lastWeekDay = addDays(today, -7)
+  const lastWeek = useDayClosing(lastWeekDay, { staleTime: Infinity })
   // By id, so the dialog follows the refreshed drawer (e.g. one someone else just closed).
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
@@ -56,13 +56,12 @@ export function LivePage() {
   const sellers = sellerDays(day.data)
   // Stale ones too: past midnight a drawer left open moves from today's list to the stale one.
   const selected = [...drawers, ...(staleDrawers.data ?? [])].find((drawer) => drawer.id === selectedId) ?? null
-  const fetching = day.isFetching || staleDrawers.isFetching || lowStock.isFetching || cancellations.isFetching
+  const fetching = isFetching || cancellations.isFetching
   const updatedAt = formatTime(day.dataUpdatedAt, i18n.language)
-  const alertsError = staleDrawers.error ?? lowStock.error
   const view = (drawer: CashDrawer) => setSelectedId(drawer.id ?? null)
 
   function refresh() {
-    void Promise.all([day.refetch(), staleDrawers.refetch(), lowStock.refetch(), cancellations.refetch()])
+    void Promise.all([refetch(), cancellations.refetch()])
   }
 
   return (
@@ -89,13 +88,20 @@ export function LivePage() {
           <AlertTitle>{t('supervision.live.alerts.failed')}</AlertTitle>
           <AlertDescription>{errorMessage(alertsError)}</AlertDescription>
         </Alert>
-      ) : staleDrawers.data && lowStock.data !== undefined && (
-        <Alerts stale={staleDrawers.data} unbalanced={unbalancedDrawers(drawers)} lowStockCount={lowStock.data} onView={view} />
+      ) : alerts && (
+        <Alerts alerts={alerts} today={today} onView={view} />
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label={t('supervision.live.stats.sold')} value={formatMoney(total?.salesTotal ?? 0)}
-          hint={t('supervision.live.stats.soldHint', { count: total?.saleCount ?? 0, average: formatMoney(averageTicket(total)) })} />
+          hint={(
+            <>
+              {t('supervision.live.stats.soldHint', { count: total?.saleCount ?? 0, average: formatMoney(averageTicket(total)) })}
+              {lastWeek.data && (
+                <SoldVsLastWeek soFar={total?.salesTotal ?? 0} lastWeek={lastWeek.data.total?.salesTotal ?? 0} day={lastWeekDay} />
+              )}
+            </>
+          )} />
         <StatTile label={t('supervision.live.stats.cancelled')}
           value={<span className={cn((total?.cancellationCount ?? 0) > 0 && 'text-destructive')}>{formatMoney(total?.cancellationsTotal ?? 0)}</span>}
           hint={t('supervision.live.stats.cancelledHint', { count: total?.cancellationCount ?? 0 })} />
@@ -124,15 +130,31 @@ export function LivePage() {
   )
 }
 
-/** Stale drawers, unbalanced closings and low stock: only what needs action; a quiet line when nothing does. */
-function Alerts({ stale, unbalanced, lowStockCount, onView }: {
-  stale: CashDrawer[]
-  unbalanced: UnbalancedDrawer[]
-  lowStockCount: number
-  onView: (drawer: CashDrawer) => void
-}) {
+/**
+ * Today's sales so far against the whole same weekday last week (its figures are final). A share,
+ * not a change: the day isn't over, so "60 %" at noon may be right on track.
+ */
+function SoldVsLastWeek({ soFar, lastWeek, day }: { soFar: number; lastWeek: number; day: string }) {
+  const { t, i18n } = useTranslation()
+  const weekday = formatDay(day, i18n.language, { weekday: 'long' })
+  const share = salesShare(soFar, lastWeek)
+  return (
+    <span className="block">
+      {share === null
+        ? t('supervision.live.stats.soldNoneLastWeek', { weekday })
+        : t('supervision.live.stats.soldVsLastWeek', { percent: formatPercent(share, i18n.language), weekday, amount: formatMoney(lastWeek) })}
+    </span>
+  )
+}
+
+/**
+ * Stale drawers, unbalanced closings, low stock and today's manual stock adjustments: only what
+ * needs a look; a quiet line when nothing does.
+ */
+function Alerts({ alerts, today, onView }: { alerts: LiveAlerts; today: string; onView: (drawer: CashDrawer) => void }) {
   const { t } = useTranslation()
-  if (stale.length === 0 && unbalanced.length === 0 && lowStockCount === 0) {
+  const { stale, unbalanced, lowStockCount, adjustmentCount } = alerts
+  if (alertCount(alerts) === 0) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <CircleCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
@@ -170,6 +192,17 @@ function Alerts({ stale, unbalanced, lowStockCount, onView }: {
           <AlertAction>
             <Button size="sm" variant="outline" nativeButton={false} render={<Link to="/inventory/low-stock" />}>
               {t('supervision.live.alerts.viewProducts')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      {adjustmentCount > 0 && (
+        <Alert>
+          <AlertTitle>{t('supervision.live.alerts.adjustments', { count: adjustmentCount })}</AlertTitle>
+          <AlertAction>
+            <Button size="sm" variant="outline" nativeButton={false}
+              render={<Link to={movementsLink({ type: 'ADJUSTMENT', range: { from: today, to: today } })} />}>
+              {t('supervision.live.alerts.viewAdjustments')}
             </Button>
           </AlertAction>
         </Alert>

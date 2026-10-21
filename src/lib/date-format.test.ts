@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { formatDate, formatDateTime, formatStoreDate, formatTime } from './date-format'
+import { formatDate, formatDateTime, formatDay, formatDayRange, formatStoreDate, formatTime } from './date-format'
 
 // Intl separates "p.m." with a narrow no-break space; plain spaces keep the expectations readable.
 const plain = (text: string) => text.replace(/\s/g, ' ')
@@ -66,6 +66,27 @@ describe('formatDate', () => {
 
     expect(formatDate('2026-10-19', 'en')).toBe('Oct 19, 2026')
     expect(formatDate('2026-10-19', 'en', 'long')).toBe('October 19, 2026')
+  })
+})
+
+describe('formatDay', () => {
+  it('shows the fields asked for of the calendar day as it is', () => {
+    inTokyo()
+
+    expect(formatDay('2026-10-19', 'en', { day: 'numeric', month: 'short' })).toBe('Oct 19')
+    expect(formatDay('2026-10-22', 'es', { weekday: 'long' })).toBe('jueves')
+  })
+})
+
+describe('formatDayRange', () => {
+  it('shares what both days have in common', () => {
+    inTokyo()
+
+    expect(plain(formatDayRange('2026-10-13', '2026-10-19', 'en'))).toBe('Oct 13 – 19, 2026')
+  })
+
+  it('shows a dash for a malformed day', () => {
+    expect(formatDayRange('2026-13-45', '2026-10-19', 'en')).toBe('—')
   })
 })
 

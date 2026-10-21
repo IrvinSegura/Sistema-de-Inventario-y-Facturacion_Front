@@ -13,8 +13,10 @@ import {
   Wallet,
   Warehouse,
 } from 'lucide-react'
+import type { ComponentType } from 'react'
 
 import type { Role } from '@/auth/auth-context'
+import { SupervisionAlertsBadge } from '@/features/supervision/SupervisionAlertsBadge'
 import type { MessageKey } from '@/i18n'
 
 export interface NavItem {
@@ -23,6 +25,9 @@ export interface NavItem {
   icon: LucideIcon
   /** Shown only to these roles; everyone when omitted. */
   roles?: Role[]
+  /** Something pending in the section (e.g. a count), shown after the label or over the icon when compact. */
+  // Mounted only while the item is visible, so it can query endpoints of the item's roles.
+  badge?: ComponentType<{ compact: boolean }>
 }
 
 // Store management sections; the API allows them to admins and supervisors only.
@@ -30,7 +35,7 @@ const MANAGERS: Role[] = ['ADMIN', 'SUPERVISOR']
 
 export const navItems: NavItem[] = [
   { to: '/', label: 'app.nav.dashboard', icon: LayoutDashboard },
-  { to: '/supervision', label: 'app.nav.supervision', icon: ShieldCheck, roles: MANAGERS },
+  { to: '/supervision', label: 'app.nav.supervision', icon: ShieldCheck, roles: MANAGERS, badge: SupervisionAlertsBadge },
   // Only sellers charge: managers have no cash drawer.
   { to: '/checkout', label: 'app.nav.checkout', icon: ShoppingCart, roles: ['SELLER'] },
   { to: '/cash-drawer', label: 'app.nav.cashDrawer', icon: Wallet },

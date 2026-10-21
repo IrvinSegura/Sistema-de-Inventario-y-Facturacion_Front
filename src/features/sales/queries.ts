@@ -5,9 +5,13 @@ import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
 import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
+import { saleListQuery } from './sale-params'
+
 export type SaleSummary = Schemas['SaleSummaryResponse']
 export type SaleStatus = NonNullable<SaleSummary['status']>
 export type SaleReport = Schemas['SaleReportResponse']
+/** Which date the range filters by: when the sale was rung up, or when it was cancelled. */
+export type SaleDateField = 'saleDate' | 'cancelledAt'
 
 export const PAGE_SIZE = 20
 // The API pages at most 100 items.
@@ -19,6 +23,8 @@ export const MAX_REPORT_DAYS = 366
 
 export interface SaleFilters {
   range: DayRange
+  /** By cancellation date only cancelled sales match, so status is then always CANCELLED. */
+  dateField: SaleDateField
   /** A ticket number searches every date. */
   saleNumber: number | null
   sellerId: number | null
@@ -38,22 +44,11 @@ export const saleKeys = {
 /** How many of a day's cancellations one request brings; the rest are only counted. */
 const DAY_CANCELLATIONS_SHOWN = 50
 
-function saleQuery(filters: SaleFilters) {
-  return {
-    saleNumber: filters.saleNumber ?? undefined,
-    sellerId: filters.sellerId ?? undefined,
-    customerId: filters.customerId ?? undefined,
-    status: filters.status ?? undefined,
-    // The list takes instants (`to` exclusive), unlike the report, which takes the calendar days as they are.
-    ...(filters.saleNumber === null && { from: startOfDay(filters.range.from), to: dayAfter(filters.range.to) }),
-  }
-}
-
 /** Newest first, cancelled ones included unless filtered out. */
 export function useSales(filters: SaleFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: saleKeys.page(filters, page, size, sort),
-    queryFn: () => unwrap(api.GET('/api/v1/sales', { params: { query: { ...saleQuery(filters), page, size, sort: sortParam(sort) } } })),
+    queryFn: () => unwrap(api.GET('/api/v1/sales', { params: { query: { ...saleListQuery(filters), page, size, sort: sortParam(sort) } } })),
     placeholderData: keepPreviousData,
   })
 }
@@ -62,7 +57,7 @@ export function useSales(filters: SaleFilters, page: number, size = PAGE_SIZE, s
  * Sales cancelled on a store day (whenever they were sold), last cancelled first, up to
  * DAY_CANCELLATIONS_SHOWN; the page's totalElements counts them all.
  */
-export function useDayCancellations(day: string, { refetchInterval }: LiveOptions = {}) {
+export function useDayCancellations(day: string, { refetchInterval, staleTime }: LiveOptions = {}) {
   return useQuery({
     queryKey: saleKeys.cancelledOn(day),
     queryFn: () => unwrap(api.GET('/api/v1/sales', {
@@ -74,6 +69,7 @@ export function useDayCancellations(day: string, { refetchInterval }: LiveOption
       },
     })),
     refetchInterval,
+    staleTime,
   })
 }
 
@@ -83,7 +79,7 @@ export async function fetchAllSales(filters: SaleFilters, sort: SortState | null
   let total = 0
   for (let page = 0; sales.length < MAX_EXPORT_ROWS; page++) {
     const result = await unwrap(api.GET('/api/v1/sales', {
-      params: { query: { ...saleQuery(filters), page, size: MAX_PAGE_SIZE, sort: sortParam(sort) } },
+      params: { query: { ...saleListQuery(filters), page, size: MAX_PAGE_SIZE, sort: sortParam(sort) } },
     }))
     sales.push(...(result.content ?? []))
     total = result.page?.totalElements ?? 0
