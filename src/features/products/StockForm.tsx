@@ -22,7 +22,7 @@ const REASON_MAX_LENGTH = 255
 
 type Mode = 'add' | 'remove'
 
-// Common reasons, one click away; any other can be typed.
+/** Common reasons, one click away; any other can be typed. */
 const reasons = {
   add: ['count', 'initial', 'return'],
   remove: ['expired', 'damaged', 'missing', 'internal'],
@@ -45,7 +45,11 @@ function stockSchema(t: TFunction, stock: number) {
   })
 }
 
-// The edit dialog's Stock tab. Mounted per opening of the tab: a fresh form and Idempotency-Key per adjustment.
+/**
+ * Stock adjustment of one product, in the edit dialog's Stock tab and in inventory's adjust dialog.
+ * Mounted once per opening (and per product), so each adjustment gets a fresh form and
+ * Idempotency-Key, which a retry after an error reuses.
+ */
 export function StockForm({ product, onDone }: { product: Product; onDone: () => void }) {
   const { t } = useTranslation()
   const adjustStock = useAdjustStock()
@@ -127,6 +131,7 @@ export function StockForm({ product, onDone }: { product: Product; onDone: () =>
           <Field id="reason" label={t('products.stock.reason')} error={errors.reason}>
             <div className="flex flex-wrap gap-2">
               {reasons[mode].map((reason) => {
+                // The translated text is what gets saved, in the language of whoever records it.
                 const text = t(`products.stock.reasons.${reason}`)
                 return (
                   <Button key={reason} type="button" variant="outline" size="sm" className="rounded-full"

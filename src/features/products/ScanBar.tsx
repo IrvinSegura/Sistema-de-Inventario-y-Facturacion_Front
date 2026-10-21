@@ -11,12 +11,15 @@ import { NOT_DIGIT } from '@/lib/text-rules'
 
 import { findProductByBarcode, type Product } from './queries'
 
+// Same rule as the barcode field in ProductDialogs.
 const BARCODE = /^\d{8,14}$/
-// How long "Scan" waits for a reading before warning that none arrived.
+/** How long "Scan" waits for a reading before warning that none arrived. */
 const WAIT_SECONDS = 15
 
-// Find a product by barcode: "Scan" waits for a reading from a barcode scanner (keyboard mode),
-// and the field takes a code typed by hand. Found: it opens; not found: a new one starts with it.
+/**
+ * Find a product by barcode: "Scan" waits for a reading from a barcode scanner (keyboard mode),
+ * and the field takes a code typed by hand. Found: it opens; not found: a new one starts with it.
+ */
 export function ScanBar({ onFound, onMissing }: { onFound: (product: Product) => void; onMissing: (barcode: string) => void }) {
   const { t } = useTranslation()
   const [code, setCode] = useState('')

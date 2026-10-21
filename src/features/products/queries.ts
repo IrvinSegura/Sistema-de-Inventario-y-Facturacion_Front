@@ -17,13 +17,14 @@ export interface ProductFilters {
   lowStock: boolean
 }
 
+// Every product query key starts with 'products', so invalidating productKeys.all also refreshes pickers and details.
 export const productKeys = {
   all: ['products'] as const,
   page: (filters: ProductFilters, page: number, size: number, sort: SortState | null) =>
     ['products', 'page', filters, page, size, sort] as const,
 }
 
-// Sorted by name on the server; blank search and no category mean "all".
+/** Sorted by name on the server unless sort says otherwise; blank search and no category mean "all". */
 export function useProducts(filters: ProductFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: productKeys.page(filters, page, size, sort),
@@ -68,7 +69,7 @@ export function useUpdateProduct() {
   })
 }
 
-// Uploading or removing the photo changes the product's version, so it runs after any form save.
+/** Uploading or removing the photo changes the product's version, so it runs after any form save. */
 export function useUploadProductImage() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -100,8 +101,10 @@ export type StockAdjustment = Schemas['CreateStockAdjustmentRequest']
 // Same limit as the API (CreateStockAdjustmentRequest).
 export const MAX_ADJUSTMENT = 100_000
 
-// Positive quantity adds units, negative removes them (never below 0). The key is created once per
-// adjustment and reused on retries, so a double click or a lost response doesn't apply it twice.
+/**
+ * Positive quantity adds units, negative removes them (never below 0). The key is created once per
+ * adjustment and reused on retries, so a double click or a lost response doesn't apply it twice.
+ */
 export function useAdjustStock() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -118,7 +121,7 @@ export function useAdjustStock() {
   })
 }
 
-// Only products never purchased, sold or adjusted can be deleted; others answer 409 (deactivate them).
+/** Only products never purchased, sold or adjusted can be deleted; others answer 409 (deactivate them). */
 export function useDeleteProduct() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -127,8 +130,10 @@ export function useDeleteProduct() {
   })
 }
 
-// The product with exactly this barcode, active first and then inactive (the search also matches
-// names and SKUs, so only an exact barcode counts); null when none has it.
+/**
+ * The product with exactly this barcode, active first and then inactive (the search also matches
+ * names and SKUs, so only an exact barcode counts); null when none has it.
+ */
 export async function findProductByBarcode(barcode: string): Promise<Product | null> {
   for (const active of [true, false]) {
     const page = await unwrap(api.GET('/api/v1/products', { params: { query: { search: barcode, active, size: 5 } } }))
@@ -140,11 +145,13 @@ export async function findProductByBarcode(barcode: string): Promise<Product | n
   return null
 }
 
-// How many matches a product picker shows; a longer list means the search needs more letters.
+/** How many matches a product picker shows; a longer list means the search needs more letters. */
 export const PRODUCT_MATCHES = 8
 
-// Products by name, SKU (contains) or barcode (exact) for pickers; nothing is requested until
-// something is typed.
+/**
+ * Products by name, SKU (contains) or barcode (exact) for pickers; nothing is requested until
+ * something is typed.
+ */
 export function useProductSearch(search: string, active = true) {
   return useQuery({
     queryKey: [...productKeys.all, 'picker', search, active] as const,
@@ -156,6 +163,7 @@ export function useProductSearch(search: string, active = true) {
   })
 }
 
+/** One product in full; idle while id is null. */
 export function useProduct(id: number | null) {
   return useQuery({
     queryKey: [...productKeys.all, 'detail', id] as const,

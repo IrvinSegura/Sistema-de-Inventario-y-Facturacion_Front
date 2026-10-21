@@ -33,6 +33,7 @@ import { type Product, type ProductFilters, useProducts } from './queries'
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
 
+/** Every role browses the catalog; only admins and supervisors scan, create, edit or delete products. */
 export function ProductsPage() {
   const { t } = useTranslation()
   const { role } = useUser()
@@ -160,7 +161,7 @@ function ProductsTable({ products, filtered, search, canEdit, onEdit, onDelete, 
   onSort: (sort: SortState | null) => void
   products: Product[]
   filtered: boolean
-  // Highlighted in names and codes.
+  /** Highlighted in names and codes. */
   search: string
   canEdit: boolean
   onEdit: (product: Product) => void
