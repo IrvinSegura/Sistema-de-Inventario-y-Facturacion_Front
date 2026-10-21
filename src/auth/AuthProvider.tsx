@@ -13,6 +13,11 @@ async function fetchCurrentUser(): Promise<User> {
   return { id: me.id!, name: me.name!, email: me.email!, role: me.role! }
 }
 
+/**
+ * Provides useAuth. On load it restores the session from the stored refresh token (quietly signed out
+ * if it can't); when an authenticated call later can't renew it, it signs out, clears the query cache
+ * and says so in a toast.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [state, setState] = useState<AuthState>({ status: 'loading' })
@@ -32,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState(restored ? { status: 'signed-in', user: restored } : { status: 'signed-out' })
       }
     }
+    // Keeps the stored refresh token, so after a network failure a reload can still restore the session.
     restore().catch(() => !cancelled && setState({ status: 'signed-out' }))
     return () => {
       cancelled = true

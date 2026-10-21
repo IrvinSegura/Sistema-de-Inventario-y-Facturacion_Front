@@ -5,7 +5,10 @@ import { currentLanguage } from '@/i18n'
 
 export type ResetChannel = Schemas['PasswordResetCodeRequest']['channel']
 
-// Public endpoints: they answer the same whether or not the account exists.
+/**
+ * Sends a reset code by email or SMS, in the current language. Public endpoint: it answers the same
+ * whether or not the account exists, so success doesn't mean a code was sent.
+ */
 export function useRequestResetCode() {
   return useMutation({
     mutationFn: ({ email, channel }: { email: string; channel: ResetChannel }) =>
@@ -15,6 +18,11 @@ export function useRequestResetCode() {
   })
 }
 
+/**
+ * Sets a new password with the code and signs the account out of every session. Public too: a wrong,
+ * expired or used code answers 400 'Invalid or expired code'; an invalid new password comes back as a
+ * field error.
+ */
 export function useResetPassword() {
   return useMutation({
     mutationFn: (body: Schemas['ResetPasswordRequest']) =>
