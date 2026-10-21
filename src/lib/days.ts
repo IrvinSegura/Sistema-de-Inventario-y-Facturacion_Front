@@ -28,9 +28,9 @@ function wallClock(instant: Date, timeZone: string) {
     Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second)) }
 }
 
-/** The calendar day an instant falls on in the store (or the given zone). */
-export function toDay(instant: Date, timeZone = STORE_TIME_ZONE): string {
-  return wallClock(instant, timeZone).day
+/** The calendar day an instant (a Date or an ISO string) falls on in the store (or the given zone). */
+export function toDay(instant: string | Date, timeZone = STORE_TIME_ZONE): string {
+  return wallClock(typeof instant === 'string' ? new Date(instant) : instant, timeZone).day
 }
 
 function utcDate(day: string): Date {

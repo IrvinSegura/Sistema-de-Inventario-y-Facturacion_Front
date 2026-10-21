@@ -1,39 +1,82 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { formatTime } from './date-format'
-import { STORE_TIME_ZONE } from './days'
+import { formatDate, formatDateTime, formatStoreDate, formatTime } from './date-format'
 
 // Intl separates "p.m." with a narrow no-break space; plain spaces keep the expectations readable.
-const time = (...args: Parameters<typeof formatTime>) => formatTime(...args).replace(/\s/g, ' ')
+const plain = (text: string) => text.replace(/\s/g, ' ')
+// 23:15 on Oct 19 in Mexico City (UTC−6), already Oct 20 in UTC.
+const LATE_EVENING = '2026-10-20T05:15:00Z'
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+// A machine zone no store is in, so the browser's clock can't pass for the store's.
+function inTokyo() {
+  vi.stubEnv('TZ', 'Asia/Tokyo')
+}
 
 describe('formatTime', () => {
-  const machineZone = process.env.TZ
-
-  afterEach(() => {
-    process.env.TZ = machineZone
-  })
-
-  it("defaults to the store's clock, whatever zone the browser is in", () => {
-    // A machine zone no store is in, so the browser's clock can't pass for the store's.
-    process.env.TZ = 'Asia/Tokyo'
-
-    expect(time('2026-10-20T05:15:00Z', 'en')).toBe(time('2026-10-20T05:15:00Z', 'en', STORE_TIME_ZONE))
-    expect(time('2026-10-20T05:15:00Z', 'en')).not.toBe('02:15 PM')
-  })
-
   it("shows the zone's wall clock, not UTC", () => {
-    // 05:15 UTC is 23:15 the day before in Mexico City.
-    expect(time('2026-10-20T05:15:00Z', 'es', 'America/Mexico_City')).toBe('11:15 p.m.')
-    expect(time('2026-10-20T05:15:00Z', 'en', 'America/Mexico_City')).toBe('11:15 PM')
+    expect(plain(formatTime(LATE_EVENING, 'es', 'America/Mexico_City'))).toBe('11:15 p.m.')
+    expect(plain(formatTime(LATE_EVENING, 'en', 'America/Mexico_City'))).toBe('11:15 PM')
   })
 
   it('follows the zone it is given', () => {
-    expect(time('2026-10-20T05:15:00Z', 'en', 'America/Tijuana')).toBe('10:15 PM')
-    expect(time('2026-10-20T05:15:00Z', 'en', 'UTC')).toBe('05:15 AM')
+    expect(plain(formatTime(LATE_EVENING, 'en', 'America/Tijuana'))).toBe('10:15 PM')
+    expect(plain(formatTime(LATE_EVENING, 'en', 'UTC'))).toBe('05:15 AM')
+  })
+
+  it("defaults to the store's clock, not the machine's", () => {
+    inTokyo()
+
+    expect(formatTime(LATE_EVENING, 'en')).not.toBe(formatTime(LATE_EVENING, 'en', 'Asia/Tokyo'))
   })
 
   it('shows a dash for a missing or malformed instant', () => {
+    expect(formatTime(undefined, 'es')).toBe('—')
+    // new Date(null) would be a valid 1970 instant.
+    expect(formatTime(null, 'es')).toBe('—')
     expect(formatTime('not a date', 'es')).toBe('—')
     expect(formatTime(Number.NaN, 'en')).toBe('—')
+  })
+})
+
+describe('formatDateTime', () => {
+  it("shows the day and time on the zone's clock, which can be the day before UTC's", () => {
+    expect(plain(formatDateTime(LATE_EVENING, 'en', 'medium', 'America/Mexico_City'))).toBe('Oct 19, 2026, 11:15 PM')
+    expect(plain(formatDateTime(LATE_EVENING, 'en', 'long', 'America/Mexico_City'))).toBe('October 19, 2026 at 11:15 PM')
+  })
+
+  it("defaults to the store's clock, not the machine's", () => {
+    inTokyo()
+
+    expect(formatDateTime(LATE_EVENING, 'es')).not.toBe(formatDateTime(LATE_EVENING, 'es', 'medium', 'Asia/Tokyo'))
+  })
+
+  it('shows a dash for a missing or malformed instant', () => {
+    expect(formatDateTime(undefined, 'es')).toBe('—')
+    expect(formatDateTime('not a date', 'es')).toBe('—')
+  })
+})
+
+describe('formatDate', () => {
+  it('shows the calendar day as it is, whatever zone the machine is in', () => {
+    inTokyo()
+
+    expect(formatDate('2026-10-19', 'en')).toBe('Oct 19, 2026')
+    expect(formatDate('2026-10-19', 'en', 'long')).toBe('October 19, 2026')
+  })
+})
+
+describe('formatStoreDate', () => {
+  it('shows the store day an instant falls on', () => {
+    expect(formatStoreDate(LATE_EVENING, 'en', 'medium', 'America/Mexico_City')).toBe('Oct 19, 2026')
+    expect(formatStoreDate(LATE_EVENING, 'en', 'medium', 'UTC')).toBe('Oct 20, 2026')
+  })
+
+  it('shows a dash for a missing or malformed instant', () => {
+    expect(formatStoreDate(undefined, 'es')).toBe('—')
+    expect(formatStoreDate('not a date', 'es')).toBe('—')
   })
 })
