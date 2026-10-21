@@ -17,9 +17,9 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/features/cash-drawer/format'
-import { daysInRange, lastDaysRange } from '@/features/dashboard/days'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
+import { formatDate } from '@/lib/date-format'
+import { daysInRange, lastDaysRange } from '@/lib/days'
 import { downloadWorkbook } from '@/lib/excel'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
 import { useReportMeta } from '@/lib/report-meta'
@@ -64,7 +64,7 @@ export function PurchasesPage() {
   const reportable = daysInRange(filters.range) <= MAX_REPORT_DAYS
   const report = usePurchaseReport(filters.range, filters.supplierId, reportable)
   const suppliers = useAllSuppliers()
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const rows = purchases.data?.content ?? []
 
   const changeFilters = (change: Partial<PurchaseFilters>) => {

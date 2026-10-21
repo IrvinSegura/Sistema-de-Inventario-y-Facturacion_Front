@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
-import { dayAfter, type DayRange, startOfDay } from '@/features/dashboard/days'
+import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type Supplier = Schemas['SupplierResponse']
