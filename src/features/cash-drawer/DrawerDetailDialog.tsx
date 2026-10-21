@@ -33,12 +33,12 @@ export function DrawerDetailDialog({ drawer, onOpenChange }: {
               </DialogTitle>
               <DialogDescription>
                 {t('drawer.openedAt', {
-                  time: formatTime(drawer.openedAt!, i18n.language),
+                  time: formatTime(drawer.openedAt, i18n.language),
                   amount: formatMoney(drawer.openingFloat!),
                 })}
                 {drawer.closing && (
                   <> {t('drawer.closedAtBy', {
-                    time: formatTime(drawer.closing.closedAt!, i18n.language),
+                    time: formatTime(drawer.closing.closedAt, i18n.language),
                     name: drawer.closing.closedBy?.name,
                   })}</>
                 )}
