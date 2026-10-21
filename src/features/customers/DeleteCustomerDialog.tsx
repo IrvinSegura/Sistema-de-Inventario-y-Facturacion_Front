@@ -21,8 +21,10 @@ import { type Customer, useDeleteCustomer, useUpdateCustomer } from './queries'
 // Same message as the API's CustomerService.IN_USE_MESSAGE.
 const IN_USE = 'Customer has sales; deactivate it instead'
 
-// Deleting only works for customers without sales; for the rest the API says so and the dialog
-// offers to deactivate it instead, which keeps its sales history.
+/**
+ * Deleting only works for customers without sales; for the rest the API says so and the dialog
+ * offers to deactivate it instead, which keeps its sales history.
+ */
 export function DeleteCustomerDialog({ customer, onOpenChange }: { customer: Customer | null; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
   const deleteCustomer = useDeleteCustomer()
