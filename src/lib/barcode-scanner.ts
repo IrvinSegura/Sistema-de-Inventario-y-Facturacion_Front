@@ -2,18 +2,27 @@
 // The browser can't list them (they look like any keyboard), but their speed gives them away:
 // a whole code arrives in a few dozen milliseconds, faster than anyone types.
 
-// Longest pause between two characters of one reading, and shortest code that counts as one.
+/** Longest pause between two characters of one scanner reading. */
 export const SCANNER_KEY_GAP_MS = 50
+/** Shortest code that counts as a scanner reading; shorter ones are still returned, with fast false. */
 export const SCANNER_MIN_LENGTH = 8
 
-// Collects one reading from keydown events; returns the code once Enter (or Tab, which some
-// scanners send instead) arrives, or null while it's still in progress.
+/**
+ * Collects one reading from keydown events; returns the code once Enter (or Tab, which some
+ * scanners send instead) arrives, or null while it's still in progress.
+ */
 export class ScanCollector {
   private chars = ''
   private lastAt = 0
   private slow = false
 
-  // fast is true when every character came within SCANNER_KEY_GAP_MS of the previous one.
+  /**
+   * Only digits are collected; other keys are ignored, and Enter or Tab without digits gives null.
+   * fast is true when the code has at least SCANNER_MIN_LENGTH digits and every one came within
+   * SCANNER_KEY_GAP_MS of the previous one.
+   *
+   * @param at the event's time in milliseconds, such as `event.timeStamp`
+   */
   push(key: string, at: number): { code: string; fast: boolean } | null {
     if (key === 'Enter' || key === 'Tab') {
       const reading = { code: this.chars, fast: !this.slow && this.chars.length >= SCANNER_MIN_LENGTH }
@@ -39,7 +48,10 @@ export class ScanCollector {
 
 const seenKey = 'inventory.scannerSeen'
 
-// Remembered for the browser session, to show "scanner detected" after the first fast reading.
+/**
+ * Remembered for the browser session, to show "scanner detected" after the first fast reading;
+ * false when storage is blocked.
+ */
 export function scannerSeen(): boolean {
   try {
     return sessionStorage.getItem(seenKey) === 'true'
