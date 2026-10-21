@@ -1,7 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { api, type Schemas, unwrap } from '@/api/client'
-import { dayAfter, type DayRange, startOfDay } from '@/features/dashboard/days'
+import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
+import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type SaleSummary = Schemas['SaleSummaryResponse']
@@ -61,7 +62,7 @@ export function useSales(filters: SaleFilters, page: number, size = PAGE_SIZE, s
  * Sales cancelled on a store day (whenever they were sold), last cancelled first, up to
  * DAY_CANCELLATIONS_SHOWN; the page's totalElements counts them all.
  */
-export function useDayCancellations(day: string, { refetchInterval }: { refetchInterval?: number } = {}) {
+export function useDayCancellations(day: string, { refetchInterval }: LiveOptions = {}) {
   return useQuery({
     queryKey: saleKeys.cancelledOn(day),
     queryFn: () => unwrap(api.GET('/api/v1/sales', {

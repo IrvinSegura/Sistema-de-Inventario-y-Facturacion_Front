@@ -20,7 +20,7 @@ import { CancelSaleDialog } from '@/features/cash-drawer/DrawerSales'
 import { useSale } from '@/features/cash-drawer/queries'
 import { ReceiptSlip } from '@/features/checkout/ReceiptDialog'
 import { formatTaxRate } from '@/features/products/tax-rate'
-import { dateLocale } from '@/i18n'
+import { intlLocale } from '@/i18n/intl-locale'
 import { formatMoney } from '@/lib/money'
 
 /**
@@ -35,7 +35,7 @@ export function SaleDetailDialog({ saleId, canCancel, onClose }: {
   const { t, i18n } = useTranslation()
   const sale = useSale(saleId)
   const [cancelling, setCancelling] = useState(false)
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
   const data = sale.data
   const cancelled = data?.status === 'CANCELLED'
 
