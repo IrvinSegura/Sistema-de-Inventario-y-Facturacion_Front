@@ -8,10 +8,13 @@ import { cn } from '@/lib/utils'
 const VISIBLE_MS = 2200
 const EXIT_MS = 200
 
-// Mounted once (main.tsx): a card that pops in at the center with a check being drawn, then fades
-// out on its own. Clicking it or pressing Escape closes it sooner; it never blocks the page.
+/**
+ * Mounted once (main.tsx): a card that pops in at the center with a check being drawn, then fades
+ * out on its own. Clicking it or pressing Escape closes it sooner; it never blocks the page.
+ */
 export function SuccessPopup() {
   const message = useSyncExternalStore(subscribeSuccess, currentSuccess)
+  // Keyed by id, so a new message remounts the card and restarts its timers.
   return message ? <PopupCard key={message.id} message={message} /> : null
 }
 
