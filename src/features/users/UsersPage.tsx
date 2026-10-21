@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { type UserAccount, useUserAccounts } from './queries'
 import { CreateUserDialog, EditUserDialog } from './UserDialogs'
 
+/** Admins only: every staff account, paged, with dialogs to create and edit them. */
 export function UsersPage() {
   const { t } = useTranslation()
   const currentUser = useUser()
