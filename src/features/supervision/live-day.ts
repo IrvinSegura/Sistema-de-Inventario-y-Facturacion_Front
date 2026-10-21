@@ -70,6 +70,6 @@ export function unbalancedDrawers(drawers: CashDrawer[]): UnbalancedDrawer[] {
  * counts on `day`); undefined when sold that same day.
  */
 export function earlierSaleDay(sale: SaleSummary, day: string, timeZone = STORE_TIME_ZONE): string | undefined {
-  const soldOn = sale.saleDate === undefined ? undefined : toDay(new Date(sale.saleDate), timeZone)
+  const soldOn = sale.saleDate === undefined ? undefined : toDay(sale.saleDate, timeZone)
   return soldOn !== undefined && soldOn < day ? soldOn : undefined
 }
