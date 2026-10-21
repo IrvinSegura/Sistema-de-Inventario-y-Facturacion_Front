@@ -12,18 +12,20 @@ import { type ComparisonPoint, type FlowPoint, flowTotals, type Grouping } from 
 import { type CustomerSales, type ProductSales, stockValue } from './queries'
 import { methodRows, salesMetrics, sellerRows } from './sales-data'
 
-// "vs previous: +12 %" under a figure card.
+/** "vs previous: +12 %" under a figure card; the fallback hint when there is no previous period. */
 function changeHint(t: TFunction, language: string, value: number | null | undefined, fallback: string) {
   return value === undefined ? fallback : t('reports.excel.changeHint', { change: formatChange(value, language) })
 }
 
-// Change against the previous period as a cell: blank when growing from zero.
+/** Change against the previous period as a cell: blank when growing from zero. */
 function changeCell(value: number | null | undefined) {
   return value ?? undefined
 }
 
-// Figures against the previous period, sales per bucket next to the previous period's, payment
-// methods, sellers and best sellers; tables come with their native charts.
+/**
+ * Figures against the previous period, sales per bucket next to the previous period's, payment
+ * methods, sellers and best sellers; tables come with their native charts.
+ */
 export function salesReportWorkbook({ t, language, report, previous, series, grouping, period, previousPeriod, seller,
   showSellers }: {
   t: TFunction
@@ -35,7 +37,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
   period: string
   previousPeriod?: string
   seller: string
-  // A seller's own report leaves the sellers table out.
+  /** A seller's own report leaves the sellers table out. */
   showSellers: boolean
 }): SheetSpec[] {
   const metrics = salesMetrics(report, previous)
@@ -46,7 +48,7 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
     return { label: t(`reports.sales.metrics.${key}`), value: item.current, type: item.type, tone, hint: changeHint(t, language, item.change, hint) }
   }
   const moneyMetrics = metrics.filter((item) => item.type === 'money')
-  // A seller's own report has only them in it.
+  // Built apart so showSellers can leave it out: a seller's own report would list only them.
   const sellers: Section = {
     kind: 'pair',
     table: {
@@ -193,8 +195,10 @@ export function salesReportWorkbook({ t, language, report, previous, series, gro
   }]
 }
 
-// One day's closing: figures, movements by payment method and by seller, and every drawer of the
-// day with its count.
+/**
+ * One day's closing: figures, movements by payment method and by seller, and every drawer of the
+ * day with its count.
+ */
 export function cashClosingWorkbook({ t, closing, date, seller, status }: {
   t: TFunction
   closing: CashClosing
@@ -296,6 +300,7 @@ export function cashClosingWorkbook({ t, closing, date, seller, status }: {
           { key: 'float', header: t('drawer.openingFloat'), type: 'money', total: 'sum' },
           { key: 'expected', header: t('drawer.expectedCash'), type: 'money', total: 'sum' },
           { key: 'counted', header: t('drawer.countedCash'), type: 'money', total: 'sum' },
+          // An open drawer has no count yet; a formula would show its difference as 0, so it stays blank.
           { key: 'difference', header: t('drawer.difference'), type: 'money', total: 'sum',
             formula: (cells, _ref, row) => row.counted === undefined ? undefined : `${cells.counted}-${cells.expected}` },
           { key: 'note', header: t('reports.closing.note'), width: 30 },
@@ -320,7 +325,7 @@ export function cashClosingWorkbook({ t, closing, date, seller, status }: {
   }]
 }
 
-// Money in and out per bucket with formulas for the figures, so editing a row updates the totals.
+/** Money in and out per bucket with formulas for the figures, so editing a row updates the totals. */
 export function cashFlowWorkbook({ t, language, series, grouping, period }: {
   t: TFunction
   language: string
@@ -385,8 +390,10 @@ export function cashFlowWorkbook({ t, language, series, grouping, period }: {
   }]
 }
 
-// Every product sold in the period with cost, gross profit and margin as formulas, or the products in
-// stock that didn't sell with the value waiting on the shelf.
+/**
+ * Every product sold in the period with cost, gross profit and margin as formulas, or the products in
+ * stock that didn't sell with the value waiting on the shelf.
+ */
 export function productSalesWorkbook({ t, rows, unsold, period, info, truncated }: {
   t: TFunction
   rows: ProductSales[]
@@ -452,6 +459,7 @@ export function productSalesWorkbook({ t, rows, unsold, period, info, truncated 
         { key: 'quantity', header: t('excel.units'), type: 'int', total: 'sum' },
         { key: 'subtotal', header: t('excel.sales.amountBeforeVat'), type: 'money', total: 'sum', visual: 'bar' },
         { key: 'cost', header: t('reports.products.cost'), type: 'money', total: 'sum' },
+        // No formula without a cost: a blank cost would count the whole subtotal as profit.
         { key: 'profit', header: t('reports.products.profit'), type: 'money', total: 'sum',
           formula: (cells, _ref, row) => row.cost === undefined ? undefined : `${cells.subtotal}-${cells.cost}` },
         { key: 'margin', header: t('reports.products.margin'), type: 'percent', visual: 'scale',
@@ -475,7 +483,7 @@ export function productSalesWorkbook({ t, rows, unsold, period, info, truncated 
   }]
 }
 
-// Registered customers by what they bought in the period, best first.
+/** Registered customers by what they bought in the period, best first. */
 export function customerSalesWorkbook({ t, rows, period, truncated }: {
   t: TFunction
   rows: CustomerSales[]

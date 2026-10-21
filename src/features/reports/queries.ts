@@ -6,18 +6,19 @@ import type { DayRange } from '@/features/dashboard/days'
 export type ProductSales = Schemas['ProductSalesResponse']
 export type CustomerSales = Schemas['CustomerSalesResponse']
 
-// The API pages at most 100 items; exports stop at this many rows.
+// The API pages at most 100 items.
 const MAX_PAGE_SIZE = 100
+/** Exports stop at this many rows; what is left out is reported as truncated. */
 export const MAX_EXPORT_ROWS = 2_000
 
 export interface ProductSalesFilters {
   range: DayRange
   categoryId: number | null
-  // Products in stock that didn't sell, instead of the ones that did.
+  /** Products in stock that didn't sell, instead of the ones that did. */
   unsold: boolean
 }
 
-// Value of the units on hand at their average cost; unknown until the product is first purchased.
+/** Value of the units on hand at their average cost; unknown until the product is first purchased. */
 export function stockValue(product: ProductSales): number | null {
   return product.averageCost === undefined || product.averageCost === null
     ? null
@@ -35,7 +36,7 @@ function productQuery(filters: ProductSalesFilters, page: number, size: number) 
   return { ...filters.range, categoryId: filters.categoryId ?? undefined, unsold: filters.unsold, page, size }
 }
 
-// Products sold in the period, best first by amount, or the ones that didn't sell (managers only).
+/** Products sold in the period, best first by amount, or the ones that didn't sell (managers only). */
 export function useProductSales(filters: ProductSalesFilters, page: number, size: number) {
   return useQuery({
     queryKey: reportKeys.products(filters, page, size),
@@ -46,7 +47,7 @@ export function useProductSales(filters: ProductSalesFilters, page: number, size
   })
 }
 
-// Registered customers by what they bought in the period, best first (managers only).
+/** Registered customers by what they bought in the period, best first (managers only). */
 export function useCustomerSales(range: DayRange, page: number, size: number) {
   return useQuery({
     queryKey: reportKeys.customers(range, page, size),
@@ -55,10 +56,11 @@ export function useCustomerSales(range: DayRange, page: number, size: number) {
   })
 }
 
-// Every page of a report, up to MAX_EXPORT_ROWS; truncated tells whether more were left out.
+/** Every page of a report, up to MAX_EXPORT_ROWS; `truncated` tells whether more were left out. */
 async function fetchAll<T>(fetchPage: (page: number) => Promise<{ content?: T[]; page?: Schemas['PageMetadata'] }>) {
   const rows: T[] = []
   let total = 0
+  // Fetches whole pages, so it stops exactly at MAX_EXPORT_ROWS only while that is a multiple of MAX_PAGE_SIZE.
   for (let page = 0; rows.length < MAX_EXPORT_ROWS; page++) {
     const result = await fetchPage(page)
     rows.push(...(result.content ?? []))
