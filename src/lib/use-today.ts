@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { todayDay } from '@/features/dashboard/days'
+import { todayDay } from './days'
 
 const CHECK_EVERY_MS = 60_000
 

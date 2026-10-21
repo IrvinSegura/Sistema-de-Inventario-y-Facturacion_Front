@@ -2,7 +2,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
-import { addDays } from '@/features/dashboard/days'
+import { addDays } from '@/lib/days'
+import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type CashDrawer = Schemas['CashDrawerResponse']
@@ -87,11 +88,6 @@ export function useDrawers(search: DrawerSearch, page: number, size = HISTORY_PA
     queryFn: () => unwrap(api.GET('/api/v1/cash-drawers', { params: { query: { ...search, page, size, sort: sortParam(sort) } } })),
     placeholderData: keepPreviousData,
   })
-}
-
-/** For screens that follow the day as it happens. */
-export interface LiveOptions {
-  refetchInterval?: number
 }
 
 /**
