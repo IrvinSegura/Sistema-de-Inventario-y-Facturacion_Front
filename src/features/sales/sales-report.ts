@@ -5,27 +5,32 @@ import { fromCents, toCents } from '@/lib/money'
 
 import type { SaleReport, SaleSummary } from './queries'
 
+/** The text as a string literal for an Excel formula, with inner quotes doubled. */
 function quote(text: string) {
   return `"${text.replace(/"/g, '""')}"`
 }
 
+/** The day as YYYY-MM-DD in the browser's time zone. */
 function local(day: Date) {
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
 }
 
-// Dashboard (figures, sales by day, payment method, seller and best sellers, each with its chart) and
-// every ticket. With live figures the cards are formulas over the tickets sheet; otherwise (other
-// filters or a cut list) they come from the server's report, which covers the whole period.
+/**
+ * Dashboard (figures, sales by day, payment method, seller and best sellers, each with its chart) and
+ * every ticket. With live figures the cards are formulas over the tickets sheet; otherwise (other
+ * filters or a cut list) they come from the server's report, which covers the whole period.
+ */
 export function salesWorkbook({ t, sales, truncated, report, live, period, info }: {
   t: TFunction
   sales: SaleSummary[]
   truncated: boolean
   report?: SaleReport
-  // The tickets are exactly the report's sales (no customer, status or ticket filter, nothing cut).
+  /** The tickets are exactly the report's sales (no customer, status or ticket filter, nothing cut). */
   live: boolean
   period: string
   info: [string, string][]
 }): SheetSpec[] {
+  // The tickets sheet shows translated statuses, so the formulas compare against these labels, not the API's codes.
   const completed = t('sales.status.COMPLETED')
   const cancelledLabel = t('sales.status.CANCELLED')
   const done = sales.filter((sale) => sale.status === 'COMPLETED')
@@ -49,6 +54,7 @@ export function salesWorkbook({ t, sales, truncated, report, live, period, info 
     kpi({ label: t('sales.stats.averageTicket'), value: report?.averageTicket ?? (count ? total / count : 0), type: 'money',
       hint: t('sales.stats.averageTicketHint') },
     (ref) => `IFERROR(AVERAGEIF(${ref('TVentas', 'status')},${quote(completed)},${ref('TVentas', 'total')}),0)`),
+    // Tickets carry only their total, so VAT and the pre-VAT subtotal need the report.
     ...(report ? [
       { label: t('sales.stats.vat'), value: report.completed?.tax, type: 'money' as const, hint: t('excel.sales.vatHint') },
     ] : []),
