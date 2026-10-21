@@ -25,7 +25,7 @@ function toRef(supplier: Supplier): SupplierRef {
   return { id: supplier.id!, name: supplier.name!, taxId: supplier.taxId }
 }
 
-// Active suppliers by name or tax ID; a missing one can be created without leaving the purchase.
+/** Active suppliers by name or tax ID; a missing one can be created without leaving the purchase. */
 export function SupplierPicker({ id, value, onChange, disabled, invalid }: {
   id: string
   value: SupplierRef | null
@@ -39,6 +39,7 @@ export function SupplierPicker({ id, value, onChange, disabled, invalid }: {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
+        {/* The search input only exists while no supplier is chosen. */}
         <Label htmlFor={value ? undefined : id}>{t('purchases.form.supplier')}</Label>
         <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => setCreating(true)}>
           <Plus />

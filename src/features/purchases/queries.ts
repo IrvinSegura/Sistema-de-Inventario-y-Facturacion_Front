@@ -15,9 +15,9 @@ export type PurchaseReport = Schemas['PurchaseReportResponse']
 export const PAGE_SIZE = 20
 // The API pages at most 100 items.
 const MAX_PAGE_SIZE = 100
-// Exports stop here; a longer period should be split.
+/** Most purchases an Excel export reads; a longer period should be split. */
 export const MAX_EXPORT_ROWS = 2_000
-// How many matches the supplier picker shows.
+/** How many matches the supplier picker shows. */
 export const SUPPLIER_MATCHES = 6
 
 export interface SupplierFilters {
@@ -46,7 +46,7 @@ export const purchaseKeys = {
   detail: (id: number) => ['purchases', 'detail', id] as const,
 }
 
-// Sorted by name on the server; the search matches the name or the tax ID, blank means "all".
+/** Sorted by name on the server; the search matches the name or the tax ID, blank means "all". */
 export function useSuppliers(filters: SupplierFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: supplierKeys.page(filters, page, size, sort),
@@ -57,7 +57,7 @@ export function useSuppliers(filters: SupplierFilters, page: number, size = PAGE
   })
 }
 
-// Active suppliers by name or tax ID for the picker; nothing is requested until something is typed.
+/** Active suppliers by name or tax ID for the picker; nothing is requested until something is typed. */
 export function useSupplierSearch(search: string) {
   return useQuery({
     queryKey: supplierKeys.picker(search),
@@ -69,7 +69,7 @@ export function useSupplierSearch(search: string) {
   })
 }
 
-// Every supplier, active ones first, for the purchases filter; a store has a few dozen.
+/** Every supplier, active ones first, for the purchases filter; a store has a few dozen. */
 export function useAllSuppliers() {
   return useQuery({
     queryKey: supplierKeys.list,
@@ -116,7 +116,7 @@ function purchaseQuery(filters: PurchaseFilters) {
   }
 }
 
-// Newest first, without items (the detail has them).
+/** Newest first, without items (the detail has them). */
 export function usePurchases(filters: PurchaseFilters, page: number, size = PAGE_SIZE, sort: SortState | null = null) {
   return useQuery({
     queryKey: purchaseKeys.page(filters, page, size, sort),
@@ -127,6 +127,7 @@ export function usePurchases(filters: PurchaseFilters, page: number, size = PAGE
   })
 }
 
+/** One purchase with its lines; idle while id is null. */
 export function usePurchase(id: number | null) {
   return useQuery({
     queryKey: purchaseKeys.detail(id ?? 0),
@@ -135,7 +136,7 @@ export function usePurchase(id: number | null) {
   })
 }
 
-// Every purchase of the filters, up to MAX_EXPORT_ROWS; truncated tells whether more were left out.
+/** Every purchase of the filters, up to MAX_EXPORT_ROWS; `truncated` tells whether more were left out. */
 export async function fetchAllPurchases(filters: PurchaseFilters, sort: SortState | null = null) {
   const purchases: PurchaseSummary[] = []
   let total = 0
@@ -158,8 +159,10 @@ export interface PurchaseInput {
   items: { productId: number; quantity: number; unitCost: number }[]
 }
 
-// The key is created once per purchase and reused on retries, so a double click or a lost response
-// never adds the stock twice: the API returns the purchase it already recorded.
+/**
+ * The caller creates the idempotency key once per purchase and reuses it on retries, so a double click
+ * or a lost response never adds the stock twice: the API returns the purchase it already recorded.
+ */
 export function useRecordPurchase() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -168,6 +171,7 @@ export function useRecordPurchase() {
         params: { header: { 'Idempotency-Key': idempotencyKey } },
         body,
       })),
+    // Seeds the detail the page opens right after recording; the purchase also changes stock and its movements.
     onSuccess: (purchase) => {
       queryClient.setQueryData(purchaseKeys.detail(purchase.id!), purchase)
       void queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
@@ -178,11 +182,13 @@ export function useRecordPurchase() {
   })
 }
 
-// The API's purchases summary covers at most this many days, like the sales report.
+/** The API's purchases summary covers at most this many days, like the sales report. */
 export const MAX_REPORT_DAYS = 366
 
-// Totals, suppliers, top products and every day of the period, added up by the API in the store's
-// time zone (up to MAX_REPORT_DAYS); under 'purchases' so recording one refreshes it.
+/**
+ * Totals, suppliers, top products and every day of the period, added up by the API in the store's
+ * time zone (up to MAX_REPORT_DAYS); under 'purchases' so recording one refreshes it.
+ */
 export function usePurchaseReport(range: DayRange, supplierId: number | null, enabled = true) {
   return useQuery({
     queryKey: [...purchaseKeys.all, 'report', range, supplierId] as const,
@@ -194,11 +200,11 @@ export function usePurchaseReport(range: DayRange, supplierId: number | null, en
   })
 }
 
-// Purchases whose lines go into the Excel report; more would mean hundreds of requests.
+/** Above this many purchases the Excel report leaves the lines out; more would be hundreds of requests. */
 export const MAX_DETAILED_PURCHASES = 300
 const DETAIL_CONCURRENCY = 6
 
-// The full purchases (with lines), a few requests at a time.
+/** The full purchases (with lines) in the same order as ids, a few requests at a time. */
 export async function fetchPurchaseDetails(ids: number[]): Promise<Purchase[]> {
   const details: Purchase[] = new Array(ids.length)
   let next = 0

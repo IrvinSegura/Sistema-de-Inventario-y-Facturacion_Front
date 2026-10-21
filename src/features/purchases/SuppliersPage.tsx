@@ -26,7 +26,7 @@ import { SupplierDialog } from './SupplierDialog'
 // Waits for a pause in typing before searching, so each keystroke isn't a request.
 const SEARCH_DELAY_MS = 300
 
-// Suppliers can't be deleted (their purchases keep them): inactive ones leave the purchase picker.
+/** Suppliers can't be deleted (their purchases keep them): inactive ones leave the purchase picker. */
 export function SuppliersPage() {
   const { t } = useTranslation()
   const [searchText, setSearchText] = useState('')
