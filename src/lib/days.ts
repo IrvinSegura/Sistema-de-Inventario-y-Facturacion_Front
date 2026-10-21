@@ -104,9 +104,8 @@ export function todayDay(): string {
   return toDay(new Date())
 }
 
-/** The last `days` calendar days, today included. */
-export function lastDaysRange(days: number): DayRange {
-  const today = todayDay()
+/** The last `days` calendar days up to `today` (the store's by default), both included. */
+export function lastDaysRange(days: number, today = todayDay()): DayRange {
   return { from: addDays(today, -(days - 1)), to: today }
 }
 
