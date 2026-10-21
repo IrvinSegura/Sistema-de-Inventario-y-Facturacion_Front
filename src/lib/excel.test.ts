@@ -10,7 +10,7 @@ import { ledgerWorkbook, stockWorkbook, storeLedgerWorkbook } from '@/features/i
 import { salesWorkbook } from '@/features/sales/sales-report'
 import { es } from '@/i18n/locales/es'
 
-import { excelDate, excelDay, excelStoreDay, type ReportMeta, type SheetSpec, workbookBuffer } from './excel'
+import { countExact, excelDate, excelDay, excelStoreDay, type ReportMeta, type SheetSpec, sumExact, workbookBuffer } from './excel'
 
 const meta: ReportMeta = {
   storeName: 'Inventario y Facturación',
@@ -144,9 +144,9 @@ describe('sales workbook', () => {
 
     // A real table with a totals row that adds only completed sales.
     const tables = await Promise.all(Object.keys(zip.files).filter((name) => /^xl\/tables\/table\d+\.xml$/.test(name)).map((name) => xml(zip, name)))
-    expect(tables.some((text) => text.includes('name="TVentas"') && text.includes('totalsRowCount="1"'))).toBe(true)
+    expect(tables.some((text) => text.includes('name="TSales"') && text.includes('totalsRowCount="1"'))).toBe(true)
     const totals = tickets.getRow(header.row + 4).getCell(7).value as { formula: string }
-    expect(totals.formula).toBe('SUMIF(TVentas[Estado],"Completada",TVentas[Total])')
+    expect(totals.formula).toBe('SUMIF(TSales[Estado],"Completada",TSales[Total])')
 
     // Figure cards are formulas over the tickets sheet.
     const summary = workbook.getWorksheet('Resumen')!
@@ -225,7 +225,10 @@ describe('inventory workbooks', () => {
 
     const summary = workbook.getWorksheet('Resumen')!
     const category = find(summary, 'Abarrotes')
-    expect(summary.getCell(category.row, category.col + 1).value).toMatchObject({ formula: expect.stringContaining('COUNTIF(') })
+    expect(summary.getCell(category.row, category.col + 1).value).toMatchObject({ formula: expect.stringContaining('SUMPRODUCT(--EXACT(') })
+    // Units only count positive stock, like the value computed before writing the row.
+    expect(summary.getCell(category.row, category.col + 2).value)
+      .toMatchObject({ formula: expect.stringMatching(/^SUMPRODUCT\(--EXACT\(.+\),--\(.+>0\),.+\)$/) })
   })
 
   it('lists the ledger from the oldest movement with entries and exits apart', async () => {
@@ -265,7 +268,16 @@ describe('inventory workbooks', () => {
     expect(detail.getRow(header.row + 1).getCell(5).value).toBe(2)
     const summary = workbook.getWorksheet('Resumen')!
     const rice = find(summary, 'Arroz')
-    expect(summary.getCell(rice.row, rice.col + 1).value).toMatchObject({ formula: expect.stringContaining('COUNTIF('), result: 2 })
+    expect(summary.getCell(rice.row, rice.col + 1).value).toMatchObject({ formula: expect.stringContaining('SUMPRODUCT(--EXACT('), result: 2 })
     expect(find(summary, 'Frijol').row).toBeGreaterThan(rice.row)
+  })
+})
+
+describe('countExact and sumExact', () => {
+  // COUNTIF("0100") would also count "100": it reads both as the number 100.
+  it('compare the text as it is', () => {
+    expect(countExact('T[Product]', 'A2')).toBe('SUMPRODUCT(--EXACT(T[Product],A2))')
+    expect(sumExact('T[Product]', 'A2', 'T[Units]')).toBe('SUMPRODUCT(--EXACT(T[Product],A2),T[Units])')
+    expect(sumExact('T[Category]', 'A2', 'T[Stock]', 'T[Stock]>0')).toBe('SUMPRODUCT(--EXACT(T[Category],A2),--(T[Stock]>0),T[Stock])')
   })
 })
