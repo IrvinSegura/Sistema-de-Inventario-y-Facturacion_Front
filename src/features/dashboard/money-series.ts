@@ -1,6 +1,5 @@
+import { addDays, type DayRange } from '@/lib/days'
 import { fromCents, toCents } from '@/lib/money'
-
-import { addDays, type DayRange } from './days'
 
 export interface MoneyBucket {
   /** First calendar day the bucket covers. */

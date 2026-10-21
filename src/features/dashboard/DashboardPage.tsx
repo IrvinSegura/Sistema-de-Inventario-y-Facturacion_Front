@@ -15,12 +15,12 @@ import { managesStore, useUser } from '@/auth/auth-context'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { dateLocale } from '@/i18n'
 import { type PurchaseReport, usePurchaseReport } from '@/features/purchases/queries'
+import { intlLocale } from '@/i18n/intl-locale'
+import { lastDaysRange } from '@/lib/days'
 import { formatMoney, fromCents, toCents } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { lastDaysRange } from './days'
 import { moneySeries } from './money-series'
 import { MoneyChart } from './MoneyChart'
 import {
@@ -376,7 +376,7 @@ function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchase
     return <p className="py-10 text-center text-sm text-muted-foreground">{t('dashboard.recentEmpty')}</p>
   }
 
-  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
+  const when = new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: 'medium', timeStyle: 'short' })
 
   return (
     <ul className="divide-y">
