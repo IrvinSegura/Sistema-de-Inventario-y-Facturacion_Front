@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import type { CashDrawer } from '@/features/cash-drawer/queries'
 
-import { ALERT_MIN_DIFFERENCE, averageTicket, sellerDays, unbalancedDrawers } from './live-day'
+import { ALERT_MIN_DIFFERENCE, averageTicket, earlierSaleDay, sellerDays, unbalancedDrawers } from './live-day'
 
 const ana = { id: 1, name: 'Ana' }
 const luis = { id: 2, name: 'Luis' }
 const marta = { id: 3, name: 'Marta' }
+const MEXICO_CITY = 'America/Mexico_City'
 
 function amounts(salesTotal: number, saleCount: number) {
   return { salesTotal, saleCount, cancellationCount: 0, cancellationsTotal: 0, net: salesTotal }
@@ -69,5 +70,17 @@ describe('unbalancedDrawers', () => {
 
     expect(unbalancedDrawers(drawers).map(({ drawer, difference }) => [drawer.id, difference]))
       .toEqual([[3, 120], [1, -ALERT_MIN_DIFFERENCE]])
+  })
+})
+
+describe('earlierSaleDay', () => {
+  it('compares the store day the sale was rung up on, not the UTC one', () => {
+    // 23:30 on Oct 19 in Mexico City is already Oct 20 in UTC.
+    expect(earlierSaleDay({ saleDate: '2026-10-20T05:30:00Z' }, '2026-10-20', MEXICO_CITY)).toBe('2026-10-19')
+    expect(earlierSaleDay({ saleDate: '2026-10-20T06:00:00Z' }, '2026-10-20', MEXICO_CITY)).toBeUndefined()
+  })
+
+  it('is undefined without a sale date', () => {
+    expect(earlierSaleDay({}, '2026-10-20')).toBeUndefined()
   })
 })

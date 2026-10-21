@@ -1162,6 +1162,22 @@ export const en = {
           actions: 'Actions',
         },
       },
+      cancellations: {
+        title: 'Cancellations today',
+        description: "Sales cancelled today, even those sold on an earlier day: who cancelled them and why. Their refunds count in today's closing.",
+        empty: 'No sale has been cancelled today.',
+        soldOn: 'Sold {{date}}',
+        more: 'Showing the latest {{shown}} of {{count}} cancellations.',
+        columns: {
+          time: 'Time',
+          ticket: 'Ticket',
+          seller: 'Seller',
+          cancelledBy: 'Cancelled by',
+          reason: 'Reason',
+          amount: 'Amount',
+          actions: 'Actions',
+        },
+      },
     },
   },
   reports: {

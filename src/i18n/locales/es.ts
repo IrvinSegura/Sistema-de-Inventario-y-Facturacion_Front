@@ -1162,6 +1162,22 @@ export const es: Messages = {
           actions: 'Acciones',
         },
       },
+      cancellations: {
+        title: 'Cancelaciones de hoy',
+        description: 'Ventas canceladas hoy, aunque se hayan vendido otro día: quién las canceló y por qué. Su reembolso cuenta en el corte de hoy.',
+        empty: 'Hoy no se ha cancelado ninguna venta.',
+        soldOn: 'Vendida el {{date}}',
+        more: 'Se muestran las {{shown}} más recientes de {{count}} cancelaciones.',
+        columns: {
+          time: 'Hora',
+          ticket: 'Ticket',
+          seller: 'Vendedor',
+          cancelledBy: 'Canceló',
+          reason: 'Motivo',
+          amount: 'Importe',
+          actions: 'Acciones',
+        },
+      },
     },
   },
   reports: {
