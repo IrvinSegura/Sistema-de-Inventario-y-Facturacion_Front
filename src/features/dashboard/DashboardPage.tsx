@@ -360,16 +360,21 @@ function RecentMovements({ sales, purchases }: { sales?: SaleSummary[]; purchase
       stockLabel: t(sale.status === 'CANCELLED' ? 'dashboard.movement.stockReturned' : 'dashboard.movement.stockOut'),
       cancelled: sale.status === 'CANCELLED',
     })),
-    ...purchases.map((purchase): Movement => ({
-      key: `purchase-${purchase.id}`,
-      date: purchase.purchaseDate ?? '',
-      title: t('dashboard.movement.purchase', { supplier: purchase.supplier?.name ?? '' }),
-      detail: purchase.recordedBy?.name ?? '',
-      amount: -(purchase.total ?? 0),
-      icon: ArrowUpRight,
-      stockIcon: PackagePlus,
-      stockLabel: t('dashboard.movement.stockIn'),
-    })),
+    ...purchases.map((purchase): Movement => {
+      const cancelled = purchase.status === 'CANCELLED'
+      return {
+        key: `purchase-${purchase.id}`,
+        date: purchase.purchaseDate ?? '',
+        title: t('dashboard.movement.purchase', { supplier: purchase.supplier?.name ?? '' }),
+        detail: purchase.recordedBy?.name ?? '',
+        amount: -(purchase.total ?? 0),
+        icon: cancelled ? Ban : ArrowUpRight,
+        // A cancelled purchase took its units back out.
+        stockIcon: cancelled ? PackageMinus : PackagePlus,
+        stockLabel: t(cancelled ? 'dashboard.movement.stockOut' : 'dashboard.movement.stockIn'),
+        cancelled,
+      }
+    }),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
 
   if (movements.length === 0) {

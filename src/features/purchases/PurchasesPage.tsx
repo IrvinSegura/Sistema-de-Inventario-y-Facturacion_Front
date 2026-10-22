@@ -12,6 +12,7 @@ import { Pagination } from '@/components/Pagination'
 import { SortableHead } from '@/components/SortableHead'
 import { StatTile } from '@/components/StatTile'
 import { TableSkeleton } from '@/components/TableSkeleton'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -87,7 +88,10 @@ export function PurchasesPage() {
       await downloadWorkbook(`${t('excel.files.purchases')}_${filters.range.from}_${filters.range.to}`,
         purchasesWorkbook({
           t, purchases: all, truncated, details, period,
-          info: [[t('purchases.columns.supplier'), supplier?.name ?? t('purchases.allSuppliers')]],
+          info: [
+            [t('purchases.columns.supplier'), supplier?.name ?? t('purchases.allSuppliers')],
+            [t('purchases.columns.status'), t('purchases.exportCompletedOnly')],
+          ],
         }), reportMeta)
     } catch (error) {
       toast.error(errorMessage(error))
@@ -160,11 +164,19 @@ export function PurchasesPage() {
               <TableBody>
                 {rows.map((purchase) => (
                   <TableRow key={purchase.id} className="cursor-pointer" onClick={() => setViewing(purchase.id!)}>
-                    <TableCell className="pl-4 font-medium tabular-nums">#{purchase.id}</TableCell>
+                    <TableCell className="pl-4 font-medium tabular-nums">
+                      <span className="flex items-center gap-2">
+                        #{purchase.id}
+                        {purchase.status === 'CANCELLED' && <Badge variant="destructive">{t('purchases.status.CANCELLED')}</Badge>}
+                      </span>
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{formatDateTime(purchase.purchaseDate, i18n.language)}</TableCell>
                     <TableCell className="max-w-56 truncate">{purchase.supplier?.name}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">{purchase.recordedBy?.name}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{formatMoney(purchase.total!)}</TableCell>
+                    <TableCell className={cn('text-right font-medium tabular-nums',
+                      purchase.status === 'CANCELLED' && 'text-muted-foreground line-through')}>
+                      {formatMoney(purchase.total!)}
+                    </TableCell>
                     <TableCell className="pr-4 text-right">
                       <Button variant="ghost" size="icon" aria-label={t('purchases.view', { id: purchase.id })}
                         onClick={(event) => {
