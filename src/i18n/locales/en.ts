@@ -1172,7 +1172,7 @@ export const en = {
       alerts: {
         label: 'Needs a look',
         failed: "Couldn't check every alert",
-        none: 'Nothing pending: no drawer left open, no unbalanced count, no product low on stock and no manual stock adjustment today.',
+        none: 'Nothing pending: no drawer left open, no unbalanced count, no product low on stock, and no manual stock adjustment or purchase cancellation today.',
         badge_one: '{{count}} alert pending',
         badge_other: '{{count}} alerts pending',
         unbalanced: "{{label}} of {{amount}} in {{name}}'s drawer",
@@ -1183,6 +1183,9 @@ export const en = {
         adjustments_one: '{{count}} manual stock adjustment today',
         adjustments_other: '{{count}} manual stock adjustments today',
         viewAdjustments: 'See adjustments',
+        purchaseCancellations_one: '{{count}} purchase cancelled today',
+        purchaseCancellations_other: '{{count}} purchases cancelled today',
+        viewPurchaseCancellations: 'See their movements',
       },
       sellers: {
         title: 'Sellers today',

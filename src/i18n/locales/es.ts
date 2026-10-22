@@ -1172,7 +1172,7 @@ export const es: Messages = {
       alerts: {
         label: 'Requiere atención',
         failed: 'No se pudieron revisar todas las alertas',
-        none: 'Sin pendientes: ninguna caja olvidada, ningún corte descuadrado, ningún producto con stock bajo y ningún ajuste manual de stock hoy.',
+        none: 'Sin pendientes: ninguna caja olvidada, ningún corte descuadrado, ningún producto con stock bajo, y ni ajustes manuales de stock ni compras canceladas hoy.',
         badge_one: '{{count}} alerta pendiente',
         badge_other: '{{count}} alertas pendientes',
         unbalanced: '{{label}} de {{amount}} en la caja de {{name}}',
@@ -1183,6 +1183,9 @@ export const es: Messages = {
         adjustments_one: '{{count}} ajuste manual de stock hoy',
         adjustments_other: '{{count}} ajustes manuales de stock hoy',
         viewAdjustments: 'Ver ajustes',
+        purchaseCancellations_one: '{{count}} compra cancelada hoy',
+        purchaseCancellations_other: '{{count}} compras canceladas hoy',
+        viewPurchaseCancellations: 'Ver sus movimientos',
       },
       sellers: {
         title: 'Vendedores hoy',

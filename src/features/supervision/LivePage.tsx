@@ -146,12 +146,12 @@ function SoldVsLastWeek({ soFar, lastWeek, day }: { soFar: number; lastWeek: num
 }
 
 /**
- * Stale drawers, unbalanced closings, low stock and today's manual stock adjustments: only what
- * needs a look; a quiet line when nothing does.
+ * Stale drawers, unbalanced closings, low stock, and today's manual stock adjustments and purchase
+ * cancellations: only what needs a look; a quiet line when nothing does.
  */
 function Alerts({ alerts, today, onView }: { alerts: LiveAlerts; today: string; onView: (drawer: CashDrawer) => void }) {
   const { t } = useTranslation()
-  const { stale, unbalanced, lowStockCount, adjustmentCount } = alerts
+  const { stale, unbalanced, lowStockCount, adjustmentCount, purchaseCancellationCount } = alerts
   if (alertCount(alerts) === 0) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -201,6 +201,18 @@ function Alerts({ alerts, today, onView }: { alerts: LiveAlerts; today: string; 
             <Button size="sm" variant="outline" nativeButton={false}
               render={<Link to={movementsLink({ type: 'ADJUSTMENT', range: { from: today, to: today } })} />}>
               {t('supervision.live.alerts.viewAdjustments')}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      {purchaseCancellationCount > 0 && (
+        <Alert>
+          <AlertTitle>{t('supervision.live.alerts.purchaseCancellations', { count: purchaseCancellationCount })}</AlertTitle>
+          <AlertAction>
+            {/* The ledger lists their lines, each linked to its purchase. */}
+            <Button size="sm" variant="outline" nativeButton={false}
+              render={<Link to={movementsLink({ type: 'PURCHASE_CANCEL', range: { from: today, to: today } })} />}>
+              {t('supervision.live.alerts.viewPurchaseCancellations')}
             </Button>
           </AlertAction>
         </Alert>
