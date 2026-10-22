@@ -23,6 +23,9 @@ export class ApiError extends Error {
   }
 }
 
+/** The API's 409 when a product has fewer units than a sale or cancellation takes; group 1 is its id. */
+export const INSUFFICIENT_STOCK = /^Insufficient stock for product: (\d+)$/
+
 // The API's messages are in English: known ones get their own translation, anything else a
 // translated message for its status, so the screen never mixes languages.
 const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
@@ -35,7 +38,7 @@ const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Today's cash drawer is already closed$/, () => i18n.t('apiErrors.todaysDrawerClosed')],
   [/^Cash drawer is already closed$/, () => i18n.t('apiErrors.drawerAlreadyClosed')],
   [/^Close your cash drawer of (\S+) first$/, ([, date]) => i18n.t('apiErrors.closePreviousDrawer', { date })],
-  [/^Insufficient stock for product: (\d+)$/, ([, id]) => i18n.t('apiErrors.insufficientStock', { id })],
+  [INSUFFICIENT_STOCK, ([, id]) => i18n.t('apiErrors.insufficientStock', { id })],
   [/^Product is inactive: (\d+)$/, ([, id]) => i18n.t('apiErrors.productInactive', { id })],
   [/^The resource was modified by another user/, () => i18n.t('apiErrors.staleVersion')],
   [/^Image must be PNG, JPEG, WebP or GIF$/, () => i18n.t('apiErrors.imageType')],
@@ -69,6 +72,7 @@ const knownApiMessages: [RegExp, (match: RegExpMatchArray) => string][] = [
   [/^Supplier not found$/, () => i18n.t('apiErrors.supplierNotFound')],
   [/^Supplier is inactive$/, () => i18n.t('apiErrors.supplierInactive')],
   [/^Purchase not found$/, () => i18n.t('apiErrors.purchaseNotFound')],
+  [/^Purchase is already cancelled$/, () => i18n.t('apiErrors.purchaseAlreadyCancelled')],
   [/^Purchase total exceeds the maximum allowed$/, () => i18n.t('apiErrors.purchaseTooLarge')],
   [/^Each product can appear only once per purchase$/, () => i18n.t('apiErrors.duplicatePurchaseLine')],
   [/^Sale not found$/, () => i18n.t('apiErrors.saleNotFound')],

@@ -136,13 +136,16 @@ export function usePurchase(id: number | null) {
   })
 }
 
-/** Every purchase of the filters, up to MAX_EXPORT_ROWS; `truncated` tells whether more were left out. */
+/**
+ * Every completed purchase of the filters, up to MAX_EXPORT_ROWS; `truncated` tells whether more were
+ * left out. Cancelled ones are left out, as in the API's summary: their units went back.
+ */
 export async function fetchAllPurchases(filters: PurchaseFilters, sort: SortState | null = null) {
   const purchases: PurchaseSummary[] = []
   let total = 0
   for (let page = 0; purchases.length < MAX_EXPORT_ROWS; page++) {
     const result = await unwrap(api.GET('/api/v1/purchases', {
-      params: { query: { ...purchaseQuery(filters), page, size: MAX_PAGE_SIZE, sort: sortParam(sort) } },
+      params: { query: { ...purchaseQuery(filters), status: 'COMPLETED', page, size: MAX_PAGE_SIZE, sort: sortParam(sort) } },
     }))
     purchases.push(...(result.content ?? []))
     total = result.page?.totalElements ?? 0
@@ -178,6 +181,34 @@ export function useRecordPurchase() {
       void queryClient.invalidateQueries({ queryKey: ['products'] })
       void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+    },
+  })
+}
+
+/**
+ * Admins and supervisors. Every unit the purchase brought leaves stock, or nothing changes when some
+ * were already sold (409); a cancelled purchase stops counting in the summary.
+ */
+export function useCancelPurchase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      unwrap(api.POST('/api/v1/purchases/{id}/cancellation', { params: { path: { id } }, body: { reason } })),
+    onSuccess: (purchase) => {
+      queryClient.setQueryData(purchaseKeys.detail(purchase.id!), purchase)
+      void queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['products'] })
+      void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+      void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+    },
+    // Someone else cancelled it first, or sold its units: reload what the 409 shows is stale.
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+        void queryClient.invalidateQueries({ queryKey: ['products'] })
+        void queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+        void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
+      }
     },
   })
 }
