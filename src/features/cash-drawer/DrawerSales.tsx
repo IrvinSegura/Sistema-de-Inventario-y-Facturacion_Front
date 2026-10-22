@@ -24,11 +24,11 @@ import { ReceiptDialog } from '@/features/checkout/ReceiptDialog'
 import { formatTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 import { showSuccess } from '@/lib/success-popup'
+import { REASON_MAX_LENGTH } from '@/lib/text-rules'
 import { cn } from '@/lib/utils'
 
 import { type SaleSummary, useCancelSale, useDrawerSales, useSale } from './queries'
 
-const REASON_MAX_LENGTH = 255
 
 /**
  * The tickets recorded in a drawer (a seller only gets their own): tap one to see or print it again;

@@ -14,6 +14,8 @@ export const CODE = /^[A-Z0-9][A-Z0-9._-]*$/
 export const LABEL = /^[\p{L}\p{N}][\p{L}\p{M}\p{N} .,'&()/%+#-]*$/u
 /** People's names: letters, spaces, apostrophes, dots and hyphens, starting with a letter. */
 export const PERSON_NAME = /^\p{L}[\p{L}\p{M} .'-]*$/u
+/** Free-text reasons (cancellations, stock adjustments): VARCHAR(255) columns in the API. */
+export const REASON_MAX_LENGTH = 255
 
 // Characters dropped while typing, so the field never holds something the rule would reject.
 export const NOT_CODE_CHAR = /[^A-Za-z0-9._-]/g
