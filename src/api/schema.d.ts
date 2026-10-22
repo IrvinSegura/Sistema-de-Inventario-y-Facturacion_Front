@@ -2031,6 +2031,10 @@ export interface operations {
                 from?: string;
                 /** @description Exclusive, ISO-8601 instant */
                 to?: string;
+                /** @description Cancelled at or after this ISO-8601 instant (only cancelled purchases match) */
+                cancelledFrom?: string;
+                /** @description Cancelled before this ISO-8601 instant (only cancelled purchases match) */
+                cancelledTo?: string;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */

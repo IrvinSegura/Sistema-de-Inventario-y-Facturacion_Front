@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, type Schemas, unwrap } from '@/api/client'
 import { ApiError } from '@/api/errors'
 import { dayAfter, type DayRange, startOfDay } from '@/lib/days'
+import type { LiveOptions } from '@/lib/live'
 import { type SortState, sortParam } from '@/lib/sort'
 
 export type Supplier = Schemas['SupplierResponse']
@@ -210,6 +211,24 @@ export function useCancelPurchase() {
         void queryClient.invalidateQueries({ queryKey: ['stock-reports'] })
       }
     },
+  })
+}
+
+/**
+ * How many purchases were cancelled on a day (by cancellation date, whenever they were recorded), for
+ * the supervision alerts; under 'purchases' so a cancellation refreshes it.
+ */
+export function useDayPurchaseCancellationCount(day: string, { refetchInterval, staleTime }: LiveOptions = {}) {
+  return useQuery({
+    queryKey: [...purchaseKeys.all, 'day-cancellations', day] as const,
+    queryFn: async () => {
+      const page = await unwrap(api.GET('/api/v1/purchases', {
+        params: { query: { cancelledFrom: startOfDay(day), cancelledTo: dayAfter(day), size: 1 } },
+      }))
+      return page.page?.totalElements ?? 0
+    },
+    refetchInterval,
+    staleTime,
   })
 }
 
