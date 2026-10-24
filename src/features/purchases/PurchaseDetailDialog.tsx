@@ -1,4 +1,5 @@
-import { Copy, Truck } from 'lucide-react'
+import { Ban, Copy, Truck } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -6,6 +7,7 @@ import { errorMessage } from '@/api/errors'
 import { ErrorAlert } from '@/components/ErrorAlert'
 import { PrintButton } from '@/components/PrintButton'
 import { PrintDocument, PrintFields, PrintSection, PrintSignatures, PrintTable, PrintTotals } from '@/components/PrintDocument'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,14 +21,21 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { formatDateTime } from '@/lib/date-format'
 import { formatMoney } from '@/lib/money'
 
+import { CancelPurchaseDialog } from './CancelPurchaseDialog'
 import type { DraftState } from './purchase-draft'
 import { type Purchase, usePurchase } from './queries'
 
-/** A recorded purchase with its lines as the server stored them; it can be printed or repeated. */
+/**
+ * A recorded purchase with its lines as the server stored them and, when cancelled, who cancelled it
+ * and why. It can be printed, repeated or cancelled.
+ */
 export function PurchaseDetailDialog({ purchaseId, onClose }: { purchaseId: number | null; onClose: () => void }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const purchase = usePurchase(purchaseId)
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const cancelled = purchase.data?.status === 'CANCELLED'
+  const cancellation = cancelled ? purchase.data?.cancellation : undefined
 
   // Same supplier, products, quantities and costs, ready to change before recording it.
   function repeat(data: Purchase) {
@@ -42,39 +51,64 @@ export function PurchaseDetailDialog({ purchaseId, onClose }: { purchaseId: numb
   }
 
   return (
-    <Dialog open={purchaseId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader className="flex-row items-center gap-3 pr-8">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Truck className="size-5" />
-          </span>
-          <span className="grid min-w-0 gap-1">
-            <DialogTitle className="text-lg">{t('purchases.detail.title', { id: purchaseId })}</DialogTitle>
-            <DialogDescription className="truncate">
-              {purchase.data ? <PurchaseMeta purchase={purchase.data} /> : `${t('app.loading')}…`}
-            </DialogDescription>
-          </span>
-        </DialogHeader>
-        {purchase.isError && <ErrorAlert message={errorMessage(purchase.error)} />}
-        {/* A disabled query is pending too, so no skeleton once the id is cleared and the dialog closes. */}
-        {purchase.isPending && purchaseId !== null && <div className="h-40 animate-pulse rounded-lg bg-muted/60" />}
-        {purchase.data && (
-          <>
-            <div className="max-h-[50svh] overflow-y-auto rounded-lg border">
-              <PurchaseLines purchase={purchase.data} />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => repeat(purchase.data)}>
-                <Copy />
-                {t('purchases.detail.repeat')}
-              </Button>
-              <PrintButton label={t('purchases.detail.print')} document={<PurchaseSlip purchase={purchase.data} />} />
-              <Button onClick={onClose}>{t('app.close')}</Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={purchaseId !== null && !cancelDialogOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader className="flex-row items-center gap-3 pr-8">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Truck className="size-5" />
+            </span>
+            <span className="grid min-w-0 gap-1">
+              <DialogTitle className="flex items-center gap-2 text-lg">
+                {t('purchases.detail.title', { id: purchaseId })}
+                {cancelled && <Badge variant="destructive">{t('purchases.status.CANCELLED')}</Badge>}
+              </DialogTitle>
+              <DialogDescription className="truncate">
+                {purchase.data ? <PurchaseMeta purchase={purchase.data} /> : `${t('app.loading')}…`}
+              </DialogDescription>
+            </span>
+          </DialogHeader>
+          {purchase.isError && <ErrorAlert message={errorMessage(purchase.error)} />}
+          {/* A disabled query is pending too, so no skeleton once the id is cleared and the dialog closes. */}
+          {purchase.isPending && purchaseId !== null && <div className="h-40 animate-pulse rounded-lg bg-muted/60" />}
+          {purchase.data && (
+            <>
+              {cancellation && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                  <p className="font-medium text-destructive">
+                    {t('purchases.detail.cancelledBy', {
+                      name: cancellation.cancelledBy?.name,
+                      date: formatDateTime(cancellation.cancelledAt, i18n.language),
+                    })}
+                  </p>
+                  <p className="text-muted-foreground">{t('purchases.detail.reason', { reason: cancellation.reason })}</p>
+                </div>
+              )}
+              <div className="max-h-[50svh] overflow-y-auto rounded-lg border">
+                <PurchaseLines purchase={purchase.data} />
+              </div>
+              <DialogFooter>
+                {!cancelled && (
+                  <Button variant="outline" className="text-destructive hover:text-destructive sm:mr-auto" onClick={() => setCancelDialogOpen(true)}>
+                    <Ban />
+                    {t('purchases.detail.cancel')}
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => repeat(purchase.data)}>
+                  <Copy />
+                  {t('purchases.detail.repeat')}
+                </Button>
+                <PrintButton label={t('purchases.detail.print')} document={<PurchaseSlip purchase={purchase.data} />} />
+                <Button onClick={onClose}>{t('app.close')}</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* The detail hides while the cancel dialog is open and comes back showing the outcome. */}
+      <CancelPurchaseDialog purchase={cancelDialogOpen && purchase.data ? purchase.data : null}
+        onOpenChange={(open) => !open && setCancelDialogOpen(false)} />
+    </>
   )
 }
 
@@ -144,6 +178,10 @@ function PurchaseSlip({ purchase }: { purchase: Purchase }) {
       <PrintFields columns={2} fields={[
         [t('print.purchase.supplier'), purchase.supplier?.name],
         [t('print.purchase.recordedBy'), purchase.recordedBy?.name],
+        ...(purchase.status === 'CANCELLED' ? [[
+          t('purchases.status.CANCELLED'),
+          t('purchases.detail.reason', { reason: purchase.cancellation?.reason }),
+        ] as [string, string]] : []),
       ]} />
       <PrintSection title={t('print.purchase.lines')}>
         <PrintTable rows={items} rowKey={(item) => item.productId!} columns={[

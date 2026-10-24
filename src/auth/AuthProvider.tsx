@@ -10,7 +10,7 @@ import { type Auth, AuthContext, type AuthState, type User } from './auth-contex
 
 async function fetchCurrentUser(): Promise<User> {
   const me = await unwrap(api.GET('/api/v1/users/me'))
-  return { id: me.id!, name: me.name!, email: me.email!, role: me.role! }
+  return { id: me.id!, name: me.name!, email: me.email!, role: me.role!, passwordChangeRequired: me.passwordChangeRequired! }
 }
 
 /**
@@ -57,6 +57,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'signed-in', user: await fetchCurrentUser() })
   }, [])
 
+  // The API ends every session on a password change, so this one signs in again with the new password.
+  // The email is read fresh: an admin may have changed it since this session started.
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const { email } = await fetchCurrentUser()
+    await unwrap(api.PUT('/api/v1/users/me/password', { body: { currentPassword, newPassword } }))
+    // The stored tokens are already revoked: dropping them keeps them off the sign-in request.
+    session.clear()
+    try {
+      await login(email, newPassword)
+    } catch (error) {
+      // The password did change and this session is already revoked: signing in by hand is the way on.
+      signOutLocally()
+      toast.info(i18n.t('changePassword.signInAgain'))
+      throw error
+    }
+  }, [login, signOutLocally])
+
   // Revokes the refresh token on the server; signs out locally even if that call fails.
   const logout = useCallback(async () => {
     const refreshToken = session.refreshToken()
@@ -66,6 +83,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOutLocally()
   }, [signOutLocally])
 
-  const auth = useMemo<Auth>(() => ({ state, login, logout }), [state, login, logout])
+  const auth = useMemo<Auth>(() => ({ state, login, changePassword, logout }), [state, login, changePassword, logout])
   return <AuthContext value={auth}>{children}</AuthContext>
 }

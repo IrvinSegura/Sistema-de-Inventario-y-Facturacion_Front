@@ -2,6 +2,9 @@ import { createContext, use } from 'react'
 
 export type Role = 'ADMIN' | 'SUPERVISOR' | 'SELLER'
 
+/** Where a user with a temporary password is held until they change it (RequireAuth). */
+export const CHANGE_PASSWORD_PATH = '/change-password'
+
 /** Admins and supervisors run the store (catalog, stock, every seller's sales); only admins manage accounts. */
 export function managesStore(role: Role): boolean {
   return role === 'ADMIN' || role === 'SUPERVISOR'
@@ -12,6 +15,8 @@ export interface User {
   name: string
   email: string
   role: Role
+  /** The password is a temporary one an admin set: until it's changed, the API refuses everything else. */
+  passwordChangeRequired: boolean
 }
 
 export type AuthState =
@@ -22,6 +27,8 @@ export type AuthState =
 export interface Auth {
   state: AuthState
   login: (email: string, password: string) => Promise<void>
+  /** Changes the signed-in user's password, which ends every session, then signs in again with it. */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   logout: () => Promise<void>
 }
 

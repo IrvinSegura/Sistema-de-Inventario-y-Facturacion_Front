@@ -1,8 +1,6 @@
-import { useUser } from '@/auth/auth-context'
-import { useAllUserAccounts } from '@/features/users/queries'
-import { type DayRange, daysInRange } from '@/lib/days'
+import { useTranslation } from 'react-i18next'
 
-import { MAX_REPORT_DAYS, useSalesSummary } from './queries'
+import { useSellers } from '@/features/users/queries'
 
 export interface SellerOption {
   id: number
@@ -10,17 +8,15 @@ export interface SellerOption {
 }
 
 /**
- * Sellers to filter by: admins list every seller account; supervisors (who can't list accounts)
- * get the ones who sold in the period, from the report (none for periods longer than it covers).
- * `enabled` only gates the supervisors' report request.
+ * Every seller account for managers' seller filters (supervisors too: GET /sellers isn't admin-only),
+ * whether or not they sold in the period; inactive ones are labelled, for past records. `enabled` is
+ * false where only sellers look, since they see just their own records.
  */
-export function useSellerOptions(range: DayRange, enabled = true): SellerOption[] {
-  const user = useUser()
-  const isAdmin = user.role === 'ADMIN'
-  const accounts = useAllUserAccounts(isAdmin)
-  // Same cache entry as useSalesSummary(range, null), so a page already showing that summary makes no extra request.
-  const periodSellers = useSalesSummary(range, null, enabled && !isAdmin && daysInRange(range) <= MAX_REPORT_DAYS)
-  return isAdmin
-    ? (accounts.data ?? []).filter((account) => account.role === 'SELLER').map((account) => ({ id: account.id!, name: account.name! }))
-    : (periodSellers.data?.bySeller ?? []).map((seller) => ({ id: seller.sellerId!, name: seller.name! }))
+export function useSellerOptions(enabled = true): SellerOption[] {
+  const { t } = useTranslation()
+  const sellers = useSellers(enabled)
+  return (sellers.data ?? []).map((seller) => ({
+    id: seller.id!,
+    name: seller.active ? seller.name! : t('sales.filters.inactiveSeller', { name: seller.name }),
+  }))
 }

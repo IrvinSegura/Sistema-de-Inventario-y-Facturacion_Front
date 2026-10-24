@@ -56,7 +56,7 @@ export function SalesReportPage() {
   const comparable = previous.from >= FIRST_DAY
   const current = useSalesSummary(range, sellerId, true)
   const before = useSalesSummary(previous, sellerId, comparable)
-  const sellers = useSellerOptions(range, isManager)
+  const sellers = useSellerOptions(isManager)
   const grouping = chosenGrouping ?? defaultGrouping(range)
 
   const report = current.data

@@ -3,7 +3,7 @@ import { compactParams, readOption, readPositiveInt, readRange } from '@/lib/sea
 
 import type { MovementType } from './queries'
 
-export const MOVEMENT_TYPES: MovementType[] = ['PURCHASE', 'SALE', 'SALE_CANCELLATION', 'ADJUSTMENT']
+export const MOVEMENT_TYPES: MovementType[] = ['PURCHASE', 'PURCHASE_CANCEL', 'SALE', 'SALE_CANCELLATION', 'ADJUSTMENT']
 /** Without a product the API lists one type of movement across the store, over at most this many days. */
 export const MAX_STORE_WIDE_DAYS = 366
 /** Days the ledger shows when it needs dates and the URL has none. */

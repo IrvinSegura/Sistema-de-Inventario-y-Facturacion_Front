@@ -1,4 +1,4 @@
-import { Pencil, UserPlus, Users } from 'lucide-react'
+import { History, KeyRound, Pencil, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,10 +18,11 @@ import { type SortState } from '@/lib/sort'
 import { usePageSize } from '@/lib/use-page-size'
 import { cn } from '@/lib/utils'
 
+import { AccountHistoryDialog } from './AccountHistoryDialog'
 import { type UserAccount, useUserAccounts } from './queries'
-import { CreateUserDialog, EditUserDialog } from './UserDialogs'
+import { CreateUserDialog, EditUserDialog, ResetPasswordDialog } from './UserDialogs'
 
-/** Admins only: every staff account, paged, with dialogs to create and edit them. */
+/** Admins only: every staff account, paged, with dialogs to create and edit them, reset their passwords and see their history. */
 export function UsersPage() {
   const { t } = useTranslation()
   const currentUser = useUser()
@@ -31,6 +32,8 @@ export function UsersPage() {
   const [sort, setSort] = useState<SortState | null>(null)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<UserAccount | null>(null)
+  const [resetting, setResetting] = useState<UserAccount | null>(null)
+  const [viewingHistory, setViewingHistory] = useState<UserAccount | null>(null)
   const accounts = useUserAccounts(page, pageSize, sort)
   const changeSort = (next: SortState | null) => {
     setSort(next)
@@ -57,7 +60,8 @@ export function UsersPage() {
       ) : (
         <Card className="gap-0 py-0">
           <UsersTable accounts={accounts.data.content ?? []} sort={sort} onSort={changeSort} currentUserId={currentUser.id}
-            onEdit={setEditing} onCreate={() => setCreating(true)} />
+            onEdit={setEditing} onResetPassword={setResetting} onShowHistory={setViewingHistory}
+            onCreate={() => setCreating(true)} />
           <Pagination page={page} pageSize={pageSize} total={accounts.data.page?.totalElements ?? 0}
             loading={accounts.isPlaceholderData} onPageChange={setPage}
             onPageSizeChange={(size) => {
@@ -70,16 +74,20 @@ export function UsersPage() {
       <CreateUserDialog open={creating} onOpenChange={setCreating} />
       <EditUserDialog account={editing} currentUserId={currentUser.id}
         onOpenChange={(open) => !open && setEditing(null)} />
+      <ResetPasswordDialog account={resetting} onOpenChange={(open) => !open && setResetting(null)} />
+      <AccountHistoryDialog account={viewingHistory} onOpenChange={(open) => !open && setViewingHistory(null)} />
     </div>
   )
 }
 
-function UsersTable({ accounts, currentUserId, onEdit, onCreate, sort, onSort }: {
+function UsersTable({ accounts, currentUserId, onEdit, onResetPassword, onShowHistory, onCreate, sort, onSort }: {
   sort: SortState | null
   onSort: (sort: SortState | null) => void
   accounts: UserAccount[]
   currentUserId: number
   onEdit: (account: UserAccount) => void
+  onResetPassword: (account: UserAccount) => void
+  onShowHistory: (account: UserAccount) => void
   onCreate: () => void
 }) {
   const { t, i18n } = useTranslation()
@@ -133,11 +141,27 @@ function UsersTable({ accounts, currentUserId, onEdit, onCreate, sort, onSort }:
                 <span className={cn('size-2 rounded-full', account.active ? 'bg-emerald-500' : 'bg-muted-foreground/50')} />
                 {account.active ? t('users.active') : t('users.inactive')}
               </span>
+              {account.passwordChangeRequired && (
+                <Badge variant="outline" className="ml-2" title={t('users.temporaryPasswordHint')}>
+                  {t('users.temporaryPassword')}
+                </Badge>
+              )}
             </TableCell>
             <TableCell className="hidden tabular-nums md:table-cell">
               {formatStoreDate(account.createdAt, i18n.language)}
             </TableCell>
-            <TableCell className="pr-4 text-right">
+            <TableCell className="pr-4 text-right whitespace-nowrap">
+              {/* An admin changes their own password from the account menu. */}
+              {account.id !== currentUserId && (
+                <Button variant="ghost" size="icon" aria-label={t('users.resetPassword', { name: account.name })}
+                  title={t('users.resetPassword', { name: account.name })} onClick={() => onResetPassword(account)}>
+                  <KeyRound />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" aria-label={t('users.showHistory', { name: account.name })}
+                title={t('users.showHistory', { name: account.name })} onClick={() => onShowHistory(account)}>
+                <History />
+              </Button>
               <Button variant="ghost" size="icon" aria-label={t('users.edit', { name: account.name })}
                 onClick={() => onEdit(account)}>
                 <Pencil />

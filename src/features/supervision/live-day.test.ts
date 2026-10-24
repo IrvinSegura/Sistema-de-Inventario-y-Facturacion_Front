@@ -87,7 +87,7 @@ describe('unbalancedDrawers', () => {
 })
 
 describe('alertCount', () => {
-  const quiet: LiveAlerts = { stale: [], unbalanced: [], lowStockCount: 0, adjustmentCount: 0 }
+  const quiet: LiveAlerts = { stale: [], unbalanced: [], lowStockCount: 0, adjustmentCount: 0, purchaseCancellationCount: 0 }
 
   it('is zero when nothing needs a look', () => {
     expect(alertCount(quiet)).toBe(0)
@@ -96,8 +96,10 @@ describe('alertCount', () => {
   it('counts one line per kind, and each unbalanced drawer apart', () => {
     const unbalanced = [{ drawer: closedDrawer(1, 60), difference: 60 }, { drawer: closedDrawer(2, -70), difference: -70 }]
 
-    expect(alertCount({ stale: [{ id: 3 }, { id: 4 }], unbalanced, lowStockCount: 12, adjustmentCount: 5 })).toBe(5)
+    expect(alertCount({ stale: [{ id: 3 }, { id: 4 }], unbalanced, lowStockCount: 12, adjustmentCount: 5, purchaseCancellationCount: 2 }))
+      .toBe(6)
     expect(alertCount({ ...quiet, adjustmentCount: 1 })).toBe(1)
+    expect(alertCount({ ...quiet, purchaseCancellationCount: 3 })).toBe(1)
   })
 })
 

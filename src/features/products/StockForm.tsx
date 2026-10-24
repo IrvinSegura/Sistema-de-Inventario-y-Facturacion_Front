@@ -13,12 +13,12 @@ import { Button } from '@/components/ui/button'
 import { DialogClose, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { showSuccess } from '@/lib/success-popup'
+import { REASON_MAX_LENGTH } from '@/lib/text-rules'
 import { cn } from '@/lib/utils'
 
 import { MAX_ADJUSTMENT, type Product, useAdjustStock } from './queries'
 
 // Same limit as the API (CreateStockAdjustmentRequest).
-const REASON_MAX_LENGTH = 255
 
 type Mode = 'add' | 'remove'
 

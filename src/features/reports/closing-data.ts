@@ -26,7 +26,8 @@ export interface ClosingFigures {
 /** A day's totals, and the counts of the drawers already closed. */
 export function closingFigures(closing: CashClosing): ClosingFigures {
   const drawers = closing.drawers ?? []
-  const closed = drawers.map((drawer) => drawer.closing).filter((figures) => figures !== undefined)
+  // The API sends null for a drawer that is still open.
+  const closed = drawers.map((drawer) => drawer.closing).filter((figures) => figures != null)
   const sum = (values: (number | undefined)[]) => fromCents(values.reduce<number>((total, value) => total + toCents(value ?? 0), 0))
   return {
     sales: closing.total?.salesTotal ?? 0,

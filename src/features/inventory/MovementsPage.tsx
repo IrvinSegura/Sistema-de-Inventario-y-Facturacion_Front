@@ -9,6 +9,7 @@ import {
   RotateCcw,
   ShoppingBasket,
   SlidersHorizontal,
+  Undo2,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -57,6 +58,7 @@ const ALL_TYPES = 'all'
 
 const typeIcons: Record<MovementType, LucideIcon> = {
   PURCHASE: ArrowDownLeft,
+  PURCHASE_CANCEL: Undo2,
   SALE: ArrowUpRight,
   SALE_CANCELLATION: RotateCcw,
   ADJUSTMENT: SlidersHorizontal,
@@ -119,6 +121,8 @@ export function MovementsPage() {
     switch (movement.type) {
       case 'PURCHASE':
         return t('inventory.ledger.purchaseRef', { id: movement.purchaseId })
+      case 'PURCHASE_CANCEL':
+        return t('inventory.ledger.purchaseCancellationRef', { id: movement.purchaseId })
       case 'SALE':
         return t('inventory.ledger.saleRef', { number: movement.saleNumber })
       case 'SALE_CANCELLATION':

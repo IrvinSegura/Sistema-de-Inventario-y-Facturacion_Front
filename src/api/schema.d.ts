@@ -13,8 +13,31 @@ export interface paths {
         };
         /** Get a user */
         get: operations["findById"];
-        /** Update name, role and status; role or status changes revoke sessions */
+        /**
+         * Update name, email, role and status; role or status changes revoke sessions
+         * @description A new email invalidates the user's pending password reset codes; 409 if another account has it.
+         */
         put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reset a user's password to a temporary one
+         * @description Ends all of the user's sessions; until they change it, every endpoint but their profile, their password change and logout answers 403. 400 for the admin's own account.
+         */
+        put: operations["resetUserPassword"];
         post?: never;
         delete?: never;
         options?: never;
@@ -261,7 +284,7 @@ export interface paths {
         };
         /**
          * List purchases, newest first unless sorted
-         * @description Sort by id, purchaseDate, total, supplier or recordedBy.
+         * @description Each one carries its cancellation (who, when and why) when cancelled. Sort by id, purchaseDate, total, status, supplier or recordedBy.
          */
         get: operations["search_2"];
         put?: never;
@@ -270,6 +293,26 @@ export interface paths {
          * @description Send an Idempotency-Key (UUID) to make retries safe: a repeated key returns the original purchase (200) instead of recording it twice.
          */
         post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchases/{id}/cancellation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a purchase and take its units back out of stock
+         * @description Takes the units' cost out of each product's average cost. 409 if it is already cancelled, or if a product has fewer units left than the purchase brought (already sold): then nothing changes.
+         */
+        post: operations["cancel_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -497,6 +540,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A user's account history, newest first
+         * @description Who created the account and changed its email, role, status or password, and when.
+         */
+        get: operations["findEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -526,6 +589,26 @@ export interface paths {
          * @description Ordered by how far each product is below its minimum; the sort parameter is ignored.
          */
         get: operations["lowStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sellers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every seller account, by name
+         * @description Inactive ones too, for past records.
+         */
+        get: operations["findAll_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -788,6 +871,11 @@ export interface components {
     schemas: {
         UpdateUserRequest: {
             name: string;
+            /**
+             * Format: email
+             * @description New sign-in email; omit or null to keep the current one
+             */
+            email?: string;
             /** @enum {string} */
             role: "ADMIN" | "SUPERVISOR" | "SELLER";
             active: boolean;
@@ -803,8 +891,12 @@ export interface components {
             /** @enum {string} */
             role?: "ADMIN" | "SUPERVISOR" | "SELLER";
             active?: boolean;
+            passwordChangeRequired?: boolean;
             /** Format: date-time */
             createdAt?: string;
+        };
+        ResetUserPasswordRequest: {
+            temporaryPassword: string;
         };
         ChangePasswordRequest: {
             currentPassword: string;
@@ -957,7 +1049,7 @@ export interface components {
             productId?: number;
             productName?: string;
             /** @enum {string} */
-            type?: "PURCHASE" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
+            type?: "PURCHASE" | "PURCHASE_CANCEL" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
             /** Format: int32 */
             quantity?: number;
             /** Format: int32 */
@@ -1043,6 +1135,12 @@ export interface components {
             supplierId: number;
             items: components["schemas"]["CreatePurchaseItem"][];
         };
+        PurchaseCancellation: {
+            /** Format: date-time */
+            cancelledAt?: string;
+            cancelledBy?: components["schemas"]["Ref"];
+            reason?: string;
+        };
         PurchaseItemResponse: {
             /** Format: int64 */
             productId?: number;
@@ -1060,8 +1158,14 @@ export interface components {
             recordedBy?: components["schemas"]["Ref"];
             /** Format: date-time */
             purchaseDate?: string;
+            /** @enum {string} */
+            status?: "COMPLETED" | "CANCELLED";
             total?: number;
+            cancellation?: components["schemas"]["PurchaseCancellation"];
             items?: components["schemas"]["PurchaseItemResponse"][];
+        };
+        CancelPurchaseRequest: {
+            reason: string;
         };
         CreateProductRequest: {
             sku: string;
@@ -1168,6 +1272,26 @@ export interface components {
             content?: components["schemas"]["UserResponse"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        AccountEventResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            type?: "CREATED" | "EMAIL_CHANGED" | "PHONE_CHANGED" | "ROLE_CHANGED" | "DEACTIVATED" | "REACTIVATED" | "PASSWORD_RESET" | "PASSWORD_CHANGED" | "PASSWORD_RECOVERED";
+            oldValue?: string;
+            newValue?: string;
+            actor?: components["schemas"]["Actor"];
+            /** Format: date-time */
+            occurredAt?: string;
+        };
+        Actor: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+        };
+        PagedModelAccountEventResponse: {
+            content?: components["schemas"]["AccountEventResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelSupplierResponse: {
             content?: components["schemas"]["SupplierResponse"][];
             page?: components["schemas"]["PageMetadata"];
@@ -1189,6 +1313,12 @@ export interface components {
         PagedModelLowStockProductResponse: {
             content?: components["schemas"]["LowStockProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        SellerResponse: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            active?: boolean;
         };
         PagedModelSaleSummaryResponse: {
             content?: components["schemas"]["SaleSummaryResponse"][];
@@ -1351,7 +1481,10 @@ export interface components {
             recordedBy?: components["schemas"]["Ref"];
             /** Format: date-time */
             purchaseDate?: string;
+            /** @enum {string} */
+            status?: "COMPLETED" | "CANCELLED";
             total?: number;
+            cancellation?: components["schemas"]["PurchaseCancellation"];
         };
         PurchaseReportResponse: {
             /** Format: date */
@@ -1453,6 +1586,30 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
                 };
+            };
+        };
+    };
+    resetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetUserPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1991,10 +2148,15 @@ export interface operations {
         parameters: {
             query?: {
                 supplierId?: number;
+                status?: "COMPLETED" | "CANCELLED";
                 /** @description Inclusive, ISO-8601 instant */
                 from?: string;
                 /** @description Exclusive, ISO-8601 instant */
                 to?: string;
+                /** @description Cancelled at or after this ISO-8601 instant (only cancelled purchases match) */
+                cancelledFrom?: string;
+                /** @description Cancelled before this ISO-8601 instant (only cancelled purchases match) */
+                cancelledTo?: string;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -2031,6 +2193,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreatePurchaseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PurchaseResponse"];
+                };
+            };
+        };
+    };
+    cancel_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPurchaseRequest"];
             };
         };
         responses: {
@@ -2425,6 +2613,35 @@ export interface operations {
             };
         };
     };
+    findEvents: {
+        parameters: {
+            query?: {
+                /** @description Zero-based page index (0..N) */
+                page?: number;
+                /** @description The size of the page to be returned */
+                size?: number;
+                /** @description Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+                sort?: string[];
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelAccountEventResponse"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -2469,6 +2686,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PagedModelLowStockProductResponse"];
+                };
+            };
+        };
+    };
+    findAll_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SellerResponse"][];
                 };
             };
         };
@@ -2690,7 +2927,7 @@ export interface operations {
                 /** @description Required unless type is sent */
                 productId?: number;
                 /** @description Required, with from and to, unless productId is sent */
-                type?: "PURCHASE" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
+                type?: "PURCHASE" | "PURCHASE_CANCEL" | "SALE" | "SALE_CANCELLATION" | "ADJUSTMENT";
                 /** @description Inclusive, ISO-8601 instant */
                 from?: string;
                 /** @description Exclusive, ISO-8601 instant */

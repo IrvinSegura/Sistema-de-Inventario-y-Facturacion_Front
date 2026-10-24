@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { managesStore, useUser } from '@/auth/auth-context'
 import { useDayClosing, useStaleDrawers } from '@/features/cash-drawer/queries'
 import { useDayMovementCount, useLowStockCount } from '@/features/inventory/queries'
+import { useDayPurchaseCancellationCount } from '@/features/purchases/queries'
 import { useToday } from '@/lib/use-today'
 
 import { LIVE_QUERY_OPTIONS, LiveAlertsContext } from './live-alerts'
@@ -34,14 +35,18 @@ function useLiveAlerts(today: string) {
   const staleDrawers = useStaleDrawers(today, LIVE_QUERY_OPTIONS)
   const lowStock = useLowStockCount(LIVE_QUERY_OPTIONS)
   const adjustments = useDayMovementCount('ADJUSTMENT', today, LIVE_QUERY_OPTIONS)
+  const purchaseCancellations = useDayPurchaseCancellationCount(today, LIVE_QUERY_OPTIONS)
+  const alertQueries = [staleDrawers, lowStock, adjustments, purchaseCancellations]
 
   const alerts: LiveAlerts | undefined =
     day.data && staleDrawers.data && lowStock.data !== undefined && adjustments.data !== undefined
+      && purchaseCancellations.data !== undefined
       ? {
         stale: staleDrawers.data,
         unbalanced: unbalancedDrawers(day.data),
         lowStockCount: lowStock.data,
         adjustmentCount: adjustments.data,
+        purchaseCancellationCount: purchaseCancellations.data,
       }
       : undefined
 
@@ -50,8 +55,8 @@ function useLiveAlerts(today: string) {
     staleDrawers,
     alerts,
     // The day's own error shows separately, next to its figures.
-    alertsError: staleDrawers.error ?? lowStock.error ?? adjustments.error,
-    isFetching: day.isFetching || staleDrawers.isFetching || lowStock.isFetching || adjustments.isFetching,
-    refetch: () => Promise.all([day.refetch(), staleDrawers.refetch(), lowStock.refetch(), adjustments.refetch()]),
+    alertsError: alertQueries.find((query) => query.error)?.error ?? null,
+    isFetching: day.isFetching || alertQueries.some((query) => query.isFetching),
+    refetch: () => Promise.all([day, ...alertQueries].map((query) => query.refetch())),
   }
 }

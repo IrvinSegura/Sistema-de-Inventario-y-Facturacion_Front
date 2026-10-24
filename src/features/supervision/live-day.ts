@@ -75,11 +75,17 @@ export interface LiveAlerts {
   lowStockCount: number
   /** Manual stock adjustments recorded today across the store. */
   adjustmentCount: number
+  /** Purchases cancelled today, whenever they were recorded. */
+  purchaseCancellationCount: number
 }
 
-/** One per alert line: the stale drawers, low stock and adjustments count once each, each unbalanced drawer on its own. */
-export function alertCount({ stale, unbalanced, lowStockCount, adjustmentCount }: LiveAlerts): number {
+/**
+ * One per alert line: the stale drawers, low stock, adjustments and purchase cancellations count once
+ * each, each unbalanced drawer on its own.
+ */
+export function alertCount({ stale, unbalanced, lowStockCount, adjustmentCount, purchaseCancellationCount }: LiveAlerts): number {
   return (stale.length > 0 ? 1 : 0) + unbalanced.length + (lowStockCount > 0 ? 1 : 0) + (adjustmentCount > 0 ? 1 : 0)
+    + (purchaseCancellationCount > 0 ? 1 : 0)
 }
 
 /** Today's sales so far as a share of a whole earlier day's (1 = as much); null when that day sold nothing. */
