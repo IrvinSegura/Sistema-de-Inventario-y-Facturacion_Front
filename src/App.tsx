@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router'
 
+import { CHANGE_PASSWORD_PATH } from '@/auth/auth-context'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { RequireRole } from '@/auth/RequireRole'
 import { CashDrawerLayout } from '@/features/cash-drawer/CashDrawerLayout'
@@ -30,6 +31,7 @@ import { LivePage } from '@/features/supervision/LivePage'
 import { SupervisionLayout } from '@/features/supervision/SupervisionLayout'
 import { UsersPage } from '@/features/users/UsersPage'
 import { AppLayout } from '@/layouts/AppLayout'
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LoginPage } from '@/pages/LoginPage'
 
@@ -39,6 +41,8 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route element={<RequireAuth />}>
+        {/* Full page like the sign-in screens: a user with a temporary password sees nothing else. */}
+        <Route path={CHANGE_PASSWORD_PATH} element={<ChangePasswordPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route element={<RequireRole roles={['SELLER']} />}>

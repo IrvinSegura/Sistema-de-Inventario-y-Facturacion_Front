@@ -1,7 +1,8 @@
-import { ChevronDown, LogOut } from 'lucide-react'
+import { ChevronDown, KeyRound, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
 
-import { useAuth, useUser } from '@/auth/auth-context'
+import { CHANGE_PASSWORD_PATH, useAuth, useUser } from '@/auth/auth-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +20,7 @@ import { LanguageToggle, ThemeToggle } from '@/preferences/PreferenceToggles'
 export function UserMenu() {
   const { t } = useTranslation()
   const { logout } = useAuth()
+  const navigate = useNavigate()
   const user = useUser()
 
   return (
@@ -50,6 +52,10 @@ export function UserMenu() {
           <ThemeToggle />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => void navigate(CHANGE_PASSWORD_PATH)}>
+          <KeyRound />
+          {t('changePassword.menu')}
+        </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onClick={() => void logout()}>
           <LogOut />
           {t('app.signOut')}
