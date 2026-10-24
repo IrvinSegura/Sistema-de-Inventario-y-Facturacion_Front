@@ -46,7 +46,7 @@ export function CashClosingReportPage() {
   const [viewing, setViewing] = useState<CashDrawer | null>(null)
   const [exporting, setExporting] = useState(false)
   const closing = useDayClosing(date, { sellerId: sellerId ?? undefined })
-  const sellers = useSellerOptions({ from: date, to: date })
+  const sellers = useSellerOptions()
   const reportMeta = useReportMeta()
 
   const seller = sellers.find((option) => option.id === sellerId)

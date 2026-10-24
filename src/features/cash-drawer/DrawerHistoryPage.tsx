@@ -44,7 +44,7 @@ export function DrawerHistoryPage() {
   const [sort, setSort] = useState<SortState | null>(null)
   const [selected, setSelected] = useState<CashDrawer | null>(null)
   // Managers filter by seller; only sellers have drawers.
-  const sellers = useSellerOptions(range, manager)
+  const sellers = useSellerOptions(manager)
 
   const search: DrawerSearch = { ...range, sellerId: seller === ALL_SELLERS ? undefined : Number(seller) }
   const drawers = useDrawers(search, page, pageSize, sort)

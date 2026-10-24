@@ -105,7 +105,7 @@ export function SalesPage() {
   const byCancellation = filters.dateField === 'cancelledAt'
   // The report counts sales by the day they were rung up, so it can't sum a cancellation period.
   const summary = useSalesSummary(filters.range, filters.sellerId, reportable && !byCancellation)
-  const sellers = useSellerOptions(filters.range, reportable)
+  const sellers = useSellerOptions()
   const reportMeta = useReportMeta()
   const byNumber = filters.saleNumber !== null
 
