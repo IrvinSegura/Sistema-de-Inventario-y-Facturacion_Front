@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { LiveAlertsProvider } from '@/features/supervision/LiveAlertsProvider'
 
 import { AppSidebar, Brand } from './AppSidebar'
@@ -61,7 +62,8 @@ export function AppLayout() {
                 <PanelLeft />
               </Button>
               <Brand className="md:hidden" />
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-1">
+                <NotificationBell />
                 <UserMenu />
               </div>
             </div>

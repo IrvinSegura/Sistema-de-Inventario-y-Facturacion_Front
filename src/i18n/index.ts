@@ -23,11 +23,12 @@ void i18n
     // es-MX, es-ES... -> es.
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
-    fallbackLng: 'en',
+    // Spanish until the user picks a language, whatever the browser's.
+    fallbackLng: 'es',
     // React already escapes rendered text.
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       lookupLocalStorage: 'inventory.language',
       caches: ['localStorage'],
     },
@@ -35,7 +36,7 @@ void i18n
 
 /** Screen readers and the browser's spell checker follow <html lang>; the tab title is translated too. */
 function syncDocument() {
-  document.documentElement.lang = i18n.resolvedLanguage ?? 'en'
+  document.documentElement.lang = i18n.resolvedLanguage ?? 'es'
   document.title = i18n.t('app.name')
 }
 i18n.on('languageChanged', syncDocument)

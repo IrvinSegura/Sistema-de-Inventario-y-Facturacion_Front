@@ -4,9 +4,10 @@ import { managesStore, useUser } from '@/auth/auth-context'
 import { useDayClosing, useStaleDrawers } from '@/features/cash-drawer/queries'
 import { useDayMovementCount, useLowStockCount } from '@/features/inventory/queries'
 import { useDayPurchaseCancellationCount } from '@/features/purchases/queries'
+import { LIVE_QUERY_OPTIONS } from '@/lib/live'
 import { useToday } from '@/lib/use-today'
 
-import { LIVE_QUERY_OPTIONS, LiveAlertsContext } from './live-alerts'
+import { LiveAlertsContext } from './live-alerts'
 import { type LiveAlerts, unbalancedDrawers } from './live-day'
 
 /**
@@ -27,7 +28,7 @@ function ManagerLiveAlertsProvider({ children }: { children: ReactNode }) {
 export type LiveAlertsState = ReturnType<typeof useLiveAlerts> & { today: string }
 
 /**
- * The day's closing and the other queries behind the live alerts, polling every REFRESH_EVERY_MS;
+ * The day's closing and the other queries behind the live alerts, polling every LIVE_REFRESH_MS;
  * `alerts` is there once all of them have loaded. Private: a second caller would poll on its own timer.
  */
 function useLiveAlerts(today: string) {

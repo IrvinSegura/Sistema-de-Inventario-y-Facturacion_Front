@@ -340,6 +340,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/read-receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark one notification as read
+         * @description Marking it again keeps the first read time. 404 if it isn't the user's.
+         */
+        post: operations["markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark all of the user's notifications as read */
+        post: operations["markAllRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers": {
         parameters: {
             query?: never;
@@ -760,6 +797,43 @@ export interface paths {
         };
         /** Find a product by barcode (checkout scan) */
         get: operations["findByBarcode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The user's notifications, newest first
+         * @description Read notifications are kept 30 days; any notification, 90. PURCHASE_CANCELLED is listed to managers only. Values by type (the rest are null): SALE_CANCELLED and PURCHASE_CANCELLED: subjectId (sale or purchase), subjectLabel (sale number or supplier), amount (total), reason. CASH_DRAWER_ASSIGNED: subjectId (drawer), subjectLabel (responsible's name), amount (opening float). CASH_DRAWER_CLOSED: subjectId (drawer), subjectLabel (business date), amount (counted minus expected cash). EMAIL_CHANGED, PHONE_CHANGED, PASSWORD_RESET: none.
+         */
+        get: operations["findMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many of the user's notifications are unread */
+        get: operations["countUnread"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1514,6 +1588,30 @@ export interface components {
         PagedModelProductResponse: {
             content?: components["schemas"]["ProductResponse"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        NotificationResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            type?: "SALE_CANCELLED" | "PURCHASE_CANCELLED" | "CASH_DRAWER_ASSIGNED" | "CASH_DRAWER_CLOSED" | "EMAIL_CHANGED" | "PHONE_CHANGED" | "PASSWORD_RESET";
+            /** Format: int64 */
+            subjectId?: number;
+            subjectLabel?: string;
+            amount?: number;
+            reason?: string;
+            actor?: components["schemas"]["Actor"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            readAt?: string;
+        };
+        PagedModelNotificationResponse: {
+            content?: components["schemas"]["NotificationResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        UnreadCountResponse: {
+            /** Format: int64 */
+            count?: number;
         };
         PagedModelInventoryMovementResponse: {
             content?: components["schemas"]["InventoryMovementResponse"][];
@@ -2290,6 +2388,44 @@ export interface operations {
             };
         };
     };
+    markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markAllRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     search_4: {
         parameters: {
             query?: {
@@ -2917,6 +3053,55 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    findMine: {
+        parameters: {
+            query?: {
+                /** @description Only notifications not read yet */
+                unreadOnly?: boolean;
+                /** @description Zero-based page index (0..N) */
+                page?: number;
+                /** @description The size of the page to be returned */
+                size?: number;
+                /** @description Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+                sort?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelNotificationResponse"];
+                };
+            };
+        };
+    };
+    countUnread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UnreadCountResponse"];
                 };
             };
         };

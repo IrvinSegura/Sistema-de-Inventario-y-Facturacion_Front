@@ -15,6 +15,7 @@ import { InventoryLayout } from '@/features/inventory/InventoryLayout'
 import { LowStockPage } from '@/features/inventory/LowStockPage'
 import { MovementsPage } from '@/features/inventory/MovementsPage'
 import { StockPage } from '@/features/inventory/StockPage'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { ProductsPage } from '@/features/products/ProductsPage'
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage'
 import { PurchasesLayout } from '@/features/purchases/PurchasesLayout'
@@ -57,6 +58,7 @@ export function App() {
           </Route>
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route element={<RequireRole roles={['ADMIN', 'SUPERVISOR']} />}>
             <Route path="supervision" element={<SupervisionLayout />}>
               <Route index element={<LivePage />} />

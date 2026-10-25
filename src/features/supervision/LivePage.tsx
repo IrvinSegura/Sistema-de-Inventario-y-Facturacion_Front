@@ -23,14 +23,15 @@ import { formatPercent } from '@/features/reports/format'
 import { useDayCancellations } from '@/features/sales/queries'
 import { formatDay, formatTime } from '@/lib/date-format'
 import { addDays } from '@/lib/days'
+import { LIVE_QUERY_OPTIONS } from '@/lib/live'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { CancellationsCard } from './CancellationsCard'
-import { LIVE_QUERY_OPTIONS, useSharedLiveAlerts } from './live-alerts'
+import { useSharedLiveAlerts } from './live-alerts'
 import { alertCount, averageTicket, type LiveAlerts, salesShare, type SellerDay, sellerDays } from './live-day'
 
-/** Managers' live view of the store's day; today's figures and every alert poll every REFRESH_EVERY_MS. */
+/** Managers' live view of the store's day; today's figures and every alert poll every LIVE_REFRESH_MS. */
 export function LivePage() {
   const { t, i18n } = useTranslation()
   const { today, day, staleDrawers, alerts, alertsError, isFetching, refetch } = useSharedLiveAlerts()
