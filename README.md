@@ -40,8 +40,8 @@ Contenido: [Características](#características) · [Capturas de pantalla](#capt
   filtros). Las cifras y columnas calculadas son fórmulas sobre los datos, y los formatos condicionales y barras
   de datos marcan lo que requiere atención, así que editar el libro lo mantiene consistente.
 
-- Español e inglés (detectado del navegador, se puede cambiar), incluidos los mensajes de error comunes de la API;
-  temas claro y oscuro (o el del sistema). Ambas preferencias se recuerdan por navegador.
+- Español e inglés (español por defecto, se puede cambiar), incluidos los mensajes de error comunes de la API;
+  temas claro y oscuro (claro por defecto). Ambas preferencias se recuerdan por navegador.
 
 ## Capturas de pantalla
 

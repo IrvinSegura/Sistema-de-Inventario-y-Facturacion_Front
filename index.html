@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Inventory Billing</title>
-    <!-- Theme class before the first paint, so dark mode doesn't flash light. Keep the key and the
-         theme names in sync with src/preferences/themes.ts. -->
+    <title>Inventario y Facturación</title>
+    <!-- Theme class before the first paint, so a saved dark theme doesn't flash light. Light until the
+         user picks one. Keep the key and the theme names in sync with src/preferences/themes.ts. -->
     <script>
+      var theme = 'light'
       try {
         var saved = localStorage.getItem('inventory.theme')
-        var theme = saved === 'light' || saved === 'dark' ? saved
-          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-        document.documentElement.classList.add(theme)
-        document.documentElement.style.colorScheme = theme
+        if (saved === 'dark') theme = saved
       } catch (e) {}
+      document.documentElement.classList.add(theme)
+      document.documentElement.style.colorScheme = theme
     </script>
   </head>
   <body>

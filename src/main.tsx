@@ -32,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
     {/* The class is already on <html> from index.html. next-themes' own pre-paint script only runs
         with server rendering, so it is marked as data to stop React warning about it. */}
     <ThemeProvider attribute="class" themes={[...themes]} scriptProps={{ type: 'application/json' }}
-      defaultTheme="system" enableSystem storageKey={themeStorageKey} disableTransitionOnChange>
+      defaultTheme="light" enableSystem={false} storageKey={themeStorageKey} disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
